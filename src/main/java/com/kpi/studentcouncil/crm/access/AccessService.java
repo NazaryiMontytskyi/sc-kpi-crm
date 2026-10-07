@@ -28,7 +28,7 @@ public interface AccessService {
 	/**
 	 * Grants a (non-Admin) role. Idempotent. The Admin role cannot be granted through this API.
 	 *
-	 * @throws com.kpi.studentcouncil.crm.shared.error.NotFoundException    unknown or archived role
+	 * @throws com.kpi.studentcouncil.crm.shared.error.NotFoundException    unknown or archived role, or unknown user
 	 * @throws com.kpi.studentcouncil.crm.shared.error.BusinessRuleException {@code ADMIN_ROLE_RESERVED}
 	 */
 	void grantRole(UUID userId, UUID roleId);

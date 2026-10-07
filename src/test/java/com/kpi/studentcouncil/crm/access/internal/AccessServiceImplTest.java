@@ -43,7 +43,7 @@ class AccessServiceImplTest {
 	@BeforeEach
 	void setUp() {
 		ActorProvider actors = () -> ActorProvider.SYSTEM_ACTOR;
-		service = new AccessServiceImpl(roles, assignments, cache, audit, actors, Clock.systemUTC());
+		service = new AccessServiceImpl(roles, assignments, cache, audit, actors, Clock.systemUTC(), id -> true);
 		roleService = new RoleService(roles, cache, audit, actors, Clock.systemUTC());
 	}
 

@@ -16,6 +16,7 @@ import com.kpi.studentcouncil.crm.audit.AuditAction;
 import com.kpi.studentcouncil.crm.audit.AuditEvent;
 import com.kpi.studentcouncil.crm.audit.AuditPublisher;
 import com.kpi.studentcouncil.crm.identity.PermissionsProvider;
+import com.kpi.studentcouncil.crm.identity.UserDirectory;
 import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
 import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 
@@ -40,14 +41,17 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 
 	private final Clock clock;
 
+	private final UserDirectory users;
+
 	AccessServiceImpl(RoleRepository roles, RoleAssignmentRepository assignments, PermissionCache cache,
-			AuditPublisher audit, ActorProvider actors, Clock clock) {
+			AuditPublisher audit, ActorProvider actors, Clock clock, UserDirectory users) {
 		this.roles = roles;
 		this.assignments = assignments;
 		this.cache = cache;
 		this.audit = audit;
 		this.actors = actors;
 		this.clock = clock;
+		this.users = users;
 	}
 
 	@Override
@@ -93,6 +97,9 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 			throw new BusinessRuleException("ADMIN_ROLE_RESERVED");
 		}
 		Role role = roles.findByIdAndArchivedAtIsNull(roleId).orElseThrow(() -> new NotFoundException("Role", roleId));
+		if (!users.exists(userId)) {
+			throw new NotFoundException("User", userId);
+		}
 		grant(userId, roleId, role.getName());
 	}
 
