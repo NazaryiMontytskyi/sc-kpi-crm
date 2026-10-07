@@ -1,0 +1,6 @@
+# Test-only overrides (profile "test").
+crm:
+  identity:
+    public-api-docs: true
+    password:
+      bcrypt-strength: 4 # fast hashing; production default is 12

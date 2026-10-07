@@ -18,11 +18,42 @@ spring:
   profiles:
     default: dev
 
+server:
+  servlet:
+    session:
+      timeout: 8h # idle timeout
+      cookie:
+        name: CRMSESSION
+        http-only: true
+        same-site: lax
+
+# Identity and security (INC-004). Every value below is the default and can be overridden per environment.
+crm:
+  identity:
+    # Brute-force protection per login+IP: max-attempts failures within window -> lockout (x backoff-multiplier on repeats).
+    throttle:
+      max-attempts: 5
+      window: 15m
+      lockout: 15m
+      backoff-multiplier: 2
+      max-lockout: 24h
+      reset-after: 24h
+    password:
+      min-length: 10
+      bcrypt-strength: 12
+    # OpenAPI/Swagger UI without sign-in; enabled in dev and test only.
+    public-api-docs: false
+  # First Admin account: set CRM_BOOTSTRAP_ADMIN_LOGIN and CRM_BOOTSTRAP_ADMIN_PASSWORD in the environment (no defaults).
+  # bootstrap.admin.login / bootstrap.admin.password
+
 ---
 spring:
   config:
     activate:
       on-profile: dev
+crm:
+  identity:
+    public-api-docs: true
 
 ---
 spring:
@@ -41,3 +72,13 @@ spring:
   docker:
     compose:
       enabled: false
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
