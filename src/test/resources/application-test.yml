@@ -4,3 +4,5 @@ crm:
     public-api-docs: true
     password:
       bcrypt-strength: 4 # fast hashing; production default is 12
+  files:
+    root: target/test-data/files

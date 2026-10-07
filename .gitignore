@@ -35,3 +35,6 @@ build/
 ### Frontend ###
 frontend/node_modules/
 frontend/dist/
+
+### File storage (local dev/test) ###
+/data/

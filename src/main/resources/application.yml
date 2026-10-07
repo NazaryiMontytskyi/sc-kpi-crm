@@ -43,6 +43,11 @@ crm:
       bcrypt-strength: 12
     # OpenAPI/Swagger UI without sign-in; enabled in dev and test only.
     public-api-docs: false
+  # Files (INC-009). Spring multipart limits are derived from max-size; do not set spring.servlet.multipart.* separately.
+  files:
+    root: ${CRM_FILES_ROOT:./data/files} # mount a persistent volume here in production
+    max-size: 20MB
+    # allowed-mime-types: [...]  # default list: PDF, png/jpeg/gif/webp, text/plain, csv, Office/OpenDocument, zip
   # First Admin account: set CRM_BOOTSTRAP_ADMIN_LOGIN and CRM_BOOTSTRAP_ADMIN_PASSWORD in the environment (no defaults).
   # bootstrap.admin.login / bootstrap.admin.password
 
