@@ -73,7 +73,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q4): every user has an individual password; no shared/group passwords (no shared default password anywhere; each temporary password is random per account). Brute-force protection is mandatory. Thresholds not specified by the owner: defaults = 5 failed attempts per login+IP within 15 min -> 15 min lockout with exponential backoff, min password length 10, session idle timeout 8 h; all configurable via `application.yml`.
 
 #### INC-005 — Access core: Permission catalog, Role, RoleAssignment, authorization wiring
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `access`
 - **Depends on:** INC-004
 - **Scope:** `Permission` enum with exactly the keys of CONTEXT.md §5.2 (extensible); `Role` (name, description, permissions, `isSystem`), `RoleAssignment` (userId, roleId, optional `scopeOrgUnitId` column present but unused `[ASSUMPTION]`); hardcoded `Admin` system role (all permissions, cannot be edited/deleted via API); effective permissions = union over assignments (+ Admin); `GrantedAuthority` per permission loaded into the session principal; `@EnableMethodSecurity`; public `AccessService` (hasPermission, effectivePermissions, grantRole/revokeRole for other modules); `/auth/me` returns effective permissions; permission cache invalidated on role/assignment change; migration.
