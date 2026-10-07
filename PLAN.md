@@ -56,7 +56,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** actor resolution depends on INC-004; use an `ActorProvider` interface with a system-actor fallback until then.
 
 #### INC-004 — Identity: User, session login, security baseline
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `identity`
 - **Depends on:** INC-002, INC-003
 - **Scope:** `User` entity (login, passwordHash, status ACTIVE|ARCHIVED|BLOCKED, locale uk|en, lastLoginAt, `mustChangePassword`); migration; Spring Security config: session in HttpOnly cookie, CSRF protection (cookie token for SPA), BCrypt (or Argon2) hashing, `/api/v1/auth/login`, `/logout`, `/me` (id, login, locale, permissions list placeholder, mustChangePassword), `/auth/change-password`; login attempt limiting (lockout/backoff, configurable); archived/blocked users cannot sign in; forced password change enforced server-side (all other endpoints return 403 problem code `PASSWORD_CHANGE_REQUIRED` until changed); bootstrap of the first `Admin` account from env variables on empty DB; audit events LOGIN, LOGIN_FAILED, PASSWORD_CHANGE; OIDC extension point (`ExternalIdentity` link not implemented, authentication provider kept pluggable — §7 KPI ID `[LATER]`).
