@@ -27,7 +27,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Risk: Boot 4 / Modulith 2.x / springdoc compatibility — implementer must pick the springdoc version that targets Boot 4 and record it in ADR.
 
 #### INC-002 — Shared kernel: base entity, soft delete, errors, pagination, backend i18n
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `shared` (kernel package, not a business module)
 - **Depends on:** INC-001
 - **Scope:** `BaseEntity` (UUID id, createdAt/By, updatedAt/By via JPA auditing, UTC `Instant`); `ArchivableEntity` (archivedAt/By, `archive()/restore()`, default query filters for non-archived); `/api/v1` prefix convention; RFC 7807 Problem Details global handler (validation, not found, forbidden, conflict, domain-rule violations with stable `code` property); `PageResponse` and pagination params; Spring `MessageSource` with `messages_uk.properties` / `messages_en.properties`, locale resolved from user locale/`Accept-Language`, default `uk`; injectable `Clock`; `AuditorAware` placeholder.
