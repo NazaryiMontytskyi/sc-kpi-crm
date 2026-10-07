@@ -132,7 +132,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** needs backend endpoint to persist locale (`PATCH /auth/me/locale`) — included in INC-004 scope extension; if missing, report to orchestrator.
 
 #### INC-009 — Files module: FileStorage abstraction and upload/download
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `files`
 - **Depends on:** INC-005
 - **Scope:** `FileObject` entity (storageKey, fileName, mimeType, size, uploadedBy); `FileStorage` interface + `LocalFileStorage` (configurable root path, Docker volume ready); endpoints `POST /api/v1/files` (multipart), `GET /api/v1/files/{id}` (streaming, correct content type/disposition); configurable max size and MIME allow-list; public `FileService` for other modules (attach by id); safe key generation (no path traversal); soft-delete (archive) only; audit events.
