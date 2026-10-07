@@ -5,7 +5,7 @@ Source: CONTEXT.md §9 (MVP), §5.1–5.4, 5.8–5.11, §6, §8; CLAUDE.md "Proj
 
 ### Overview
 Delivers the `[MVP]` stage only: accounts, team records/org, role builder, task tracker with resolutions, knowledge base with onboarding, global search, in-app notifications, audit log, "My resolutions" widget, uk/en, Docker Compose deployment. Meetings, voting, Handover, shared dashboard, calendar view and PWA are `[v2]` and are NOT planned (extension points are noted where relevant).
-Phases (by dependency, not strictly by number): A Foundation (001-010) -> B Access/Audit (011-014) -> C Members/Org (052 faculty dictionary first, then 015-023) -> D Tasks core (024-028, 030) -> E Resolutions (032-037, then 029 saved filters and 031 done-suggestion, which depend on INC-032) -> F Knowledge (038-042) -> G Notifications, Search, Widget (043-048) -> H Deployment, brand assets, E2E (049-051). INC-052 is numbered last but scheduled before INC-015.
+Phases (by dependency, not strictly by number): A Foundation (001-010) -> B Access/Audit (011-014) -> C Members/Org (052 faculty dictionary backend first, then 015-023; 053 faculty admin page) -> D Tasks core (024-028, 030) -> E Resolutions (032-037, then 029 saved filters and 031 done-suggestion, which depend on INC-032) -> F Knowledge (038-042) -> G Notifications, Search, Widget (043-048) -> H Deployment, brand assets, E2E (049-051). INC-052 (faculty dictionary, backend) is numbered last but scheduled before INC-015; INC-053 (its admin page, frontend) follows INC-052 and INC-008.
 Repo state found: Maven root project with `pom.xml` (Spring Boot 4.1.1, Java 21 — compliant with CLAUDE.md), Spring Modulith 2.1.1, JPA, Flyway, Security, Validation, webmvc, actuator, Testcontainers, Lombok, `spring-boot-docker-compose`. Missing: MapStruct, springdoc-openapi, project name/description metadata, `application.yml`, ADRs, `deploy/`, `frontend/`, `assets/brand/`. Root `compose.yaml` (Initializr, `postgres:latest`, default creds) must be moved/replaced.
 Conventions for ALL increments below (not repeated in each): permissions via `@PreAuthorize` with keys from CONTEXT.md §5.2; every data change emits a domain event consumed by `audit` (§5.10); soft delete only; new Flyway migration per schema change (never edit an old one); uk+en keys together; UI checked at 375 px, light+dark, colors via theme tokens; OpenAPI updated and TS client regenerated; modules talk only via public services/events; domain events for create/update/archive are published so `search` and `notifications` can subscribe.
 
@@ -707,19 +707,33 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Tests required:** e2e.
 - **Notes:** —
 
-#### INC-052 — Faculty/institute dictionary (managed reference data)
+#### INC-052 — Faculty/institute dictionary (backend)
 - **Status:** TODO
-- **Module(s):** backend `members` + frontend `members` (admin settings page)
+- **Module(s):** backend `members`
 - **Depends on:** INC-005, INC-010
-- **Scope:** `Faculty` entity (code, name uk, name en, archivedAt) with CRUD and archive/restore; mutations need `settings.manage` (Admin has it; grantable via roles), read for any authenticated user; migration; seed hook with a small generic placeholder list (real list supplied by humans); admin UI page; used by INC-015 (`MemberProfile.facultyId`) and the directory filter in INC-021.
-- **Out of scope:** faculty hierarchy, faculty councils `[LATER]`.
+- **Scope:** `Faculty` entity (code, name uk, name en, archivedAt) extending the shared archivable base; migration; CRUD + archive/restore REST API (`/api/v1/faculties`), mutations need `settings.manage` (Admin has it; grantable via roles), reads for any authenticated user (`?includeArchived` only for `settings.manage`); small generic placeholder list seeded as a REFERENCE seeder through the existing `crm.shared.seed.Seeder` hook (idempotent, real list supplied by humans, no real personal data); public lookup API `FacultyLookup` (exists/active check, resolve by id, list active) for use by INC-015 (`MemberProfile.facultyId`) and INC-021 (directory filter) without exposing entities; audit events and `FacultyCreated/Updated/Archived` domain events; uk/en backend messages for error codes.
+- **Out of scope:** admin UI (INC-053), faculty hierarchy, faculty councils `[LATER]`.
 - **Acceptance criteria:**
-  1. Create/edit/archive/restore require `settings.manage`; others get 403; list readable by all authenticated users.
-  2. Archiving a faculty in use is soft and keeps existing profiles intact; archived faculties are not selectable for new or edited profiles.
-  3. Names are unique among active faculties; uk and en names both required.
-  4. Audit events emitted; UI works at 375 px with uk+en.
-- **Tests required:** unit, integration, frontend.
-- **Notes:** decision Q5. Numbered last but must be scheduled before INC-015.
+  1. Create/edit/archive/restore require `settings.manage`; others get 403; list and lookup readable by all authenticated users.
+  2. Archiving a faculty in use is soft and keeps existing profiles intact; `FacultyLookup` reports archived faculties as not selectable for new or edited profiles.
+  3. Names are unique among active faculties; uk and en names both required (validation problem details, uk+en messages).
+  4. Seeder is idempotent (second run adds nothing) and registered via the `Seeder` hook as reference data (runs in all profiles, unlike dev fake data).
+  5. Audit events emitted with before/after for every mutation; OpenAPI updated and client regenerated when the frontend toolchain is available.
+- **Tests required:** unit (uniqueness, archive rules), integration (permission matrix, seeder idempotency, lookup).
+- **Notes:** decision Q5. Numbered last but must be scheduled before INC-015. Backend-only so backend work is not blocked by the frontend toolchain.
+
+#### INC-053 — Faculty/institute dictionary admin page (frontend)
+- **Status:** TODO
+- **Module(s):** frontend `members` (admin settings page)
+- **Depends on:** INC-052, INC-008
+- **Scope:** settings page listing faculties (active/archived toggle), create/edit form (code, uk and en names), archive/restore with confirmation; page and nav entry visible only with `settings.manage` (backend remains authoritative); faculty select component reusable by INC-016/021.
+- **Out of scope:** other settings pages.
+- **Acceptance criteria:**
+  1. Page and mutating actions are hidden without `settings.manage`; a backend 403 is shown as a localized message.
+  2. Server validation errors (duplicate name, missing uk/en name) are displayed per field.
+  3. Works at 375 px (cards on mobile), light and dark theme, brand color via tokens; uk+en keys complete.
+- **Tests required:** frontend (form validation, permission gating).
+- **Notes:** schedule together with INC-016 when the frontend toolchain is available.
 
 ### Open questions
 - **OPEN-Q3** (INC-022): activity level scale (tiers vs numeric) with HR (CONTEXT.md §10 item 3). Plan uses editable reference data with a placeholder scale.
