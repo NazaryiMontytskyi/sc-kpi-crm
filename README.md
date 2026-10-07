@@ -25,3 +25,15 @@ On an empty database the backend creates the first `Admin` account from environm
 
 ## Authentication
 Session cookie `CRMSESSION` (HttpOnly; Secure in the `prod` profile) plus CSRF: the SPA echoes the `XSRF-TOKEN` cookie in the `X-XSRF-TOKEN` header (`GET /api/v1/auth/me` hands the cookie out even when it answers 401). Tunables (`crm.identity.*`: lockout thresholds, password length, bcrypt cost, `server.servlet.session.timeout`) are in `application.yml`. OpenAPI/Swagger UI are public in `dev`/`test` only and disabled in `prod`.
+
+## Frontend
+React + TypeScript (Vite, Mantine), stack and versions in `docs/adr/0004-frontend-stack.md`. Node 22.12+.
+```bash
+cd frontend
+npm ci
+npm run dev             # http://localhost:5173, proxies /api to http://localhost:8080
+npm run build | npm run lint | npm test
+npm run api:generate    # regenerate the typed client from the pinned frontend/openapi/openapi.json
+npm run api:generate:live   # refresh openapi.json from a running backend (dev profile), then regenerate
+```
+Environment: copy `frontend/.env.example` to `frontend/.env.local`. Brand colors only via theme tokens (`src/theme/colors.ts`); logos are read from `assets/brand/` and fall back to the product name as text when missing. UI strings live in `src/i18n/locales/{uk,en}.json` (keep keys identical).
