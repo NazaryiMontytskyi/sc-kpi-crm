@@ -8,8 +8,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 
 /** Registers the test entity/repository/controller and a throw-away schema (Hibernate create-drop, set by the tests). */
 @TestConfiguration(proxyBeanMethods = false)
-@EntityScan(basePackageClasses = KernelTestConfig.class)
-@EnableJpaRepositories(basePackageClasses = KernelTestConfig.class)
+@EntityScan(basePackages = { "com.kpi.studentcouncil.crmtest.shared", "com.kpi.studentcouncil.crm.audit.internal" })
+@EnableJpaRepositories(basePackages = { "com.kpi.studentcouncil.crmtest.shared",
+		"com.kpi.studentcouncil.crm.audit.internal" })
 @EnableMethodSecurity
 @Import(TestApiController.class)
 public class KernelTestConfig {
