@@ -240,7 +240,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-017 — Org: OrgUnit tree (backend)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `org`
 - **Depends on:** INC-005
 - **Scope:** `OrgUnit` (name, type LEADERSHIP|DEPARTMENT|DIVISION|WORKING_GROUP, parentId, description, archivedAt); invariants: DIVISION parent must be a DEPARTMENT, WORKING_GROUP has no hierarchy parent requirement (outside the hierarchy), only one LEADERSHIP root, no cycles; create/rename/move/archive/restore (`org.manage`); `GET` tree and node endpoints (`org.view` base); archiving a unit with active children or active memberships is refused or requires explicit flag `[ASSUMPTION]`; events and audit.
