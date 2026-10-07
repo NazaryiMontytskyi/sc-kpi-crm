@@ -160,7 +160,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-011 — Access: effective permissions in session and permission-denied contract (hardening)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `access`
 - **Depends on:** INC-005, INC-010
 - **Scope:** `GET /api/v1/permissions` (catalog, grouped as §5.2, with i18n labels uk/en); `GET /api/v1/users/{id}/permissions` (requires `roles.assign` or self); verification that a permission change takes effect on the next request for active sessions.
