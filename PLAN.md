@@ -147,7 +147,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q8): max upload 20 MB (`files.max-size`, configurable). Default allow-list (configurable): PDF; images png/jpeg/gif/webp; text/plain, csv; Office docs (doc/docx, xls/xlsx, ppt/pptx, odt/ods/odp); zip. Executables, scripts, html and svg are rejected; type is checked by content sniffing, not only by extension.
 
 #### INC-010 — Backend seed framework and dev data
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `shared` (seed runner), `access`
 - **Depends on:** INC-005
 - **Scope:** idempotent seed runner mechanism (runs once per environment via a `seed_history` table, profile-controlled); dev-profile fake data loader (obviously fake names, no real personal data); hook point for modules to register seeders.
