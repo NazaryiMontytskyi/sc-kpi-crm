@@ -42,7 +42,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** shared-kernel change, own increment per planning rules.
 
 #### INC-003 — Audit pipeline and AuditLog storage
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `audit`
 - **Depends on:** INC-002
 - **Scope:** `AuditLog` entity (actorId, action, entityType, entityId, before JSONB, after JSONB, at, ip) with append-only enforcement (no update/delete in repository; DB trigger or revoked privileges forbidding UPDATE/DELETE); public `AuditEvent` record + `AuditPublisher` API other modules use via `ApplicationEventPublisher`; listener persisting events (transactional, same transaction as the change); Flyway migration.
