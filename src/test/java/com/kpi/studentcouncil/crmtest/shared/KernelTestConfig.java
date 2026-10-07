@@ -10,10 +10,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 @TestConfiguration(proxyBeanMethods = false)
 @EntityScan(basePackages = { "com.kpi.studentcouncil.crmtest.shared", "com.kpi.studentcouncil.crm.audit.internal",
 		"com.kpi.studentcouncil.crm.identity.internal",
-		"com.kpi.studentcouncil.crm.access.internal", "com.kpi.studentcouncil.crm.files.internal" })
+		"com.kpi.studentcouncil.crm.access.internal", "com.kpi.studentcouncil.crm.files.internal",
+		"com.kpi.studentcouncil.crm.org.internal" })
 @EnableJpaRepositories(basePackages = { "com.kpi.studentcouncil.crmtest.shared",
 		"com.kpi.studentcouncil.crm.audit.internal", "com.kpi.studentcouncil.crm.identity.internal",
-		"com.kpi.studentcouncil.crm.access.internal", "com.kpi.studentcouncil.crm.files.internal" })
+		"com.kpi.studentcouncil.crm.access.internal", "com.kpi.studentcouncil.crm.files.internal",
+		"com.kpi.studentcouncil.crm.org.internal" })
 @EnableMethodSecurity
 @Import(TestApiController.class)
 public class KernelTestConfig {
