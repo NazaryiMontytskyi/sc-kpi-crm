@@ -1,0 +1,21 @@
+{
+  "app": {
+    "name": "SC KPI TMS (Система управління командою)",
+    "shortName": "SC KPI TMS",
+    "nameIsPlaceholder": "ПЛЕЙСХОЛДЕР: остаточну українську назву продукту затвердить людина"
+  },
+  "common": {
+    "language": "Мова",
+    "theme": "Тема",
+    "themeLight": "Світла",
+    "themeDark": "Темна",
+    "themeAuto": "Системна",
+    "languageUk": "Українська",
+    "languageEn": "English"
+  },
+  "scaffold": {
+    "welcome": "Каркас застосунку готовий",
+    "description": "Тема, мови та API-клієнт налаштовані. Екрани з’являться в наступних інкрементах.",
+    "sampleLink": "Приклад посилання бренду"
+  }
+}

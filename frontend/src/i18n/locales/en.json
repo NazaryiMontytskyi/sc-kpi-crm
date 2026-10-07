@@ -1,0 +1,21 @@
+{
+  "app": {
+    "name": "SC KPI TMS (Team Management System)",
+    "shortName": "SC KPI TMS",
+    "nameIsPlaceholder": "PLACEHOLDER: the final Ukrainian product name is to be approved by a human"
+  },
+  "common": {
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "System",
+    "languageUk": "Українська",
+    "languageEn": "English"
+  },
+  "scaffold": {
+    "welcome": "Application scaffold is ready",
+    "description": "Theme, languages and the API client are set up. Screens arrive in the next increments.",
+    "sampleLink": "Sample brand link"
+  }
+}
