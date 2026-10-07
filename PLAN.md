@@ -88,7 +88,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Openness: read endpoints in later modules require only authentication unless a view permission is defined in §5.2 (`members.view`, `org.view`, `tasks.view`, `kb.view`); seed roles grant them to everyone, see INC-013.
 
 #### INC-006 — Frontend scaffold: Vite, Mantine theme, i18n, API client
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `frontend/` (app, theme, i18n, api)
 - **Depends on:** INC-001
 - **Scope:** Vite + React + TypeScript project in `frontend/`; Mantine with `studrada` palette exactly as in CLAUDE.md (`primaryColor: 'studrada'`, `primaryShade {light:6, dark:5}`) in `src/theme/colors.ts`; light/dark with neutral surfaces; React Router, TanStack Query; react-i18next with `uk` (default) and `en`, keys `app.name`, `app.shortName` (§6.1); OpenAPI client generation script `npm run api:generate` (from backend `/v3/api-docs`); ESLint, Vitest + Testing Library; Vite dev proxy to backend `/api`; env handling; brand asset loader that falls back to a text placeholder when `assets/brand/` files are missing; `docs`-free.
