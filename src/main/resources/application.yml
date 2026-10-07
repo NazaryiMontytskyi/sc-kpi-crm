@@ -48,6 +48,9 @@ crm:
     root: ${CRM_FILES_ROOT:./data/files} # mount a persistent volume here in production
     max-size: 20MB
     # allowed-mime-types: [...]  # default list: PDF, png/jpeg/gif/webp, text/plain, csv, Office/OpenDocument, zip
+  # Seeders (INC-010): each runs once per environment (seed_history). DEV_ONLY seeders need the dev profile.
+  seed:
+    enabled: true
   # First Admin account: set CRM_BOOTSTRAP_ADMIN_LOGIN and CRM_BOOTSTRAP_ADMIN_PASSWORD in the environment (no defaults).
   # bootstrap.admin.login / bootstrap.admin.password
 
