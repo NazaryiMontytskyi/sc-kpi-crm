@@ -12,7 +12,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 ### Increments
 
 #### INC-001 — Backend scaffold, build ADR, compose relocation
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** build / repo root (`pom.xml`, `deploy/`, `docs/adr/`)
 - **Depends on:** —
 - **Scope:** Fix `pom.xml` metadata (name, description; remove empty license/developer/scm blocks); add MapStruct (+ annotation processor next to Lombok, with lombok-mapstruct-binding) and springdoc-openapi (Boot 4 line); keep Spring Modulith; `application.yml` replacing `application.properties` (profiles `dev`, `test`, `prod`; `spring.jpa.open-in-view=false`, `hibernate.ddl-auto=validate`, `hibernate.jdbc.time_zone=UTC`); create base package skeleton `com.kpi.studentcouncil.crm.<module>` for the 13 modules (package-info with Modulith `@ApplicationModule`); move root `compose.yaml` to `deploy/docker-compose.dev.yml` (Postgres 16 pinned, not `latest`, creds via env) and point `spring-boot-docker-compose` at it via `spring.docker.compose.file`; ADR-0001 (Maven chosen, exact versions: Boot 4.1.1, Java 21, Modulith, MapStruct, springdoc, Postgres 16); `README.md` (run locally); update the Commands block need reported to orchestrator.
