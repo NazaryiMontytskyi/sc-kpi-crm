@@ -118,7 +118,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-008 — Frontend auth: sign-in, forced password change, session handling
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth`
 - **Depends on:** INC-004, INC-007
 - **Scope:** sign-in page (logo-full or text placeholder, product name, subtitle `auth.subtitle`); login/logout via generated client with CSRF handling; `useCurrentUser` (from `/auth/me`, includes permissions); forced change-password screen when `mustChangePassword`/`PASSWORD_CHANGE_REQUIRED`; 401 handling redirecting to sign-in; locale from user setting applied after login; profile language switch persists to backend.
@@ -212,7 +212,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q10): per-object history visible to all authenticated users; global log requires `audit.view`.
 
 #### INC-015 — Members: MemberProfile and account creation (backend)
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Module(s):** backend `members` (calls `identity` and `access` public services)
 - **Depends on:** INC-005, INC-009, INC-052
 - **Scope:** `MemberProfile` (lastName, firstName, middleName?, facultyId (dictionary, INC-052), studyGroup, telegram, joinedAt, activityLevel ref, avatar fileId, bio) 1:1 with User; required fields validated (§4); `POST /api/v1/members` (`members.create`) creates User with temporary password (`mustChangePassword=true`) + profile + optional initial role assignment (needs `roles.assign` for the role part); `GET /api/v1/members/{id}`, `PUT` (`members.edit`), self-edit of own bio/avatar/telegram; list endpoint basic (filters in INC-021); `POST .../archive` and `/restore` (`members.archive`) archives profile and blocks sign-in via `identity` while keeping all attribution; temporary password shown once in response, never stored in plaintext/audit; password reset by authorized user.
