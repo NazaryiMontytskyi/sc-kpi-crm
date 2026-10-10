@@ -212,7 +212,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q10): per-object history visible to all authenticated users; global log requires `audit.view`.
 
 #### INC-015 — Members: MemberProfile and account creation (backend)
-- **Status:** IN_PROGRESS
+- **Status:** BLOCKED — validated (PASS), commit blocked by migration guard R2 on new V8 migration; awaiting human
 - **Module(s):** backend `members` (calls `identity` and `access` public services)
 - **Depends on:** INC-005, INC-009, INC-052
 - **Scope:** `MemberProfile` (lastName, firstName, middleName?, facultyId (dictionary, INC-052), studyGroup, telegram, joinedAt, activityLevel ref, avatar fileId, bio) 1:1 with User; required fields validated (§4); `POST /api/v1/members` (`members.create`) creates User with temporary password (`mustChangePassword=true`) + profile + optional initial role assignment (needs `roles.assign` for the role part); `GET /api/v1/members/{id}`, `PUT` (`members.edit`), self-edit of own bio/avatar/telegram; list endpoint basic (filters in INC-021); `POST .../archive` and `/restore` (`members.archive`) archives profile and blocks sign-in via `identity` while keeping all attribution; temporary password shown once in response, never stored in plaintext/audit; password reset by authorized user.
@@ -723,7 +723,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** decision Q5. Numbered last but must be scheduled before INC-015. Backend-only so backend work is not blocked by the frontend toolchain.
 
 #### INC-053 — Faculty/institute dictionary admin page (frontend)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `members` (admin settings page)
 - **Depends on:** INC-052, INC-008
 - **Scope:** settings page listing faculties (active/archived toggle), create/edit form (code, uk and en names), archive/restore with confirmation; page and nav entry visible only with `settings.manage` (backend remains authoritative); faculty select component reusable by INC-016/021.
