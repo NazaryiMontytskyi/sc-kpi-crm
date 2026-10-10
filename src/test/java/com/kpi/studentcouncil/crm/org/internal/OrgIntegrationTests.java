@@ -32,13 +32,14 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
+import com.kpi.studentcouncil.crmtest.SharedAdmin;
 import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.org.OrgService;
 import com.kpi.studentcouncil.crm.org.OrgUnitArchiveGuard;
 import com.kpi.studentcouncil.crm.org.OrgUnitInfo;
 import com.kpi.studentcouncil.crm.org.OrgUnitType;
 
-@SpringBootTest(properties = { "crm.bootstrap.admin.login=Org.Admin", "crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import({ TestcontainersConfiguration.class, OrgIntegrationTests.VetoConfig.class })
@@ -79,8 +80,8 @@ class OrgIntegrationTests {
 	void setUp() throws Exception {
 		jdbc.update("update org_unit set parent_id = null");
 		jdbc.update("delete from org_unit");
-		jdbc.update("update users set must_change_password = false where login = 'org.admin'");
-		admin = signIn("org.admin", "Bootstrap-pass-42");
+		SharedAdmin.ensure(jdbc, encoder);
+		admin = signIn(SharedAdmin.LOGIN, SharedAdmin.PASSWORD);
 	}
 
 	private MockHttpSession signIn(String login, String password) throws Exception {

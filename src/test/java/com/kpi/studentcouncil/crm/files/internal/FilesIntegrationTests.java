@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,10 +35,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
+import com.kpi.studentcouncil.crmtest.SharedAdmin;
 import com.kpi.studentcouncil.crm.files.FileService;
 
-@SpringBootTest(properties = { "crm.bootstrap.admin.login=Files.Admin",
-		"crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
@@ -52,6 +53,9 @@ class FilesIntegrationTests {
 	JdbcTemplate jdbc;
 
 	@Autowired
+	PasswordEncoder encoder;
+
+	@Autowired
 	FileService fileService;
 
 	@Autowired
@@ -64,13 +68,13 @@ class FilesIntegrationTests {
 
 	@BeforeEach
 	void signIn() throws Exception {
-		jdbc.update("update users set must_change_password = false where login = 'files.admin'");
+		SharedAdmin.ensure(jdbc, encoder);
 		MvcResult result = mvc.perform(post("/api/v1/auth/login").with(csrf())
 				.with(request -> {
 					request.setRemoteAddr("10.9." + (int) (Math.random() * 250) + "." + (1 + (int) (Math.random() * 250)));
 					return request;
 				}).contentType(MediaType.APPLICATION_JSON)
-				.content("{\"login\":\"files.admin\",\"password\":\"Bootstrap-pass-42\"}")).andReturn();
+				.content("{\"login\":\"" + SharedAdmin.LOGIN + "\",\"password\":\"" + SharedAdmin.PASSWORD + "\"}")).andReturn();
 		assertThat(result.getResponse().getStatus()).isEqualTo(200);
 		session = (MockHttpSession) result.getRequest().getSession(false);
 	}

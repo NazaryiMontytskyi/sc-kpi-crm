@@ -28,10 +28,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
+import com.kpi.studentcouncil.crmtest.SharedAdmin;
 import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.members.FacultyLookup;
 
-@SpringBootTest(properties = { "crm.bootstrap.admin.login=Fac.Admin", "crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
@@ -61,8 +62,8 @@ class FacultyIntegrationTests {
 
 	@BeforeEach
 	void setUp() throws Exception {
-		jdbc.update("update users set must_change_password = false where login = 'fac.admin'");
-		admin = signIn("fac.admin", "Bootstrap-pass-42");
+		SharedAdmin.ensure(jdbc, encoder);
+		admin = signIn(SharedAdmin.LOGIN, SharedAdmin.PASSWORD);
 	}
 
 	private MockHttpSession signIn(String login, String password) throws Exception {

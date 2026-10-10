@@ -17,17 +17,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
+import com.kpi.studentcouncil.crmtest.SharedAdmin;
 
 /**
  * Real embedded container: the multipart limit derived from {@code crm.files.max-size} must surface as the
  * FILE_TOO_LARGE problem, not as a raw container error.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-		"crm.files.max-size=100KB", "crm.bootstrap.admin.login=Limit.Admin",
-		"crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "crm.files.max-size=100KB")
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 class FilesContainerLimitIntegrationTests {
@@ -38,12 +38,15 @@ class FilesContainerLimitIntegrationTests {
 	@Autowired
 	JdbcTemplate jdbc;
 
+	@Autowired
+	PasswordEncoder encoder;
+
 	@Value("${crm.files.root}")
 	String root;
 
 	@Test
 	void oversizedMultipartIsReportedAsFileTooLargeProblem() throws Exception {
-		jdbc.update("update users set must_change_password = false where login = 'limit.admin'");
+		SharedAdmin.ensure(jdbc, encoder);
 		CookieManager cookies = new CookieManager();
 		HttpClient client = HttpClient.newBuilder().cookieHandler(cookies).build();
 		String base = "http://localhost:" + port;
@@ -53,7 +56,7 @@ class FilesContainerLimitIntegrationTests {
 		String csrf = xsrf(cookies);
 		HttpResponse<String> login = client.send(HttpRequest.newBuilder(URI.create(base + "/api/v1/auth/login"))
 				.header("Content-Type", "application/json").header("X-XSRF-TOKEN", csrf)
-				.POST(HttpRequest.BodyPublishers.ofString("{\"login\":\"limit.admin\",\"password\":\"Bootstrap-pass-42\"}"))
+				.POST(HttpRequest.BodyPublishers.ofString("{\"login\":\"" + SharedAdmin.LOGIN + "\",\"password\":\"" + SharedAdmin.PASSWORD + "\"}"))
 				.build(), HttpResponse.BodyHandlers.ofString());
 		assertThat(login.statusCode()).isEqualTo(200);
 		csrf = xsrf(cookies);

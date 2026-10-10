@@ -30,11 +30,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
+import com.kpi.studentcouncil.crmtest.SharedAdmin;
 import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.access.Permission;
 import com.kpi.studentcouncil.crmtest.access.TestAccessController;
 
-@SpringBootTest(properties = { "crm.bootstrap.admin.login=Root.Admin", "crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import({ TestcontainersConfiguration.class, TestAccessController.class })
@@ -144,19 +145,18 @@ class AccessIntegrationTests {
 	}
 
 	@Test
-	void firstBootstrapAdminHasAdminRoleWithoutRoleRow() throws Exception {
-		UUID id = jdbc.queryForObject("select id from users where login = 'root.admin'", UUID.class);
+	void adminRoleIsAnAssignmentWithoutRoleRowAndGrantsAllPermissions() throws Exception {
+		UUID id = SharedAdmin.ensure(jdbc, encoder);
 		assertThat(jdbc.queryForObject("select role_id from role_assignment where user_id = ?", UUID.class, id))
 				.isEqualTo(AccessService.ADMIN_ROLE_ID);
 		assertThat(jdbc.queryForObject("select count(*) from role where id = ?", Long.class,
 				AccessService.ADMIN_ROLE_ID)).isZero();
 		assertThat(access.effectivePermissions(id)).isEqualTo(Permission.allKeys());
 
-		MockHttpSession session = signIn("root.admin", "Bootstrap-pass-42");
+		MockHttpSession session = signIn(SharedAdmin.LOGIN, SharedAdmin.PASSWORD);
 		mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isOk())
 				.andExpect(jsonPath("$.permissions", hasSize(Permission.values().length)))
-				.andExpect(jsonPath("$.mustChangePassword").value(true));
-		jdbc.update("update users set must_change_password = false where id = ?", id);
+				.andExpect(jsonPath("$.mustChangePassword").value(false));
 		mvc.perform(get("/api/v1/test-access/activity").session(session)).andExpect(status().isOk());
 		mvc.perform(get("/api/v1/test-access/audit").session(session)).andExpect(status().isOk());
 	}

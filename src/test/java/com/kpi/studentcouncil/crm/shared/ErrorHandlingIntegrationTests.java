@@ -22,7 +22,8 @@ import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crmtest.shared.KernelTestConfig;
 
 @SpringBootTest(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "spring.flyway.enabled=false",
-		"crm.seed.enabled=false" })
+		"crm.seed.enabled=false", "spring.jpa.properties.hibernate.default_schema=kernel_test_errors",
+		"spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true" })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import({ TestcontainersConfiguration.class, KernelTestConfig.class })

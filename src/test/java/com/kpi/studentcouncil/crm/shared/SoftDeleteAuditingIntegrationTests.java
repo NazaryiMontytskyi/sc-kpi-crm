@@ -21,7 +21,8 @@ import com.kpi.studentcouncil.crmtest.shared.TestNote;
 import com.kpi.studentcouncil.crmtest.shared.TestNoteRepository;
 
 @SpringBootTest(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "spring.flyway.enabled=false",
-		"crm.seed.enabled=false" })
+		"crm.seed.enabled=false", "spring.jpa.properties.hibernate.default_schema=kernel_test_audit",
+		"spring.jpa.properties.hibernate.hbm2ddl.create_namespaces=true" })
 @ActiveProfiles("test")
 @Import({ TestcontainersConfiguration.class, KernelTestConfig.class })
 class SoftDeleteAuditingIntegrationTests {

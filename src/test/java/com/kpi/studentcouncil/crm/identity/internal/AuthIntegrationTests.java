@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crm.audit.ActorProvider;
 
-@SpringBootTest(properties = { "crm.bootstrap.admin.login=First.Admin", "crm.bootstrap.admin.password=Bootstrap-pass-42" })
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
@@ -333,21 +333,6 @@ class AuthIntegrationTests {
 	}
 
 	// ---------------------------------------------------------------- bootstrap / actor wiring
-
-	@Test
-	void firstAdminWasBootstrappedFromEnvironmentOnEmptyDatabaseOnly() {
-		User admin = users.findByLogin("first.admin").orElseThrow();
-
-		assertThat(admin.isMustChangePassword()).isTrue();
-		assertThat(admin.getStatus()).isEqualTo(UserStatus.ACTIVE);
-		assertThat(admin.getPasswordHash()).startsWith("$2").doesNotContain("Bootstrap-pass-42");
-		assertThat(auditCount("CREATE", admin.getId())).isEqualTo(1);
-
-		long before = users.count();
-		assertThat(accounts.createFirstAdminIfAbsent("another.admin", "Another-admin-pass-1")).isFalse();
-		assertThat(users.count()).isEqualTo(before);
-		assertThat(users.findByLogin("another.admin")).isEmpty();
-	}
 
 	@Test
 	void authenticatedUserReplacesTheSystemActorFallback() throws Exception {

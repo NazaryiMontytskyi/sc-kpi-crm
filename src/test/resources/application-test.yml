@@ -1,4 +1,10 @@
 # Test-only overrides (profile "test").
+spring:
+  datasource:
+    hikari:
+      # Many cached Spring contexts share one Postgres container: keep each pool small
+      maximum-pool-size: 4
+      minimum-idle: 1
 crm:
   identity:
     public-api-docs: true
