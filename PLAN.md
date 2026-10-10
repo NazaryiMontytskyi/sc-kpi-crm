@@ -104,7 +104,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q2): `app.name` (en) = "SC KPI TMS (Team Management System)", `app.shortName` = "SC KPI TMS"; the Ukrainian name is a placeholder value in the `uk` i18n key only (a human finalizes the wording; never hardcoded). Logo source files are in `.claude/resources/img/` and are copied into `assets/brand/` by INC-050; until then the text placeholder is used. Brand color fixed by CLAUDE.md.
 
 #### INC-007 — Frontend app shell: layout, navigation, theme/language switches, error pages
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `layout`
 - **Depends on:** INC-006
 - **Scope:** AppShell with desktop sidebar and mobile header + burger/bottom navigation; nav items registered by feature (placeholders for later features hidden when route absent); notification bell slot; user menu (profile, language, theme, sign out); document title format `<Page> · ІС СР КПІ` via i18n; 404/403/offline pages with logo-mark placeholder and link home; route guard components (`RequireAuth`, `RequirePermission`).
