@@ -15,7 +15,8 @@
     "languageEn": "English"
   },
   "nav": {
-    "home": "Home"
+    "home": "Home",
+    "settingsFaculties": "Faculties"
   },
   "layout": {
     "menu": "Menu",
@@ -69,6 +70,51 @@
     "PASSWORD_UNCHANGED": "The new password must differ from the current one.",
     "PASSWORD_POLICY_VIOLATION": "The password is too weak: use enough characters, a letter and a digit, without the login.",
     "PASSWORD_CHANGE_REQUIRED": "You must change your temporary password before continuing.",
+    "FORBIDDEN": "You do not have permission to do this.",
+    "NOT_FOUND": "The record no longer exists. Refresh the page.",
+    "VALIDATION_FAILED": "Some fields are invalid. Check the form.",
+    "FACULTY_CODE_TAKEN": "An active faculty with this code already exists.",
+    "FACULTY_NAME_TAKEN": "An active faculty with this name already exists.",
+    "FACULTY_ARCHIVED": "An archived faculty cannot be changed. Restore it first.",
     "UNKNOWN": "Something went wrong. Please try again later."
+  },
+  "faculties": {
+    "title": "Faculties and institutes",
+    "description": "Dictionary used in member profiles. Archived entries stay on existing profiles but cannot be chosen again.",
+    "showArchived": "Show archived",
+    "add": "Add faculty",
+    "edit": "Edit",
+    "archive": "Archive",
+    "restore": "Restore",
+    "empty": "No faculties yet.",
+    "code": "Code",
+    "nameUk": "Name (Ukrainian)",
+    "nameEn": "Name (English)",
+    "name": "Name",
+    "status": "Status",
+    "active": "Active",
+    "archived": "Archived",
+    "actions": "Actions",
+    "save": "Save",
+    "cancel": "Cancel",
+    "createTitle": "New faculty",
+    "editTitle": "Edit faculty",
+    "archiveTitle": "Archive faculty",
+    "archiveConfirm": "Archive \"{{name}}\"? It will no longer be selectable; existing profiles keep it.",
+    "restoreTitle": "Restore faculty",
+    "restoreConfirm": "Restore \"{{name}}\"?",
+    "loadFailed": "Could not load the faculties.",
+    "actionFailed": "The action failed.",
+    "select": {
+      "label": "Faculty / institute",
+      "placeholder": "Choose a faculty",
+      "nothing": "Nothing found"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "codeFormat": "Use only letters, digits, dot, underscore and hyphen.",
+      "codeTooLong": "At most 30 characters.",
+      "nameTooLong": "At most 200 characters."
+    }
   }
 }
