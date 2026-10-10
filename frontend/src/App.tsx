@@ -1,59 +1,31 @@
-import {
-  Anchor,
-  Container,
-  Group,
-  SegmentedControl,
-  Stack,
-  Text,
-  Title,
-  useMantineColorScheme,
-} from '@mantine/core';
-import { useTranslation } from 'react-i18next';
-import { BrandLogo } from './brand/BrandLogo';
-import { changeLanguage, isLanguage } from './i18n';
+import { Route, Routes } from 'react-router-dom';
+import { RequireAuth, RequirePermission } from './auth/guards';
+import { AppLayout } from './layout/AppLayout';
+import { appRoutes } from './layout/routes';
+import { NotFoundPage } from './pages/ErrorPages';
 
-/** Placeholder page proving theme, i18n and brand fallback. Real screens: INC-007 (shell), INC-008 (auth). */
+/** Application routes: everything lives inside the authenticated shell; unknown paths show 404. */
 export function App() {
-  const { t, i18n } = useTranslation();
-  const { colorScheme, setColorScheme } = useMantineColorScheme();
-
   return (
-    <Container size="sm" py="xl">
-      <Stack gap="md">
-        <BrandLogo />
-        <Title order={1} size="h2">
-          {t('scaffold.welcome')}
-        </Title>
-        <Text c="dimmed">{t('scaffold.description')}</Text>
-        <Anchor href="#brand">{t('scaffold.sampleLink')}</Anchor>
-        <Group gap="md" align="flex-end">
-          <Stack gap={4}>
-            <Text size="sm">{t('common.language')}</Text>
-            <SegmentedControl
-              value={isLanguage(i18n.language) ? i18n.language : 'uk'}
-              onChange={(value) => {
-                if (isLanguage(value)) void changeLanguage(value);
-              }}
-              data={[
-                { value: 'uk', label: t('common.languageUk') },
-                { value: 'en', label: t('common.languageEn') },
-              ]}
+    <Routes>
+      <Route element={<RequireAuth />}>
+        <Route element={<AppLayout />}>
+          {appRoutes.map((r) => (
+            <Route
+              key={r.path}
+              path={r.path}
+              element={
+                r.nav?.permission ? (
+                  <RequirePermission permission={r.nav.permission}>{r.element}</RequirePermission>
+                ) : (
+                  r.element
+                )
+              }
             />
-          </Stack>
-          <Stack gap={4}>
-            <Text size="sm">{t('common.theme')}</Text>
-            <SegmentedControl
-              value={colorScheme}
-              onChange={(value) => setColorScheme(value as 'light' | 'dark' | 'auto')}
-              data={[
-                { value: 'light', label: t('common.themeLight') },
-                { value: 'dark', label: t('common.themeDark') },
-                { value: 'auto', label: t('common.themeAuto') },
-              ]}
-            />
-          </Stack>
-        </Group>
-      </Stack>
-    </Container>
+          ))}
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Route>
+    </Routes>
   );
 }

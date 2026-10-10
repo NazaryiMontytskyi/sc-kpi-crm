@@ -2,7 +2,8 @@
   "app": {
     "name": "SC KPI TMS (Team Management System)",
     "shortName": "SC KPI TMS",
-    "nameIsPlaceholder": "PLACEHOLDER: the final Ukrainian product name is to be approved by a human"
+    "nameIsPlaceholder": "PLACEHOLDER: the final Ukrainian product name is to be approved by a human",
+    "titleSuffix": "SC KPI IS"
   },
   "common": {
     "language": "Language",
@@ -13,9 +14,35 @@
     "languageUk": "Українська",
     "languageEn": "English"
   },
-  "scaffold": {
-    "welcome": "Application scaffold is ready",
-    "description": "Theme, languages and the API client are set up. Screens arrive in the next increments.",
-    "sampleLink": "Sample brand link"
+  "nav": {
+    "home": "Home"
+  },
+  "layout": {
+    "menu": "Menu",
+    "navigation": "Navigation",
+    "notifications": "Notifications",
+    "userMenu": "User menu",
+    "profile": "Profile",
+    "signOut": "Sign out"
+  },
+  "errors": {
+    "goHome": "Go to home",
+    "retry": "Try again",
+    "notFound": {
+      "title": "Page not found",
+      "text": "This page does not exist or has been moved."
+    },
+    "forbidden": {
+      "title": "Access denied",
+      "text": "You do not have permission to view this page."
+    },
+    "offline": {
+      "title": "You are offline",
+      "text": "Check your internet connection and try again."
+    }
+  },
+  "home": {
+    "welcome": "Welcome",
+    "description": "Sections will appear in the menu as they are launched."
   }
 }

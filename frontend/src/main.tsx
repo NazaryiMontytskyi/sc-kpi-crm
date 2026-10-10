@@ -5,6 +5,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
+import { CurrentUserProvider, STUB_AUTH_STATE } from './auth/CurrentUser';
 import './i18n';
 import { cssVariablesResolver, theme } from './theme/theme';
 
@@ -18,7 +19,10 @@ createRoot(document.getElementById('root')!).render(
     <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="auto">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          {/* TODO(INC-008): replace the stub with the /auth/me backed provider. */}
+          <CurrentUserProvider value={STUB_AUTH_STATE}>
+            <App />
+          </CurrentUserProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </MantineProvider>
