@@ -708,7 +708,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-052 — Faculty/institute dictionary (backend)
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Module(s):** backend `members`
 - **Depends on:** INC-005, INC-010
 - **Scope:** `Faculty` entity (code, name uk, name en, archivedAt) extending the shared archivable base; migration; CRUD + archive/restore REST API (`/api/v1/faculties`), mutations need `settings.manage` (Admin has it; grantable via roles), reads for any authenticated user (`?includeArchived` only for `settings.manage`); small generic placeholder list seeded as a REFERENCE seeder through the existing `crm.shared.seed.Seeder` hook (idempotent, real list supplied by humans, no real personal data); public lookup API `FacultyLookup` (exists/active check, resolve by id, list active) for use by INC-015 (`MemberProfile.facultyId`) and INC-021 (directory filter) without exposing entities; audit events and `FacultyCreated/Updated/Archived` domain events; uk/en backend messages for error codes.
