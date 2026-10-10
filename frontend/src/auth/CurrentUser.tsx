@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import { changeLanguage, type Language } from '../i18n';
 
 export interface CurrentUser {
   id: string;
@@ -11,11 +12,20 @@ export interface CurrentUser {
 export interface AuthState {
   status: 'loading' | 'authenticated' | 'anonymous';
   user: CurrentUser | null;
+  /** True while a temporary password must be replaced; only the change-password screen is reachable. */
+  mustChangePassword: boolean;
   signOut: () => void;
+  /** Applies the language locally and persists it to the profile when signed in. */
+  changeLocale: (lng: Language) => Promise<void>;
 }
 
-/** Abstraction over the session. INC-008 replaces the provider value with data from /auth/me. */
-export const ANONYMOUS_STATE: AuthState = { status: 'anonymous', user: null, signOut: () => undefined };
+export const ANONYMOUS_STATE: AuthState = {
+  status: 'anonymous',
+  user: null,
+  mustChangePassword: false,
+  signOut: () => undefined,
+  changeLocale: changeLanguage,
+};
 
 const AuthContext = createContext<AuthState>(ANONYMOUS_STATE);
 
@@ -33,9 +43,16 @@ export function hasPermission(user: CurrentUser | null, permission: string): boo
   return user.isAdmin || user.permissions.includes(permission);
 }
 
-/** Temporary stand-in until INC-008. Obviously fake person. */
+/** Whether the signed-in user holds `permission` (from /auth/me). UI convenience only; the backend enforces. */
+export function usePermission(permission: string): boolean {
+  return hasPermission(useAuth().user, permission);
+}
+
+/** Static signed-in state for tests. Obviously fake person. */
 export const STUB_AUTH_STATE: AuthState = {
   status: 'authenticated',
   user: { id: 'stub', displayName: 'Test User', isAdmin: false, permissions: [] },
+  mustChangePassword: false,
   signOut: () => undefined,
+  changeLocale: changeLanguage,
 };

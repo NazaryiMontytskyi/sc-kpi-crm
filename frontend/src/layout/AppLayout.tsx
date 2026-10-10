@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { BrandLogo } from '../brand/BrandLogo';
 import { hasPermission, useAuth, type CurrentUser } from '../auth/CurrentUser';
-import { changeLanguage, isLanguage } from '../i18n';
+import { isLanguage } from '../i18n';
 import { OfflinePage } from '../pages/ErrorPages';
 import { appRoutes, type AppRoute } from './routes';
 import { useOnlineStatus } from './useOnlineStatus';
@@ -46,7 +46,7 @@ function NotificationBellSlot() {
 function UserMenu({ profileAvailable }: { profileAvailable: boolean }) {
   const { t, i18n } = useTranslation();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
-  const { user, signOut } = useAuth();
+  const { user, signOut, changeLocale } = useAuth();
   return (
     <Menu position="bottom-end" width={260} withinPortal>
       <Menu.Target>
@@ -70,7 +70,7 @@ function UserMenu({ profileAvailable }: { profileAvailable: boolean }) {
             fullWidth
             value={isLanguage(i18n.language) ? i18n.language : 'uk'}
             onChange={(v) => {
-              if (isLanguage(v)) void changeLanguage(v);
+              if (isLanguage(v)) void changeLocale(v);
             }}
             data={[
               { value: 'uk', label: t('common.languageUk') },

@@ -8,7 +8,9 @@ import { RequireAuth, RequirePermission } from './guards';
 const user = (permissions: string[], isAdmin = false): AuthState => ({
   status: 'authenticated',
   user: { id: 'u', displayName: 'Test User', isAdmin, permissions },
+  mustChangePassword: false,
   signOut: () => undefined,
+  changeLocale: () => Promise.resolve(),
 });
 
 function setup(state: AuthState) {

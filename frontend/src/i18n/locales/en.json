@@ -44,5 +44,31 @@
   "home": {
     "welcome": "Welcome",
     "description": "Sections will appear in the menu as they are launched."
+  },
+  "auth": {
+    "subtitle": "Information system of the KPI Student Council",
+    "signIn": "Sign in",
+    "login": "Login",
+    "password": "Password",
+    "changePassword": {
+      "title": "Change password",
+      "subtitle": "Your password is temporary. Set a new one to continue.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Repeat new password",
+      "hint": "A letter and a digit, without your login; must differ from the current one.",
+      "mismatch": "Passwords do not match",
+      "submit": "Change password"
+    }
+  },
+  "problems": {
+    "INVALID_CREDENTIALS": "The login or password is incorrect, or the account cannot sign in.",
+    "LOGIN_LOCKED": "Too many failed attempts. Try again in {{minutes}} min.",
+    "CSRF_INVALID": "The security token is invalid. Reload the page and try again.",
+    "CURRENT_PASSWORD_INVALID": "The current password is incorrect.",
+    "PASSWORD_UNCHANGED": "The new password must differ from the current one.",
+    "PASSWORD_POLICY_VIOLATION": "The password is too weak: use enough characters, a letter and a digit, without the login.",
+    "PASSWORD_CHANGE_REQUIRED": "You must change your temporary password before continuing.",
+    "UNKNOWN": "Something went wrong. Please try again later."
   }
 }
