@@ -282,7 +282,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** `[ASSUMPTION]` single holder per position; configurable by capacity field.
 
 #### INC-020 — Org frontend: structure editor, positions, appointments
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `org`
 - **Depends on:** INC-019, INC-016
 - **Scope:** tree view of the structure (collapsible, mobile-friendly), unit page (description, head, members, positions with holder and history); create/rename/archive/move unit; add/remove members; position CRUD; appoint/end appointment dialogs; working groups listed separately.
