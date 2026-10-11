@@ -227,7 +227,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q5): faculty/institute is a managed dictionary (INC-052); `MemberProfile.facultyId` references it; a member cannot be saved with an unknown or archived faculty.
 
 #### INC-016 — Members frontend: directory (basic), profile, create/edit, archive
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `members`
 - **Depends on:** INC-015, INC-008
 - **Scope:** members list (cards on mobile, table on desktop) with text search; profile page (data, bio, avatar via files, contact Telegram link); create-member form (shows temporary password once with copy button); edit; archive/restore with confirmation; own-profile editing and language setting.
