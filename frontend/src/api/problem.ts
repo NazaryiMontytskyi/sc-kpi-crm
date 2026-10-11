@@ -76,6 +76,17 @@ const KNOWN_CODES = [
   'SYSTEM_ROLE_IMMUTABLE',
   'ADMIN_ROLE_RESERVED',
   'INVALID_FILTER',
+  'MEMBER_ARCHIVED',
+  'ALREADY_ARCHIVED',
+  'NOT_ARCHIVED',
+  'CANNOT_ARCHIVE_SELF',
+  'TELEGRAM_INVALID',
+  'LOGIN_TAKEN',
+  'LOGIN_INVALID',
+  'FACULTY_NOT_SELECTABLE',
+  'FILE_EMPTY',
+  'FILE_TOO_LARGE',
+  'FILE_TYPE_NOT_ALLOWED',
 ] as const;
 
 /** i18n key + params for an error; unknown codes and network failures fall back to a generic message. */

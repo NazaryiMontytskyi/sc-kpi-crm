@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { AuditPage } from '../audit/AuditPage';
 import { FacultiesPage } from '../members/FacultiesPage';
+import { MemberProfilePage, MyProfileRedirect } from '../members/MemberProfilePage';
+import { MembersPage } from '../members/MembersPage';
 import { HomePage } from '../pages/HomePage';
 import { RoleAssignmentsPage } from '../roles/RoleAssignmentsPage';
 import { RolesPage } from '../roles/RolesPage';
@@ -18,6 +20,9 @@ export interface AppRoute {
  */
 export const appRoutes: AppRoute[] = [
   { path: '/', element: <HomePage />, nav: { labelKey: 'nav.home' } },
+  { path: '/members', element: <MembersPage />, nav: { labelKey: 'nav.members' } },
+  { path: '/members/:id', element: <MemberProfilePage /> },
+  { path: '/profile', element: <MyProfileRedirect /> },
   {
     path: '/settings/faculties',
     element: <FacultiesPage />,

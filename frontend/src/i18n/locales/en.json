@@ -19,7 +19,8 @@
     "settingsFaculties": "Faculties",
     "roles": "Roles",
     "roleAssignments": "Role assignments",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "members": "Members"
   },
   "layout": {
     "menu": "Menu",
@@ -86,7 +87,18 @@
     "SYSTEM_ROLE_IMMUTABLE": "The built-in Admin role cannot be edited or archived.",
     "ADMIN_ROLE_RESERVED": "The Admin role is built in: it cannot be granted or revoked here.",
     "UNKNOWN": "Something went wrong. Please try again later.",
-    "INVALID_FILTER": "The filter value is not valid. Check your input."
+    "INVALID_FILTER": "The filter value is not valid. Check your input.",
+    "MEMBER_ARCHIVED": "An archived member cannot be edited. Restore the member first.",
+    "ALREADY_ARCHIVED": "The member is already archived. Refresh the page.",
+    "NOT_ARCHIVED": "The member is not archived. Refresh the page.",
+    "CANNOT_ARCHIVE_SELF": "You cannot archive your own account.",
+    "TELEGRAM_INVALID": "Enter a valid Telegram username: 5-32 letters, digits or underscores.",
+    "LOGIN_TAKEN": "This login is already in use.",
+    "LOGIN_INVALID": "The login must be 3-64 characters: letters, digits, dot, underscore or hyphen.",
+    "FACULTY_NOT_SELECTABLE": "This faculty is archived and cannot be chosen. Pick an active one.",
+    "FILE_EMPTY": "The selected file is empty.",
+    "FILE_TOO_LARGE": "The file is too large.",
+    "FILE_TYPE_NOT_ALLOWED": "This file type is not allowed. Use an image (PNG, JPEG, WebP or GIF)."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -218,5 +230,87 @@
       "VOTE_CHANGE": "Vote changed",
       "HANDOVER": "Handover"
     }
+  },
+  "members": {
+    "title": "Members",
+    "search": "Search",
+    "searchPlaceholder": "Name, Telegram, group or faculty",
+    "add": "Add member",
+    "showArchived": "Show archived",
+    "empty": "No members yet.",
+    "nothingFound": "No members match your search.",
+    "loadFailed": "Could not load members.",
+    "name": "Name",
+    "status": "Status",
+    "archivedBadge": "Archived",
+    "profileTitle": "Member profile",
+    "backToList": "Back to members",
+    "login": "Login",
+    "loginHint": "3-64 characters: letters, digits, dot, underscore, hyphen. Cannot be changed later.",
+    "lastName": "Last name",
+    "firstName": "First name",
+    "middleName": "Middle name",
+    "studyGroup": "Study group",
+    "joinedAt": "Joined on",
+    "telegram": "Telegram",
+    "telegramHint": "Username, with or without @",
+    "bio": "About",
+    "bioEmpty": "Nothing written yet.",
+    "avatar": "Photo",
+    "avatarUpload": "Choose an image",
+    "avatarRemove": "Remove photo",
+    "initialLanguage": "Interface language of the new account",
+    "createdAt": "Created",
+    "updatedAt": "Last updated",
+    "archivedAt": "Archived on",
+    "facultyArchived": "archived",
+    "archivedNotice": "This member is archived: sign-in is blocked, all history is kept.",
+    "createTitle": "Add member",
+    "editTitle": "Edit member",
+    "editSelfTitle": "Edit my profile",
+    "edit": "Edit",
+    "editSelf": "Edit my profile",
+    "save": "Save",
+    "cancel": "Cancel",
+    "history": "Change history",
+    "languageSetting": "Interface language",
+    "languageHint": "Saved to your account and used the next time you sign in.",
+    "password": {
+      "title": "Temporary password",
+      "intro": "Temporary password for {{name}}. Pass it on securely: the member must change it at first sign-in.",
+      "once": "It is shown only once. Copy it before closing this window; it cannot be shown again.",
+      "label": "Temporary password",
+      "copy": "Copy",
+      "copied": "Copied",
+      "done": "I have saved the password"
+    },
+    "archive": {
+      "open": "Archive",
+      "title": "Archive member",
+      "confirm": "Archive {{name}}? Sign-in will be blocked; tasks, votes and history stay attributed to this member.",
+      "handoverHint": "Consider handing over the tasks and responsibilities of this member first.",
+      "submit": "Archive"
+    },
+    "restore": {
+      "open": "Restore",
+      "title": "Restore member",
+      "confirm": "Restore {{name}}? Sign-in will be enabled again.",
+      "submit": "Restore"
+    },
+    "reset": {
+      "open": "Reset password",
+      "title": "Reset password",
+      "confirm": "Reset the password of {{name}}? The current password stops working and a new temporary one is shown once.",
+      "submit": "Reset password"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "tooLong": "The value is too long.",
+      "loginFormat": "Use 3-64 letters, digits, dots, underscores or hyphens.",
+      "telegramFormat": "Use 5-32 letters, digits or underscores, optionally starting with @.",
+      "dateInvalid": "Enter a valid date.",
+      "bioTooLong": "At most 4000 characters."
+    },
+    "count": "Members: {{count}}"
   }
 }
