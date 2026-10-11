@@ -3,6 +3,9 @@ import { AuditPage } from '../audit/AuditPage';
 import { FacultiesPage } from '../members/FacultiesPage';
 import { MemberProfilePage, MyProfileRedirect } from '../members/MemberProfilePage';
 import { MembersPage } from '../members/MembersPage';
+import { OrgPage } from '../org/OrgPage';
+import { OrgUnitPage } from '../org/OrgUnitPage';
+import { PositionPage } from '../org/PositionPage';
 import { HomePage } from '../pages/HomePage';
 import { RoleAssignmentsPage } from '../roles/RoleAssignmentsPage';
 import { RolesPage } from '../roles/RolesPage';
@@ -23,6 +26,9 @@ export const appRoutes: AppRoute[] = [
   { path: '/members', element: <MembersPage />, nav: { labelKey: 'nav.members' } },
   { path: '/members/:id', element: <MemberProfilePage /> },
   { path: '/profile', element: <MyProfileRedirect /> },
+  { path: '/org', element: <OrgPage />, nav: { labelKey: 'nav.org' } },
+  { path: '/org/positions/:id', element: <PositionPage /> },
+  { path: '/org/:id', element: <OrgUnitPage /> },
   {
     path: '/settings/faculties',
     element: <FacultiesPage />,
