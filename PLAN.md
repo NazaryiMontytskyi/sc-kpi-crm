@@ -186,7 +186,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-013 — Seed template roles
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `access`
 - **Depends on:** INC-012
 - **Scope:** seed roles Head, Deputy Head, Head of Department, Head of Division, Member, HR, Advisor with sensible permission sets (§5.2): all authenticated base permissions (`*.view`) in every role; `voting.cast` NOT included in MVP behaviour but defined in seed for Head, Deputy Head, Head of Department per §5.2 note `[v2 usage]`; Advisor = view + comment, no `resolutions.create`, no `voting.cast`; HR has `members.create/edit/archive`, `members.activity.set`; seeds editable/deletable (not `isSystem`).
