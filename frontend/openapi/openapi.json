@@ -99,13 +99,118 @@
         }
       }
     },
+    "/api/v1/members/{id}": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Get one member profile, including an archived one",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Edit a member profile",
+        "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/me": {
+      "put": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Edit own telegram, bio and avatar",
+        "description": "Any signed-in member; the avatar is a file id from the files module.",
+        "operationId": "updateSelf",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelfEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/faculties/{id}": {
       "get": {
         "tags": [
           "Faculties"
         ],
         "summary": "Get one faculty, including an archived one (existing profiles may reference it)",
-        "operationId": "get_1",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -135,7 +240,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_1",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "id",
@@ -312,6 +417,175 @@
         }
       }
     },
+    "/api/v1/members": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)",
+        "description": "Active members only. includeArchived=true is honoured only for holders of members.archive. Directory filters are added in a later increment.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseMemberSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Create an account and profile",
+        "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/{id}/restore": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Restore an archived member and re-enable sign-in",
+        "operationId": "restore_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/{id}/reset-password": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Reset the password to a new random temporary one",
+        "description": "Returned once; the member must change it on next sign-in. [ASSUMPTION] governed by members.edit because CONTEXT.md 5.2 defines no dedicated permission.",
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporaryPasswordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/{id}/archive": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Archive a member (soft) and block sign-in",
+        "description": "Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.",
+        "operationId": "archive_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/files": {
       "post": {
         "tags": [
@@ -389,7 +663,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list",
+        "operationId": "list_1",
         "parameters": [
           {
             "name": "page",
@@ -428,7 +702,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_1",
+        "operationId": "create_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -460,7 +734,7 @@
         ],
         "summary": "Restore an archived faculty",
         "description": "409 if its code or a name is now used by an active faculty.",
-        "operationId": "restore_1",
+        "operationId": "restore_2",
         "parameters": [
           {
             "name": "id",
@@ -493,7 +767,7 @@
         ],
         "summary": "Archive a faculty (soft)",
         "description": "Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.",
-        "operationId": "archive_1",
+        "operationId": "archive_2",
         "parameters": [
           {
             "name": "id",
@@ -921,6 +1195,164 @@
           }
         }
       },
+      "MemberRequest": {
+        "type": "object",
+        "properties": {
+          "lastName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "middleName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "facultyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studyGroup": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "telegram": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "@?[A-Za-z0-9_]{5,32}"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "avatarFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "facultyId",
+          "firstName",
+          "joinedAt",
+          "lastName",
+          "studyGroup",
+          "telegram"
+        ]
+      },
+      "FacultyRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "nameUk": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "login": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "middleName": {
+            "type": "string"
+          },
+          "faculty": {
+            "$ref": "#/components/schemas/FacultyRef"
+          },
+          "studyGroup": {
+            "type": "string"
+          },
+          "telegram": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "activityLevelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "avatarFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SelfEditRequest": {
+        "type": "object",
+        "properties": {
+          "telegram": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "@?[A-Za-z0-9_]{5,32}"
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 0
+          },
+          "avatarFileId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "telegram"
+        ]
+      },
       "FacultyRequest": {
         "type": "object",
         "properties": {
@@ -1018,6 +1450,94 @@
           "parentId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "CreateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[A-Za-z0-9._-]{3,64}"
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "middleName": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "facultyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studyGroup": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "telegram": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "@?[A-Za-z0-9_]{5,32}"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "avatarFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 0
+          },
+          "locale": {
+            "type": "string",
+            "pattern": "uk|en"
+          },
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "facultyId",
+          "firstName",
+          "joinedAt",
+          "lastName",
+          "login",
+          "studyGroup",
+          "telegram"
+        ]
+      },
+      "CreatedMemberResponse": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "$ref": "#/components/schemas/MemberResponse"
+          },
+          "temporaryPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "TemporaryPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "temporaryPassword": {
+            "type": "string"
           }
         }
       },
@@ -1258,6 +1778,77 @@
           },
           "sort": {
             "type": "string"
+          }
+        }
+      },
+      "MemberSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "middleName": {
+            "type": "string"
+          },
+          "faculty": {
+            "$ref": "#/components/schemas/FacultyRef"
+          },
+          "studyGroup": {
+            "type": "string"
+          },
+          "telegram": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "avatarFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseMemberSummary": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberSummary"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       },

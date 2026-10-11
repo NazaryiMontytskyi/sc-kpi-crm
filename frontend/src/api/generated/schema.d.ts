@@ -22,6 +22,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one member profile, including an archived one */
+        get: operations["get_1"];
+        /**
+         * Edit a member profile
+         * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
+         */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit own telegram, bio and avatar
+         * @description Any signed-in member; the avatar is a file id from the files module.
+         */
+        put: operations["updateSelf"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/faculties/{id}": {
         parameters: {
             query?: never;
@@ -30,9 +71,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one faculty, including an archived one (existing profiles may reference it) */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /** Edit an active faculty */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -120,6 +161,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)
+         * @description Active members only. includeArchived=true is honoured only for holders of members.archive. Directory filters are added in a later increment.
+         */
+        get: operations["list"];
+        put?: never;
+        /**
+         * Create an account and profile
+         * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
+         */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived member and re-enable sign-in */
+        post: operations["restore_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset the password to a new random temporary one
+         * @description Returned once; the member must change it on next sign-in. [ASSUMPTION] governed by members.edit because CONTEXT.md 5.2 defines no dedicated permission.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a member (soft) and block sign-in
+         * @description Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.
+         */
+        post: operations["archive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/files": {
         parameters: {
             query?: never;
@@ -151,13 +273,13 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /**
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -177,7 +299,7 @@ export interface paths {
          * Restore an archived faculty
          * @description 409 if its code or a name is now used by an active faculty.
          */
-        post: operations["restore_1"];
+        post: operations["restore_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -197,7 +319,7 @@ export interface paths {
          * Archive a faculty (soft)
          * @description Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.
          */
-        post: operations["archive_1"];
+        post: operations["archive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -390,6 +512,59 @@ export interface components {
             ancestorIds?: string[];
             childIds?: string[];
         };
+        MemberRequest: {
+            lastName: string;
+            firstName: string;
+            middleName?: string;
+            /** Format: uuid */
+            facultyId: string;
+            studyGroup: string;
+            telegram: string;
+            /** Format: date */
+            joinedAt: string;
+            /** Format: uuid */
+            avatarFileId?: string;
+            bio?: string;
+        };
+        FacultyRef: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            nameUk?: string;
+            nameEn?: string;
+            active?: boolean;
+        };
+        MemberResponse: {
+            /** Format: uuid */
+            id?: string;
+            login?: string;
+            lastName?: string;
+            firstName?: string;
+            middleName?: string;
+            faculty?: components["schemas"]["FacultyRef"];
+            studyGroup?: string;
+            telegram?: string;
+            /** Format: date */
+            joinedAt?: string;
+            /** Format: uuid */
+            activityLevelId?: string;
+            /** Format: uuid */
+            avatarFileId?: string;
+            bio?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SelfEditRequest: {
+            telegram: string;
+            bio?: string;
+            /** Format: uuid */
+            avatarFileId?: string;
+        };
         FacultyRequest: {
             code: string;
             nameUk: string;
@@ -420,6 +595,31 @@ export interface components {
         MoveOrgUnitRequest: {
             /** Format: uuid */
             parentId?: string;
+        };
+        CreateMemberRequest: {
+            login: string;
+            lastName: string;
+            firstName: string;
+            middleName?: string;
+            /** Format: uuid */
+            facultyId: string;
+            studyGroup: string;
+            telegram: string;
+            /** Format: date */
+            joinedAt: string;
+            /** Format: uuid */
+            avatarFileId?: string;
+            bio?: string;
+            locale?: string;
+            /** Format: uuid */
+            roleId?: string;
+        };
+        CreatedMemberResponse: {
+            member?: components["schemas"]["MemberResponse"];
+            temporaryPassword?: string;
+        };
+        TemporaryPasswordResponse: {
+            temporaryPassword?: string;
         };
         ProblemDetail: {
             /** Format: uri */
@@ -505,6 +705,34 @@ export interface components {
             /** Format: int32 */
             size?: number;
             sort?: string;
+        };
+        MemberSummary: {
+            /** Format: uuid */
+            id?: string;
+            lastName?: string;
+            firstName?: string;
+            middleName?: string;
+            faculty?: components["schemas"]["FacultyRef"];
+            studyGroup?: string;
+            telegram?: string;
+            /** Format: date */
+            joinedAt?: string;
+            /** Format: uuid */
+            avatarFileId?: string;
+            archived?: boolean;
+        };
+        PageResponseMemberSummary: {
+            content?: components["schemas"]["MemberSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
         };
         PageResponseFacultyResponse: {
             content?: components["schemas"]["FacultyResponse"][];
@@ -593,12 +821,84 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["FacultyResponse"];
+                    "*/*": components["schemas"]["MemberResponse"];
                 };
             };
         };
     };
     update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    updateSelf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelfEditRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -718,6 +1018,119 @@ export interface operations {
             };
         };
     };
+    list: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseMemberSummary"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreatedMemberResponse"];
+                };
+            };
+        };
+    };
+    restore_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TemporaryPasswordResponse"];
+                };
+            };
+        };
+    };
+    archive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberResponse"];
+                };
+            };
+        };
+    };
     upload: {
         parameters: {
             query?: never;
@@ -772,7 +1185,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -795,7 +1208,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -819,7 +1232,7 @@ export interface operations {
             };
         };
     };
-    restore_1: {
+    restore_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -841,7 +1254,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive_2: {
         parameters: {
             query?: never;
             header?: never;
