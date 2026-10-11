@@ -176,13 +176,86 @@
         }
       }
     },
+    "/api/v1/positions/{id}": {
+      "get": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Get one position, including archived ones",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Update title, capacity and bound roles of a position",
+        "description": "A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units/{id}": {
       "get": {
         "tags": [
           "Org structure"
         ],
         "summary": "Get one unit, including archived ones, with its ancestor ids and active child ids",
-        "operationId": "get_1",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -212,7 +285,7 @@
           "Org structure"
         ],
         "summary": "Rename a unit / change its description",
-        "operationId": "update_1",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "id",
@@ -254,7 +327,7 @@
           "Members"
         ],
         "summary": "Get one member profile, including an archived one",
-        "operationId": "get_2",
+        "operationId": "get_3",
         "parameters": [
           {
             "name": "id",
@@ -285,7 +358,7 @@
         ],
         "summary": "Edit a member profile",
         "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
-        "operationId": "update_2",
+        "operationId": "update_3",
         "parameters": [
           {
             "name": "id",
@@ -359,7 +432,7 @@
           "Faculties"
         ],
         "summary": "Get one faculty, including an archived one (existing profiles may reference it)",
-        "operationId": "get_3",
+        "operationId": "get_4",
         "parameters": [
           {
             "name": "id",
@@ -389,7 +462,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_3",
+        "operationId": "update_4",
         "parameters": [
           {
             "name": "id",
@@ -529,6 +602,162 @@
         }
       }
     },
+    "/api/v1/positions/{id}/restore": {
+      "post": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Restore an archived position",
+        "operationId": "restore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/positions/{id}/archive": {
+      "post": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Archive a position (soft)",
+        "description": "409 while it has active appointments.",
+        "operationId": "archive_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/positions/{id}/appointments": {
+      "get": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "History of a position: who held it and when (paginated, sortable by startDate, endDate; default startDate desc)",
+        "description": "Ended appointments are included unless includeEnded=false.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeEnded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseAppointmentResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Appoint a person to a position",
+        "description": "Grants the position's bound roles. 409 when the position is full, archived or the person already holds it; the unit head follows a head position's holder.",
+        "operationId": "appoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units": {
       "post": {
         "tags": [
@@ -568,7 +797,7 @@
         ],
         "summary": "Restore an archived unit",
         "description": "Requires an active parent.",
-        "operationId": "restore",
+        "operationId": "restore_1",
         "parameters": [
           {
             "name": "id",
@@ -587,6 +816,97 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/OrgUnitResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/{id}/positions": {
+      "get": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Positions of a unit (paginated, sortable by title, createdAt; default title)",
+        "description": "Archived positions only with includeArchived=true. Each position lists its active holders; a position without holders is vacant.",
+        "operationId": "ofUnit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponsePositionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Create a position in a unit",
+        "description": "Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.",
+        "operationId": "create_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePositionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
                 }
               }
             }
@@ -644,7 +964,7 @@
         ],
         "summary": "Memberships of a unit (paginated, sortable by since, until; default since desc)",
         "description": "Active memberships only unless includeEnded=true (history).",
-        "operationId": "ofUnit",
+        "operationId": "ofUnit_1",
         "parameters": [
           {
             "name": "id",
@@ -735,7 +1055,7 @@
         ],
         "summary": "Archive a unit (soft)",
         "description": "Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.",
-        "operationId": "archive_1",
+        "operationId": "archive_2",
         "parameters": [
           {
             "name": "id",
@@ -892,7 +1212,7 @@
         ],
         "summary": "Create an account and profile",
         "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
-        "operationId": "create_2",
+        "operationId": "create_3",
         "requestBody": {
           "content": {
             "application/json": {
@@ -923,7 +1243,7 @@
           "Members"
         ],
         "summary": "Restore an archived member and re-enable sign-in",
-        "operationId": "restore_1",
+        "operationId": "restore_2",
         "parameters": [
           {
             "name": "id",
@@ -989,7 +1309,7 @@
         ],
         "summary": "Archive a member (soft) and block sign-in",
         "description": "Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.",
-        "operationId": "archive_2",
+        "operationId": "archive_3",
         "parameters": [
           {
             "name": "id",
@@ -1131,7 +1451,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_3",
+        "operationId": "create_4",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1163,7 +1483,7 @@
         ],
         "summary": "Restore an archived faculty",
         "description": "409 if its code or a name is now used by an active faculty.",
-        "operationId": "restore_2",
+        "operationId": "restore_3",
         "parameters": [
           {
             "name": "id",
@@ -1196,7 +1516,7 @@
         ],
         "summary": "Archive a faculty (soft)",
         "description": "Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.",
-        "operationId": "archive_3",
+        "operationId": "archive_4",
         "parameters": [
           {
             "name": "id",
@@ -1341,6 +1661,48 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{id}/end": {
+      "post": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "End an appointment",
+        "description": "Sets endDate (default today) and revokes the roles this appointment granted; a role the person has from another source stays. The record is kept as history.",
+        "operationId": "end_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndAppointmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
                 }
               }
             }
@@ -1562,7 +1924,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_4",
+        "operationId": "get_5",
         "parameters": [
           {
             "name": "id",
@@ -1750,7 +2112,7 @@
         ],
         "summary": "History of one object, newest first (paginated); any authenticated user",
         "description": "403 for entity types registered as restricted when the permission is missing.",
-        "operationId": "history",
+        "operationId": "history_1",
         "parameters": [
           {
             "name": "type",
@@ -1785,6 +2147,87 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/PageResponseAuditEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments": {
+      "get": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Appointments of a person (paginated; active only unless includeEnded=true)",
+        "operationId": "ofUser_1",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeEnded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseAppointmentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{id}": {
+      "get": {
+        "tags": [
+          "Org positions"
+        ],
+        "summary": "Get one appointment",
+        "operationId": "getAppointment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
                 }
               }
             }
@@ -1854,6 +2297,88 @@
           "assignedUserCount": {
             "type": "integer",
             "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdatePositionRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "defaultRoleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "PositionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isHead": {
+            "type": "boolean"
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultRoleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "activeHolderIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "vacant": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "createdAt": {
             "type": "string",
@@ -2157,6 +2682,58 @@
           }
         }
       },
+      "AppointRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "AppointmentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "positionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "CreateOrgUnitRequest": {
         "type": "object",
         "properties": {
@@ -2187,6 +2764,36 @@
         "required": [
           "name",
           "type"
+        ]
+      },
+      "CreatePositionRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "defaultRoleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "isHead": {
+            "type": "boolean"
+          },
+          "capacity": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "title"
         ]
       },
       "MoveOrgUnitRequest": {
@@ -2491,6 +3098,15 @@
           "newPassword"
         ]
       },
+      "EndAppointmentRequest": {
+        "type": "object",
+        "properties": {
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "ChangeLocaleRequest": {
         "type": "object",
         "properties": {
@@ -2571,6 +3187,39 @@
           }
         }
       },
+      "PageResponseAppointmentResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppointmentResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
       "PermissionDto": {
         "type": "object",
         "properties": {
@@ -2596,6 +3245,39 @@
             "items": {
               "$ref": "#/components/schemas/PermissionDto"
             }
+          }
+        }
+      },
+      "PageResponsePositionResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PositionResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       },

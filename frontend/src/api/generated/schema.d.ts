@@ -49,6 +49,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/positions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one position, including archived ones */
+        get: operations["get_1"];
+        /**
+         * Update title, capacity and bound roles of a position
+         * @description A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.
+         */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/org-units/{id}": {
         parameters: {
             query?: never;
@@ -57,9 +78,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one unit, including archived ones, with its ancestor ids and active child ids */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /** Rename a unit / change its description */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -75,12 +96,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one member profile, including an archived one */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /**
          * Edit a member profile
          * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
          */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -116,9 +137,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one faculty, including an archived one (existing profiles may reference it) */
-        get: operations["get_3"];
+        get: operations["get_4"];
         /** Edit an active faculty */
-        put: operations["update_3"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -170,6 +191,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/positions/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived position */
+        post: operations["restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/positions/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a position (soft)
+         * @description 409 while it has active appointments.
+         */
+        post: operations["archive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/positions/{id}/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * History of a position: who held it and when (paginated, sortable by startDate, endDate; default startDate desc)
+         * @description Ended appointments are included unless includeEnded=false.
+         */
+        get: operations["history"];
+        put?: never;
+        /**
+         * Appoint a person to a position
+         * @description Grants the position's bound roles. 409 when the position is full, archived or the person already holds it; the unit head follows a head position's holder.
+         */
+        post: operations["appoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/org-units": {
         parameters: {
             query?: never;
@@ -203,7 +285,31 @@ export interface paths {
          * Restore an archived unit
          * @description Requires an active parent.
          */
-        post: operations["restore"];
+        post: operations["restore_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/{id}/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Positions of a unit (paginated, sortable by title, createdAt; default title)
+         * @description Archived positions only with includeArchived=true. Each position lists its active holders; a position without holders is vacant.
+         */
+        get: operations["ofUnit"];
+        put?: never;
+        /**
+         * Create a position in a unit
+         * @description Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.
+         */
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -241,7 +347,7 @@ export interface paths {
          * Memberships of a unit (paginated, sortable by since, until; default since desc)
          * @description Active memberships only unless includeEnded=true (history).
          */
-        get: operations["ofUnit"];
+        get: operations["ofUnit_1"];
         put?: never;
         /**
          * Add a person to a unit
@@ -267,7 +373,7 @@ export interface paths {
          * Archive a unit (soft)
          * @description Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.
          */
-        post: operations["archive_1"];
+        post: operations["archive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -331,7 +437,7 @@ export interface paths {
          * Create an account and profile
          * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
          */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -348,7 +454,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Restore an archived member and re-enable sign-in */
-        post: operations["restore_1"];
+        post: operations["restore_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -388,7 +494,7 @@ export interface paths {
          * Archive a member (soft) and block sign-in
          * @description Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.
          */
-        post: operations["archive_2"];
+        post: operations["archive_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -432,7 +538,7 @@ export interface paths {
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -452,7 +558,7 @@ export interface paths {
          * Restore an archived faculty
          * @description 409 if its code or a name is now used by an active faculty.
          */
-        post: operations["restore_2"];
+        post: operations["restore_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -472,7 +578,7 @@ export interface paths {
          * Archive a faculty (soft)
          * @description Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.
          */
-        post: operations["archive_3"];
+        post: operations["archive_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -524,6 +630,26 @@ export interface paths {
         put?: never;
         /** Change the own password (required when mustChangePassword is true) */
         post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/appointments/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End an appointment
+         * @description Sets endDate (default today) and revokes the roles this appointment granted; a role the person has from another source stays. The record is kept as history.
+         */
+        post: operations["end_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -646,7 +772,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_4"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -723,7 +849,41 @@ export interface paths {
          * History of one object, newest first (paginated); any authenticated user
          * @description 403 for entity types registered as restricted when the permission is missing.
          */
-        get: operations["history"];
+        get: operations["history_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Appointments of a person (paginated; active only unless includeEnded=true) */
+        get: operations["ofUser_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/appointments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one appointment */
+        get: operations["getAppointment"];
         put?: never;
         post?: never;
         delete?: never;
@@ -753,6 +913,32 @@ export interface components {
             archivedAt?: string;
             /** Format: int64 */
             assignedUserCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        UpdatePositionRequest: {
+            title: string;
+            defaultRoleIds?: string[];
+            /** Format: int32 */
+            capacity?: number;
+        };
+        PositionResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            isHead?: boolean;
+            /** Format: int32 */
+            capacity?: number;
+            defaultRoleIds?: string[];
+            activeHolderIds?: string[];
+            vacant?: boolean;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -853,6 +1039,29 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        AppointRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: date */
+            startDate?: string;
+        };
+        AppointmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            positionId?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         CreateOrgUnitRequest: {
             name: string;
             /** @enum {string} */
@@ -860,6 +1069,13 @@ export interface components {
             /** Format: uuid */
             parentId?: string;
             description?: string;
+        };
+        CreatePositionRequest: {
+            title: string;
+            defaultRoleIds?: string[];
+            isHead?: boolean;
+            /** Format: int32 */
+            capacity?: number;
         };
         MoveOrgUnitRequest: {
             /** Format: uuid */
@@ -972,6 +1188,10 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        EndAppointmentRequest: {
+            /** Format: date */
+            endDate?: string;
+        };
         ChangeLocaleRequest: {
             locale: string;
         };
@@ -1000,6 +1220,19 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
+        PageResponseAppointmentResponse: {
+            content?: components["schemas"]["AppointmentResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
         PermissionDto: {
             key?: string;
             label?: string;
@@ -1008,6 +1241,19 @@ export interface components {
             code?: string;
             label?: string;
             permissions?: components["schemas"]["PermissionDto"][];
+        };
+        PageResponsePositionResponse: {
+            content?: components["schemas"]["PositionResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
         };
         PageResponseMembershipResponse: {
             content?: components["schemas"]["MembershipResponse"][];
@@ -1224,12 +1470,60 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["OrgUnitResponse"];
+                    "*/*": components["schemas"]["PositionResponse"];
                 };
             };
         };
     };
     update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePositionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PositionResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1255,7 +1549,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1277,7 +1571,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1327,7 +1621,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1349,7 +1643,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1444,6 +1738,101 @@ export interface operations {
             };
         };
     };
+    restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PositionResponse"];
+                };
+            };
+        };
+    };
+    archive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PositionResponse"];
+                };
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeEnded?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAppointmentResponse"];
+                };
+            };
+        };
+    };
+    appoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppointRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
     create_1: {
         parameters: {
             query?: never;
@@ -1468,7 +1857,7 @@ export interface operations {
             };
         };
     };
-    restore: {
+    restore_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1486,6 +1875,57 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitResponse"];
+                };
+            };
+        };
+    };
+    ofUnit: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponsePositionResponse"];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePositionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PositionResponse"];
                 };
             };
         };
@@ -1516,7 +1956,7 @@ export interface operations {
             };
         };
     };
-    ofUnit: {
+    ofUnit_1: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -1567,7 +2007,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1664,7 +2104,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1688,7 +2128,7 @@ export interface operations {
             };
         };
     };
-    restore_1: {
+    restore_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1732,7 +2172,7 @@ export interface operations {
             };
         };
     };
-    archive_2: {
+    archive_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1831,7 +2271,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1855,7 +2295,7 @@ export interface operations {
             };
         };
     };
-    restore_2: {
+    restore_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1877,7 +2317,7 @@ export interface operations {
             };
         };
     };
-    archive_3: {
+    archive_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2006,6 +2446,32 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    end_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EndAppointmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
                 };
             };
         };
@@ -2144,7 +2610,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2254,7 +2720,7 @@ export interface operations {
             };
         };
     };
-    history: {
+    history_1: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -2275,6 +2741,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseAuditEntryResponse"];
+                };
+            };
+        };
+    };
+    ofUser_1: {
+        parameters: {
+            query: {
+                userId: string;
+                page: components["schemas"]["PageParams"];
+                includeEnded?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAppointmentResponse"];
+                };
+            };
+        };
+    };
+    getAppointment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
                 };
             };
         };
