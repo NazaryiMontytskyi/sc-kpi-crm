@@ -17,7 +17,7 @@ import com.kpi.studentcouncil.crm.audit.AuditEvent;
 import com.kpi.studentcouncil.crm.audit.AuditPublisher;
 import com.kpi.studentcouncil.crm.identity.PermissionsProvider;
 import com.kpi.studentcouncil.crm.identity.UserDirectory;
-import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
+import com.kpi.studentcouncil.crm.shared.error.ForbiddenException;
 import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 
 /** Computes effective permissions and manages role assignments (audited, cache-invalidating). */
@@ -94,7 +94,7 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 	@Override
 	public void grantRole(UUID userId, UUID roleId) {
 		if (ADMIN_ROLE_ID.equals(roleId)) {
-			throw new BusinessRuleException("ADMIN_ROLE_RESERVED");
+			throw new ForbiddenException("ADMIN_ROLE_RESERVED");
 		}
 		Role role = roles.findByIdAndArchivedAtIsNull(roleId).orElseThrow(() -> new NotFoundException("Role", roleId));
 		if (!users.exists(userId)) {
@@ -121,7 +121,7 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 	@Override
 	public void revokeRole(UUID userId, UUID roleId) {
 		if (ADMIN_ROLE_ID.equals(roleId)) {
-			throw new BusinessRuleException("ADMIN_ROLE_RESERVED");
+			throw new ForbiddenException("ADMIN_ROLE_RESERVED");
 		}
 		RoleAssignment assignment = assignments
 				.findByUserIdAndRoleIdAndScopeOrgUnitIdIsNullAndArchivedAtIsNull(userId, roleId).orElse(null);

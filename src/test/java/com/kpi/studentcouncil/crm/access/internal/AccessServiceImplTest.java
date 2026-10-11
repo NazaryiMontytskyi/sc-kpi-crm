@@ -22,7 +22,7 @@ import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.access.Permission;
 import com.kpi.studentcouncil.crm.audit.ActorProvider;
 import com.kpi.studentcouncil.crm.audit.AuditPublisher;
-import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
+import com.kpi.studentcouncil.crm.shared.error.ForbiddenException;
 
 class AccessServiceImplTest {
 
@@ -44,7 +44,7 @@ class AccessServiceImplTest {
 	void setUp() {
 		ActorProvider actors = () -> ActorProvider.SYSTEM_ACTOR;
 		service = new AccessServiceImpl(roles, assignments, cache, audit, actors, Clock.systemUTC(), id -> true);
-		roleService = new RoleService(roles, cache, audit, actors, Clock.systemUTC());
+		roleService = new RoleService(roles, assignments, cache, audit, actors, Clock.systemUTC());
 	}
 
 	private Role role(String name, Permission... permissions) {
@@ -88,13 +88,13 @@ class AccessServiceImplTest {
 	@Test
 	void adminRoleCannotBeGrantedRevokedEditedOrArchived() {
 		assertThatThrownBy(() -> service.grantRole(user, AccessService.ADMIN_ROLE_ID))
-				.isInstanceOf(BusinessRuleException.class).hasMessage("ADMIN_ROLE_RESERVED");
+				.isInstanceOf(ForbiddenException.class).hasMessage("ADMIN_ROLE_RESERVED");
 		assertThatThrownBy(() -> service.revokeRole(user, AccessService.ADMIN_ROLE_ID))
-				.isInstanceOf(BusinessRuleException.class).hasMessage("ADMIN_ROLE_RESERVED");
+				.isInstanceOf(ForbiddenException.class).hasMessage("ADMIN_ROLE_RESERVED");
 		assertThatThrownBy(() -> roleService.update(AccessService.ADMIN_ROLE_ID, "X", null, Set.of()))
-				.isInstanceOf(BusinessRuleException.class).hasMessage("SYSTEM_ROLE_IMMUTABLE");
+				.isInstanceOf(ForbiddenException.class).hasMessage("SYSTEM_ROLE_IMMUTABLE");
 		assertThatThrownBy(() -> roleService.archive(AccessService.ADMIN_ROLE_ID))
-				.isInstanceOf(BusinessRuleException.class).hasMessage("SYSTEM_ROLE_IMMUTABLE");
+				.isInstanceOf(ForbiddenException.class).hasMessage("SYSTEM_ROLE_IMMUTABLE");
 		verifyNoInteractions(audit);
 	}
 
