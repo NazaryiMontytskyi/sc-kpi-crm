@@ -254,7 +254,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Working groups: "disbanded" == archived (§2.2).
 
 #### INC-018 — Org: Membership (user <-> OrgUnit, M:N)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `org`
 - **Depends on:** INC-017, INC-015
 - **Scope:** `Membership` (userId, orgUnitId, since, until); add/end/move a person between units (`org.manage`); a person may belong to several units; list members of a unit and units of a person; reacts to `MemberArchived` by ending active memberships; public `OrgQueryService` for other modules (unit ids of a user, member ids of unit).
