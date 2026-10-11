@@ -69,6 +69,12 @@ const KNOWN_CODES = [
   'FACULTY_CODE_TAKEN',
   'FACULTY_NAME_TAKEN',
   'FACULTY_ARCHIVED',
+  'ROLE_NAME_TAKEN',
+  'ROLE_NAME_RESERVED',
+  'ROLE_NAME_INVALID',
+  'UNKNOWN_PERMISSION',
+  'SYSTEM_ROLE_IMMUTABLE',
+  'ADMIN_ROLE_RESERVED',
 ] as const;
 
 /** i18n key + params for an error; unknown codes and network failures fall back to a generic message. */

@@ -24,16 +24,161 @@
     {
       "name": "Permissions",
       "description": "Permission catalog and effective permissions of users"
+    },
+    {
+      "name": "Roles",
+      "description": "Role builder and role assignment"
     }
   ],
   "paths": {
+    "/api/v1/users/{userId}/roles/{roleId}": {
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Assign a role to a user (idempotent)",
+        "description": "404 for an unknown user or an archived/unknown role; 403 for the Admin role.",
+        "operationId": "assign",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Revoke a role from a user (the assignment is archived; no-op when not assigned)",
+        "description": "403 for the Admin role: it cannot be removed through the API.",
+        "operationId": "revoke",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{id}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Get one role, including an archived one, or the built-in Admin role",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Rename a role and replace its permission set",
+        "description": "Takes effect for all holders immediately. 403 for the Admin role.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units/{id}": {
       "get": {
         "tags": [
           "Org structure"
         ],
         "summary": "Get one unit, including archived ones, with its ancestor ids and active child ids",
-        "operationId": "get",
+        "operationId": "get_1",
         "parameters": [
           {
             "name": "id",
@@ -63,7 +208,7 @@
           "Org structure"
         ],
         "summary": "Rename a unit / change its description",
-        "operationId": "update",
+        "operationId": "update_1",
         "parameters": [
           {
             "name": "id",
@@ -105,7 +250,7 @@
           "Members"
         ],
         "summary": "Get one member profile, including an archived one",
-        "operationId": "get_1",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -136,7 +281,7 @@
         ],
         "summary": "Edit a member profile",
         "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
-        "operationId": "update_1",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "id",
@@ -210,7 +355,7 @@
           "Faculties"
         ],
         "summary": "Get one faculty, including an archived one (existing profiles may reference it)",
-        "operationId": "get_2",
+        "operationId": "get_3",
         "parameters": [
           {
             "name": "id",
@@ -240,7 +385,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_2",
+        "operationId": "update_3",
         "parameters": [
           {
             "name": "id",
@@ -276,6 +421,110 @@
         }
       }
     },
+    "/api/v1/roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "List roles (paginated, by name; the built-in Admin role first)",
+        "description": "includeArchived=true is honoured only for holders of roles.manage.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseRoleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Create a role",
+        "description": "The name is unique among active roles (409); Admin is reserved.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{id}/archive": {
+      "post": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Archive a role (soft)",
+        "description": "Allowed while assigned: holders lose its permissions. 403 for the Admin role.",
+        "operationId": "archive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units": {
       "post": {
         "tags": [
@@ -283,7 +532,7 @@
         ],
         "summary": "Create a unit",
         "description": "Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).",
-        "operationId": "create",
+        "operationId": "create_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -391,7 +640,7 @@
         ],
         "summary": "Archive a unit (soft)",
         "description": "Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.",
-        "operationId": "archive",
+        "operationId": "archive_1",
         "parameters": [
           {
             "name": "id",
@@ -424,7 +673,7 @@
         ],
         "summary": "List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)",
         "description": "Active members only. includeArchived=true is honoured only for holders of members.archive. Directory filters are added in a later increment.",
-        "operationId": "list",
+        "operationId": "list_1",
         "parameters": [
           {
             "name": "page",
@@ -463,7 +712,7 @@
         ],
         "summary": "Create an account and profile",
         "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
-        "operationId": "create_1",
+        "operationId": "create_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -560,7 +809,7 @@
         ],
         "summary": "Archive a member (soft) and block sign-in",
         "description": "Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.",
-        "operationId": "archive_1",
+        "operationId": "archive_2",
         "parameters": [
           {
             "name": "id",
@@ -663,7 +912,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list_1",
+        "operationId": "list_2",
         "parameters": [
           {
             "name": "page",
@@ -702,7 +951,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_2",
+        "operationId": "create_3",
         "requestBody": {
           "content": {
             "application/json": {
@@ -767,7 +1016,7 @@
         ],
         "summary": "Archive a faculty (soft)",
         "description": "Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.",
-        "operationId": "archive_2",
+        "operationId": "archive_3",
         "parameters": [
           {
             "name": "id",
@@ -950,6 +1199,41 @@
         }
       }
     },
+    "/api/v1/users/{userId}/roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Roles currently assigned to a user (self, roles.assign or roles.manage)",
+        "operationId": "userRoles",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/{id}/permissions": {
       "get": {
         "tags": [
@@ -1120,6 +1404,76 @@
   },
   "components": {
     "schemas": {
+      "RoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "RoleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "system": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignedUserCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "UpdateOrgUnitRequest": {
         "type": "object",
         "properties": {
@@ -1697,6 +2051,58 @@
           }
         }
       },
+      "PageParams": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1
+          },
+          "sort": {
+            "type": "string"
+          }
+        }
+      },
+      "PageResponseRoleResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
       "PermissionDto": {
         "type": "object",
         "properties": {
@@ -1759,25 +2165,6 @@
             "items": {
               "$ref": "#/components/schemas/OrgUnitTreeNode"
             }
-          }
-        }
-      },
-      "PageParams": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32",
-            "maximum": 100,
-            "minimum": 1
-          },
-          "sort": {
-            "type": "string"
           }
         }
       },

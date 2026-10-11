@@ -16,7 +16,9 @@
   },
   "nav": {
     "home": "Home",
-    "settingsFaculties": "Faculties"
+    "settingsFaculties": "Faculties",
+    "roles": "Roles",
+    "roleAssignments": "Role assignments"
   },
   "layout": {
     "menu": "Menu",
@@ -76,6 +78,12 @@
     "FACULTY_CODE_TAKEN": "An active faculty with this code already exists.",
     "FACULTY_NAME_TAKEN": "An active faculty with this name already exists.",
     "FACULTY_ARCHIVED": "An archived faculty cannot be changed. Restore it first.",
+    "ROLE_NAME_TAKEN": "An active role with this name already exists.",
+    "ROLE_NAME_RESERVED": "The name Admin is reserved for the built-in role.",
+    "ROLE_NAME_INVALID": "The role name must not be empty and must be at most 100 characters.",
+    "UNKNOWN_PERMISSION": "One of the selected permissions is unknown. Reload the page.",
+    "SYSTEM_ROLE_IMMUTABLE": "The built-in Admin role cannot be edited or archived.",
+    "ADMIN_ROLE_RESERVED": "The Admin role is built in: it cannot be granted or revoked here.",
     "UNKNOWN": "Something went wrong. Please try again later."
   },
   "faculties": {
@@ -116,5 +124,56 @@
       "codeTooLong": "At most 30 characters.",
       "nameTooLong": "At most 200 characters."
     }
+  },
+  "roles": {
+    "title": "Roles",
+    "description": "A role is a set of permissions. A user has the union of the permissions of all their roles; changes apply immediately. The built-in Admin role has every permission and cannot be edited.",
+    "showArchived": "Show archived",
+    "add": "Create role",
+    "edit": "Edit",
+    "view": "View",
+    "archive": "Archive",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "createTitle": "New role",
+    "editTitle": "Edit role",
+    "viewTitle": "Role",
+    "systemReadOnly": "The built-in Admin role has every permission; it cannot be changed, archived, granted or revoked.",
+    "name": "Name",
+    "descriptionLabel": "Description",
+    "permissions": "Permissions",
+    "permissionCount": "Permissions",
+    "assignedUsers": "Users",
+    "status": "Status",
+    "actions": "Actions",
+    "active": "Active",
+    "archived": "Archived",
+    "system": "Built-in",
+    "selectGroup": "Select all permissions of the group: {{group}}",
+    "archiveTitle": "Archive role",
+    "archiveConfirm": "Archive the role \"{{name}}\"? It cannot be restored from the interface.",
+    "archiveInUse": "The role is assigned to users ({{count}}). After archiving they lose its permissions.",
+    "loadFailed": "Could not load roles.",
+    "errors": {
+      "nameRequired": "Enter a role name.",
+      "nameTooLong": "At most 100 characters.",
+      "descriptionTooLong": "At most 500 characters."
+    }
+  },
+  "roleAssignments": {
+    "title": "Role assignments",
+    "description": "Pick a member to see their roles, grant a new one or revoke an existing one.",
+    "user": "Member",
+    "userPlaceholder": "Select a member",
+    "userNothing": "Nothing found",
+    "currentRoles": "Current roles",
+    "noRoles": "No roles.",
+    "archivedInactive": "Archived, inactive",
+    "revoke": "Revoke",
+    "addRole": "Add a role",
+    "rolePlaceholder": "Select a role",
+    "roleNothing": "No roles available",
+    "assign": "Grant"
   }
 }

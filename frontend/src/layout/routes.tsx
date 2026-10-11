@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
 import { FacultiesPage } from '../members/FacultiesPage';
 import { HomePage } from '../pages/HomePage';
+import { RoleAssignmentsPage } from '../roles/RoleAssignmentsPage';
+import { RolesPage } from '../roles/RolesPage';
 
 export interface AppRoute {
   path: string;
@@ -19,5 +21,11 @@ export const appRoutes: AppRoute[] = [
     path: '/settings/faculties',
     element: <FacultiesPage />,
     nav: { labelKey: 'nav.settingsFaculties', permission: 'settings.manage' },
+  },
+  { path: '/roles', element: <RolesPage />, nav: { labelKey: 'nav.roles', permission: 'roles.manage' } },
+  {
+    path: '/role-assignments',
+    element: <RoleAssignmentsPage />,
+    nav: { labelKey: 'nav.roleAssignments', permission: 'roles.assign' },
   },
 ];

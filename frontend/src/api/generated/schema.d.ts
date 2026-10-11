@@ -4,6 +4,51 @@
  */
 
 export interface paths {
+    "/api/v1/users/{userId}/roles/{roleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Assign a role to a user (idempotent)
+         * @description 404 for an unknown user or an archived/unknown role; 403 for the Admin role.
+         */
+        put: operations["assign"];
+        post?: never;
+        /**
+         * Revoke a role from a user (the assignment is archived; no-op when not assigned)
+         * @description 403 for the Admin role: it cannot be removed through the API.
+         */
+        delete: operations["revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one role, including an archived one, or the built-in Admin role */
+        get: operations["get"];
+        /**
+         * Rename a role and replace its permission set
+         * @description Takes effect for all holders immediately. 403 for the Admin role.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/org-units/{id}": {
         parameters: {
             query?: never;
@@ -12,9 +57,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one unit, including archived ones, with its ancestor ids and active child ids */
-        get: operations["get"];
+        get: operations["get_1"];
         /** Rename a unit / change its description */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -30,12 +75,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one member profile, including an archived one */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /**
          * Edit a member profile
          * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
          */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -71,10 +116,54 @@ export interface paths {
             cookie?: never;
         };
         /** Get one faculty, including an archived one (existing profiles may reference it) */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /** Edit an active faculty */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List roles (paginated, by name; the built-in Admin role first)
+         * @description includeArchived=true is honoured only for holders of roles.manage.
+         */
+        get: operations["list"];
+        put?: never;
+        /**
+         * Create a role
+         * @description The name is unique among active roles (409); Admin is reserved.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a role (soft)
+         * @description Allowed while assigned: holders lose its permissions. 403 for the Admin role.
+         */
+        post: operations["archive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -94,7 +183,7 @@ export interface paths {
          * Create a unit
          * @description Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).
          */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -154,7 +243,7 @@ export interface paths {
          * Archive a unit (soft)
          * @description Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.
          */
-        post: operations["archive"];
+        post: operations["archive_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -172,13 +261,13 @@ export interface paths {
          * List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)
          * @description Active members only. includeArchived=true is honoured only for holders of members.archive. Directory filters are added in a later increment.
          */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /**
          * Create an account and profile
          * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
          */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -235,7 +324,7 @@ export interface paths {
          * Archive a member (soft) and block sign-in
          * @description Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.
          */
-        post: operations["archive_1"];
+        post: operations["archive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -273,13 +362,13 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /**
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -319,7 +408,7 @@ export interface paths {
          * Archive a faculty (soft)
          * @description Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.
          */
-        post: operations["archive_2"];
+        post: operations["archive_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -392,6 +481,23 @@ export interface paths {
         head?: never;
         /** Persist the preferred UI language (uk or en) */
         patch: operations["changeLocale"];
+        trace?: never;
+    };
+    "/api/v1/users/{userId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Roles currently assigned to a user (self, roles.assign or roles.manage) */
+        get: operations["userRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/{id}/permissions": {
@@ -489,6 +595,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RoleRequest: {
+            name: string;
+            description?: string;
+            permissions: string[];
+        };
+        RoleResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string;
+            system?: boolean;
+            permissions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: int64 */
+            assignedUserCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         UpdateOrgUnitRequest: {
             name: string;
             description?: string;
@@ -678,6 +806,26 @@ export interface components {
             userId?: string;
             permissions?: string[];
         };
+        PageParams: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            sort?: string;
+        };
+        PageResponseRoleResponse: {
+            content?: components["schemas"]["RoleResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
         PermissionDto: {
             key?: string;
             label?: string;
@@ -698,13 +846,6 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
             children?: components["schemas"]["OrgUnitTreeNode"][];
-        };
-        PageParams: {
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            sort?: string;
         };
         MemberSummary: {
             /** Format: uuid */
@@ -756,7 +897,97 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+                roleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -778,7 +1009,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -804,7 +1035,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -826,7 +1057,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -876,7 +1107,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -898,7 +1129,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -924,7 +1155,76 @@ export interface operations {
             };
         };
     };
+    list: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseRoleResponse"];
+                };
+            };
+        };
+    };
     create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"];
+                };
+            };
+        };
+    };
+    archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -996,7 +1296,7 @@ export interface operations {
             };
         };
     };
-    archive: {
+    archive_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1018,7 +1318,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -1041,7 +1341,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1109,7 +1409,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1185,7 +1485,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -1208,7 +1508,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1254,7 +1554,7 @@ export interface operations {
             };
         };
     };
-    archive_2: {
+    archive_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1407,6 +1707,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    userRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"][];
                 };
             };
         };
