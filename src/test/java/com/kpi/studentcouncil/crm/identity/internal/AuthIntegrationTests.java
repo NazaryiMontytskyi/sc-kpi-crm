@@ -211,7 +211,7 @@ class AuthIntegrationTests {
 
 	@Test
 	void unauthenticatedRequestsGetLocalizedProblem401() throws Exception {
-		mvc.perform(get("/api/v1/members"))
+		mvc.perform(get("/api/v1/no-such-route"))
 				.andExpect(status().isUnauthorized())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 				.andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
@@ -268,7 +268,7 @@ class AuthIntegrationTests {
 		mvc.perform(get(AUTH + "/me").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.mustChangePassword").value(true));
-		mvc.perform(get("/api/v1/members").session(session).header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+		mvc.perform(get("/api/v1/no-such-route").session(session).header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
 				.andExpect(status().isForbidden())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 				.andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
@@ -295,7 +295,7 @@ class AuthIntegrationTests {
 				.andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Brand-new"))));
 
 		// no longer restricted (reaches routing, hence 404 for the unknown route)
-		mvc.perform(get("/api/v1/members").session(session)).andExpect(status().isNotFound());
+		mvc.perform(get("/api/v1/no-such-route").session(session)).andExpect(status().isNotFound());
 
 		User reloaded = users.findById(user.getId()).orElseThrow();
 		assertThat(reloaded.isMustChangePassword()).isFalse();
