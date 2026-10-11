@@ -13,7 +13,9 @@ import com.kpi.studentcouncil.crm.audit.AuditAction;
 import com.kpi.studentcouncil.crm.audit.AuditEvent;
 import com.kpi.studentcouncil.crm.audit.AuditPublisher;
 import com.kpi.studentcouncil.crm.identity.FirstAdminCreated;
+import com.kpi.studentcouncil.crm.identity.NewAccount;
 import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
+import com.kpi.studentcouncil.crm.shared.error.ConflictException;
 import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 
 /**
@@ -25,6 +27,8 @@ import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 class UserAccountService {
 
 	static final String ENTITY_TYPE = "User";
+
+	static final java.util.regex.Pattern LOGIN_FORMAT = java.util.regex.Pattern.compile("[a-z0-9._-]{3,64}");
 
 	static final String CURRENT_PASSWORD_INVALID = "CURRENT_PASSWORD_INVALID";
 
@@ -39,6 +43,8 @@ class UserAccountService {
 	private final ApplicationEventPublisher events;
 
 	private final Clock clock;
+
+	private final TemporaryPasswords temporaryPasswords = new TemporaryPasswords();
 
 	UserAccountService(UserRepository users, PasswordEncoder encoder, PasswordPolicy policy, AuditPublisher audit,
 			ApplicationEventPublisher events, Clock clock) {
@@ -91,6 +97,50 @@ class UserAccountService {
 		user.changeLocale(locale);
 		audit.publish(new AuditEvent(AuditAction.UPDATE, ENTITY_TYPE, userId, before, user.auditSnapshot(), userId));
 		return user;
+	}
+
+	@Transactional(readOnly = true)
+	java.util.Optional<String> findLogin(UUID userId) {
+		return users.findById(userId).map(User::getLogin);
+	}
+
+	/** Creates an ACTIVE account with a random temporary password and {@code mustChangePassword=true}. */
+	NewAccount createWithTemporaryPassword(String rawLogin, String locale) {
+		String login = User.normalizeLogin(rawLogin);
+		if (!LOGIN_FORMAT.matcher(login).matches()) {
+			throw new BusinessRuleException("LOGIN_INVALID");
+		}
+		if (users.findByLogin(login).isPresent()) {
+			throw new ConflictException("LOGIN_TAKEN", login);
+		}
+		String password = temporaryPasswords.generate(policy, login);
+		User user = users.save(User.create(login, encoder.encode(password), locale == null ? "uk" : locale, true));
+		audit.publish(AuditAction.CREATE, ENTITY_TYPE, user.getId(), null, user.auditSnapshot());
+		return new NewAccount(user.getId(), login, password);
+	}
+
+	/** Sets a new random temporary password; the account must change it on next sign-in. */
+	String resetToTemporaryPassword(UUID userId) {
+		User user = get(userId);
+		String password = temporaryPasswords.generate(policy, user.getLogin());
+		var before = user.auditSnapshot();
+		user.resetPassword(encoder.encode(password));
+		audit.publish(AuditAction.PASSWORD_CHANGE, ENTITY_TYPE, userId, before, user.auditSnapshot());
+		return password;
+	}
+
+	void archiveAccount(UUID userId, UUID actorId) {
+		User user = get(userId);
+		var before = user.auditSnapshot();
+		user.archive(actorId, clock.instant());
+		audit.publish(AuditAction.ARCHIVE, ENTITY_TYPE, userId, before, user.auditSnapshot());
+	}
+
+	void restoreAccount(UUID userId) {
+		User user = get(userId);
+		var before = user.auditSnapshot();
+		user.restore();
+		audit.publish(AuditAction.RESTORE, ENTITY_TYPE, userId, before, user.auditSnapshot());
 	}
 
 	/**

@@ -109,6 +109,13 @@ public class User extends ArchivableEntity {
 		this.passwordChangedAt = at;
 	}
 
+	/** Administrative reset: new (temporary) hash, a change is required on next sign-in. */
+	void resetPassword(String newHash) {
+		this.passwordHash = newHash;
+		this.mustChangePassword = true;
+		this.passwordChangedAt = null;
+	}
+
 	void changeLocale(String newLocale) {
 		this.locale = requireLocale(newLocale);
 	}
