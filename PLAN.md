@@ -172,7 +172,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** small slice; may be merged with INC-012 by the orchestrator if review load allows.
 
 #### INC-012 — Role builder API and UI
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `access` + frontend `roles`
 - **Depends on:** INC-011, INC-008
 - **Scope:** Role CRUD API (`roles.manage`): create, rename, edit permission set, archive (soft); assign/revoke roles to users (`roles.assign`); protect system Admin role; UI: roles list, role editor with grouped permission checkboxes, user-role assignment panel (user picker uses members directory once available; until then a simple user list endpoint).
