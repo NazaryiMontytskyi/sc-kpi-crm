@@ -268,7 +268,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-019 — Org: Position, Appointment, role binding
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `org` (calls `access` public service)
 - **Depends on:** INC-018, INC-005
 - **Scope:** `Position` (title, orgUnitId, defaultRoleIds[], isHead); `Appointment` (positionId, userId, startDate, endDate) with history ("who held it before"); `positions.manage` for position CRUD, `positions.appoint` for appoint/end; appointing grants `defaultRoleIds` via `AccessService`, ending the appointment revokes them (only roles granted by that appointment; if the user has the same role from another source it stays); head appointment sets unit head; a position may be vacant; position exists independently of person.
