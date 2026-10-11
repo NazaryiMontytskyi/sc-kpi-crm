@@ -199,7 +199,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** permission mapping to be reviewed by a human; recorded in README of seeds.
 
 #### INC-014 — Audit log viewing API and object history
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `audit` + frontend `audit`
 - **Depends on:** INC-003, INC-012
 - **Scope:** `GET /api/v1/audit` (requires `audit.view`; filters actor, entityType/entityId, action, period; paginated); `GET /api/v1/audit/entities/{type}/{id}` for history on object pages (requires authentication per openness; `[ASSUMPTION]` object history visible to all authenticated users, global log needs `audit.view`); frontend audit page with filters and a reusable `<EntityHistory>` component with before/after diff.
