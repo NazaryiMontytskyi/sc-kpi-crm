@@ -212,7 +212,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q10): per-object history visible to all authenticated users; global log requires `audit.view`.
 
 #### INC-015 — Members: MemberProfile and account creation (backend)
-- **Status:** BLOCKED — validated (PASS), commit blocked by migration guard R2 on new V8 migration; awaiting human
+- **Status:** DONE
 - **Module(s):** backend `members` (calls `identity` and `access` public services)
 - **Depends on:** INC-005, INC-009, INC-052
 - **Scope:** `MemberProfile` (lastName, firstName, middleName?, facultyId (dictionary, INC-052), studyGroup, telegram, joinedAt, activityLevel ref, avatar fileId, bio) 1:1 with User; required fields validated (§4); `POST /api/v1/members` (`members.create`) creates User with temporary password (`mustChangePassword=true`) + profile + optional initial role assignment (needs `roles.assign` for the role part); `GET /api/v1/members/{id}`, `PUT` (`members.edit`), self-edit of own bio/avatar/telegram; list endpoint basic (filters in INC-021); `POST .../archive` and `/restore` (`members.archive`) archives profile and blocks sign-in via `identity` while keeping all attribution; temporary password shown once in response, never stored in plaintext/audit; password reset by authorized user.
