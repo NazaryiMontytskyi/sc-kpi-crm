@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
+import com.kpi.studentcouncil.crm.access.RoleGrantSource;
 import com.kpi.studentcouncil.crm.shared.domain.ArchivableEntity;
 
 /**
@@ -28,6 +29,13 @@ class RoleAssignment extends ArchivableEntity {
 	@Column(name = "scope_org_unit_id", updatable = false)
 	private UUID scopeOrgUnitId;
 
+	/** Kind of record that caused the grant (e.g. APPOINTMENT); null for a manual grant (ADR-0006). */
+	@Column(name = "source_type", updatable = false, length = 30)
+	private String sourceType;
+
+	@Column(name = "source_id", updatable = false)
+	private UUID sourceId;
+
 	protected RoleAssignment() {
 	}
 
@@ -36,6 +44,23 @@ class RoleAssignment extends ArchivableEntity {
 		assignment.userId = userId;
 		assignment.roleId = roleId;
 		return assignment;
+	}
+
+	static RoleAssignment create(UUID userId, UUID roleId, RoleGrantSource source) {
+		RoleAssignment assignment = create(userId, roleId);
+		if (source != null) {
+			assignment.sourceType = source.type();
+			assignment.sourceId = source.id();
+		}
+		return assignment;
+	}
+
+	String getSourceType() {
+		return sourceType;
+	}
+
+	UUID getSourceId() {
+		return sourceId;
 	}
 
 	UUID getUserId() {
@@ -55,6 +80,10 @@ class RoleAssignment extends ArchivableEntity {
 		snapshot.put("userId", userId);
 		snapshot.put("roleId", roleId);
 		snapshot.put("roleName", roleName);
+		if (sourceType != null) {
+			snapshot.put("sourceType", sourceType);
+			snapshot.put("sourceId", sourceId);
+		}
 		snapshot.put("active", !isArchived());
 		return snapshot;
 	}

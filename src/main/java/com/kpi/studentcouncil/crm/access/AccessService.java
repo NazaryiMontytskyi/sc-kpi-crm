@@ -36,4 +36,22 @@ public interface AccessService {
 	/** Revokes a role; no-op when it is not granted. The Admin role cannot be revoked through this API. */
 	void revokeRole(UUID userId, UUID roleId);
 
+	/**
+	 * Grants a role on behalf of a domain record (e.g. a position appointment). Idempotent per (user, role, source).
+	 * The user keeps the permissions of the role until every grant of it (manual and from all sources) is gone.
+	 *
+	 * @throws com.kpi.studentcouncil.crm.shared.error.NotFoundException    unknown or archived role, or unknown user
+	 * @throws com.kpi.studentcouncil.crm.shared.error.BusinessRuleException {@code ADMIN_ROLE_RESERVED} (403)
+	 */
+	void grantRole(UUID userId, UUID roleId, RoleGrantSource source);
+
+	/** Revokes only the grant made by the given source; manual grants and other sources stay. No-op if absent. */
+	void revokeRole(UUID userId, UUID roleId, RoleGrantSource source);
+
+	/** Revokes every role granted by the given source (even if a role was archived since). Returns how many. */
+	int revokeAllGrantedBy(RoleGrantSource source);
+
+	/** True when the role exists, is not archived and is not the reserved Admin role (i.e. can be bound/granted). */
+	boolean isAssignableRole(UUID roleId);
+
 }

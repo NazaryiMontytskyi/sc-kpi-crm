@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.access.Permission;
+import com.kpi.studentcouncil.crm.access.RoleGrantSource;
 import com.kpi.studentcouncil.crm.audit.ActorProvider;
 import com.kpi.studentcouncil.crm.audit.AuditAction;
 import com.kpi.studentcouncil.crm.audit.AuditEvent;
@@ -109,10 +110,21 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 	}
 
 	private void grant(UUID userId, UUID roleId, String roleName) {
-		if (assignments.findByUserIdAndRoleIdAndScopeOrgUnitIdIsNullAndArchivedAtIsNull(userId, roleId).isPresent()) {
+		grant(userId, roleId, roleName, null);
+	}
+
+	private void grant(UUID userId, UUID roleId, String roleName, RoleGrantSource source) {
+		boolean exists = source == null
+				? assignments.findByUserIdAndRoleIdAndScopeOrgUnitIdIsNullAndArchivedAtIsNull(userId, roleId)
+						.isPresent()
+				: assignments
+						.findByUserIdAndRoleIdAndScopeOrgUnitIdIsNullAndSourceTypeAndSourceIdAndArchivedAtIsNull(
+								userId, roleId, source.type(), source.id())
+						.isPresent();
+		if (exists) {
 			return;
 		}
-		RoleAssignment assignment = assignments.save(RoleAssignment.create(userId, roleId));
+		RoleAssignment assignment = assignments.save(RoleAssignment.create(userId, roleId, source));
 		audit.publish(new AuditEvent(AuditAction.ROLE_CHANGE, ASSIGNMENT_ENTITY, assignment.getId(), null,
 				assignment.auditSnapshot(roleName)));
 		cache.invalidateAll();
@@ -128,7 +140,46 @@ class AccessServiceImpl implements AccessService, PermissionsProvider {
 		if (assignment == null) {
 			return;
 		}
-		String roleName = roles.findById(roleId).map(Role::getName).orElse(null);
+		archive(assignment);
+	}
+
+	@Override
+	public void grantRole(UUID userId, UUID roleId, RoleGrantSource source) {
+		if (ADMIN_ROLE_ID.equals(roleId)) {
+			throw new ForbiddenException("ADMIN_ROLE_RESERVED");
+		}
+		Role role = roles.findByIdAndArchivedAtIsNull(roleId).orElseThrow(() -> new NotFoundException("Role", roleId));
+		if (!users.exists(userId)) {
+			throw new NotFoundException("User", userId);
+		}
+		grant(userId, roleId, role.getName(), source);
+	}
+
+	@Override
+	public void revokeRole(UUID userId, UUID roleId, RoleGrantSource source) {
+		if (ADMIN_ROLE_ID.equals(roleId)) {
+			throw new ForbiddenException("ADMIN_ROLE_RESERVED");
+		}
+		assignments.findByUserIdAndRoleIdAndScopeOrgUnitIdIsNullAndSourceTypeAndSourceIdAndArchivedAtIsNull(userId,
+				roleId, source.type(), source.id()).ifPresent(this::archive);
+	}
+
+	@Override
+	public int revokeAllGrantedBy(RoleGrantSource source) {
+		List<RoleAssignment> granted = assignments.findBySourceTypeAndSourceIdAndArchivedAtIsNull(source.type(),
+				source.id());
+		granted.forEach(this::archive);
+		return granted.size();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isAssignableRole(UUID roleId) {
+		return !ADMIN_ROLE_ID.equals(roleId) && roles.findByIdAndArchivedAtIsNull(roleId).isPresent();
+	}
+
+	private void archive(RoleAssignment assignment) {
+		String roleName = roles.findById(assignment.getRoleId()).map(Role::getName).orElse(null);
 		var before = assignment.auditSnapshot(roleName);
 		assignment.archive(actors.currentActorId(), clock.instant());
 		audit.publish(new AuditEvent(AuditAction.ROLE_CHANGE, ASSIGNMENT_ENTITY, assignment.getId(), before,
