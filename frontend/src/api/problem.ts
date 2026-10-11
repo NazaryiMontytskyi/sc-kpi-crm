@@ -75,6 +75,7 @@ const KNOWN_CODES = [
   'UNKNOWN_PERMISSION',
   'SYSTEM_ROLE_IMMUTABLE',
   'ADMIN_ROLE_RESERVED',
+  'INVALID_FILTER',
 ] as const;
 
 /** i18n key + params for an error; unknown codes and network failures fall back to a generic message. */

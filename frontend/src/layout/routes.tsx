@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { AuditPage } from '../audit/AuditPage';
 import { FacultiesPage } from '../members/FacultiesPage';
 import { HomePage } from '../pages/HomePage';
 import { RoleAssignmentsPage } from '../roles/RoleAssignmentsPage';
@@ -28,4 +29,5 @@ export const appRoutes: AppRoute[] = [
     element: <RoleAssignmentsPage />,
     nav: { labelKey: 'nav.roleAssignments', permission: 'roles.assign' },
   },
+  { path: '/audit', element: <AuditPage />, nav: { labelKey: 'nav.audit', permission: 'audit.view' } },
 ];

@@ -18,7 +18,8 @@
     "home": "Головна",
     "settingsFaculties": "Факультети",
     "roles": "Ролі",
-    "roleAssignments": "Призначення ролей"
+    "roleAssignments": "Призначення ролей",
+    "audit": "Журнал аудиту"
   },
   "layout": {
     "menu": "Меню",
@@ -84,7 +85,8 @@
     "UNKNOWN_PERMISSION": "Серед обраних прав є невідоме право. Оновіть сторінку.",
     "SYSTEM_ROLE_IMMUTABLE": "Вбудовану роль Admin не можна змінювати чи архівувати.",
     "ADMIN_ROLE_RESERVED": "Роль Admin вбудована: її не можна видати чи забрати тут.",
-    "UNKNOWN": "Щось пішло не так. Спробуйте пізніше."
+    "UNKNOWN": "Щось пішло не так. Спробуйте пізніше.",
+    "INVALID_FILTER": "Некоректне значення фільтра. Перевірте дані."
   },
   "faculties": {
     "title": "Факультети та інститути",
@@ -175,5 +177,46 @@
     "rolePlaceholder": "Оберіть роль",
     "roleNothing": "Немає доступних ролей",
     "assign": "Видати"
+  },
+  "audit": {
+    "title": "Журнал аудиту",
+    "description": "Усі зміни даних: хто, що і коли змінив. Час показано за Києвом.",
+    "filters": "Фільтри журналу",
+    "filterActor": "Автор зміни (ідентифікатор)",
+    "filterEntityType": "Тип об’єкта",
+    "filterEntityId": "Ідентифікатор об’єкта",
+    "filterIdHint": "UUID",
+    "filterAction": "Дія",
+    "filterFrom": "З дати",
+    "filterTo": "По дату включно",
+    "apply": "Застосувати",
+    "reset": "Скинути",
+    "loadFailed": "Не вдалося завантажити журнал.",
+    "empty_list": "Записів немає.",
+    "historyEmpty": "Історія змін порожня.",
+    "actor": "Автор",
+    "system": "Система",
+    "empty": "—",
+    "before": "Було",
+    "after": "Стало",
+    "noChanges": "Без змін у полях.",
+    "actions": {
+      "CREATE": "Створення",
+      "UPDATE": "Зміна",
+      "ARCHIVE": "Архівація",
+      "RESTORE": "Відновлення",
+      "HARD_DELETE": "Остаточне видалення",
+      "LOGIN": "Вхід",
+      "LOGIN_FAILED": "Невдалий вхід",
+      "LOGOUT": "Вихід",
+      "PASSWORD_CHANGE": "Зміна пароля",
+      "ROLE_CHANGE": "Зміна ролі",
+      "PERMISSION_CHANGE": "Зміна прав",
+      "APPOINT": "Призначення",
+      "DISMISS": "Звільнення",
+      "VOTE": "Голос",
+      "VOTE_CHANGE": "Зміна голосу",
+      "HANDOVER": "Передача справ"
+    }
   }
 }

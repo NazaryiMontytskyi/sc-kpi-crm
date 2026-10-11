@@ -18,7 +18,8 @@
     "home": "Home",
     "settingsFaculties": "Faculties",
     "roles": "Roles",
-    "roleAssignments": "Role assignments"
+    "roleAssignments": "Role assignments",
+    "audit": "Audit log"
   },
   "layout": {
     "menu": "Menu",
@@ -84,7 +85,8 @@
     "UNKNOWN_PERMISSION": "One of the selected permissions is unknown. Reload the page.",
     "SYSTEM_ROLE_IMMUTABLE": "The built-in Admin role cannot be edited or archived.",
     "ADMIN_ROLE_RESERVED": "The Admin role is built in: it cannot be granted or revoked here.",
-    "UNKNOWN": "Something went wrong. Please try again later."
+    "UNKNOWN": "Something went wrong. Please try again later.",
+    "INVALID_FILTER": "The filter value is not valid. Check your input."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -175,5 +177,46 @@
     "rolePlaceholder": "Select a role",
     "roleNothing": "No roles available",
     "assign": "Grant"
+  },
+  "audit": {
+    "title": "Audit log",
+    "description": "Every data change: who changed what and when. Times are shown in Kyiv time.",
+    "filters": "Log filters",
+    "filterActor": "Actor (id)",
+    "filterEntityType": "Object type",
+    "filterEntityId": "Object id",
+    "filterIdHint": "UUID",
+    "filterAction": "Action",
+    "filterFrom": "From date",
+    "filterTo": "To date (inclusive)",
+    "apply": "Apply",
+    "reset": "Reset",
+    "loadFailed": "Could not load the audit log.",
+    "empty_list": "No records.",
+    "historyEmpty": "No change history yet.",
+    "actor": "Actor",
+    "system": "System",
+    "empty": "—",
+    "before": "Before",
+    "after": "After",
+    "noChanges": "No field changes.",
+    "actions": {
+      "CREATE": "Created",
+      "UPDATE": "Updated",
+      "ARCHIVE": "Archived",
+      "RESTORE": "Restored",
+      "HARD_DELETE": "Permanently deleted",
+      "LOGIN": "Signed in",
+      "LOGIN_FAILED": "Failed sign-in",
+      "LOGOUT": "Signed out",
+      "PASSWORD_CHANGE": "Password changed",
+      "ROLE_CHANGE": "Role changed",
+      "PERMISSION_CHANGE": "Permissions changed",
+      "APPOINT": "Appointed",
+      "DISMISS": "Dismissed",
+      "VOTE": "Vote",
+      "VOTE_CHANGE": "Vote changed",
+      "HANDOVER": "Handover"
+    }
   }
 }

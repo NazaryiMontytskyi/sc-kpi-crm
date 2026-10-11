@@ -591,6 +591,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Global audit log, newest first (paginated)
+         * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
+         */
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/entities/{type}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * History of one object, newest first (paginated); any authenticated user
+         * @description 403 for entity types registered as restricted when the permission is missing.
+         */
+        get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -877,6 +917,39 @@ export interface components {
         };
         PageResponseFacultyResponse: {
             content?: components["schemas"]["FacultyResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        AuditEntryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            actorId?: string;
+            /** @enum {string} */
+            action?: "CREATE" | "UPDATE" | "ARCHIVE" | "RESTORE" | "HARD_DELETE" | "LOGIN" | "LOGIN_FAILED" | "LOGOUT" | "PASSWORD_CHANGE" | "ROLE_CHANGE" | "PERMISSION_CHANGE" | "APPOINT" | "DISMISS" | "VOTE" | "VOTE_CHANGE" | "HANDOVER";
+            entityType?: string;
+            /** Format: uuid */
+            entityId?: string;
+            before?: {
+                [key: string]: unknown;
+            };
+            after?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            at?: string;
+            ip?: string;
+        };
+        PageResponseAuditEntryResponse: {
+            content?: components["schemas"]["AuditEntryResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -1853,6 +1926,59 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                actorId?: string;
+                entityType?: string;
+                entityId?: string;
+                action?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAuditEntryResponse"];
+                };
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+            };
+            header?: never;
+            path: {
+                type: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAuditEntryResponse"];
                 };
             };
         };
