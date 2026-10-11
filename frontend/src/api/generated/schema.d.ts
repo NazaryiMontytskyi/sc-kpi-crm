@@ -230,6 +230,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/org-units/{id}/memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Memberships of a unit (paginated, sortable by since, until; default since desc)
+         * @description Active memberships only unless includeEnded=true (history).
+         */
+        get: operations["ofUnit"];
+        put?: never;
+        /**
+         * Add a person to a unit
+         * @description 409 when the person already has an active membership in the unit or the unit is archived.
+         */
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/org-units/{id}/archive": {
         parameters: {
             query?: never;
@@ -244,6 +268,46 @@ export interface paths {
          * @description Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.
          */
         post: operations["archive_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-memberships/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move a person to another unit
+         * @description Ends this membership and starts a new one in the target unit on the same date; returns the new membership.
+         */
+        post: operations["move_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-memberships/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a membership
+         * @description Sets until (default today) and keeps the record.
+         */
+        post: operations["end"];
         delete?: never;
         options?: never;
         head?: never;
@@ -554,6 +618,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/org-memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Memberships of a person (paginated; a person may be in several units)
+         * @description Active memberships only unless includeEnded=true (history).
+         */
+        get: operations["ofUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-memberships/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one membership */
+        get: operations["get_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/files/{id}": {
         parameters: {
             query?: never;
@@ -764,6 +865,39 @@ export interface components {
             /** Format: uuid */
             parentId?: string;
         };
+        StartMembershipRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: date */
+            since?: string;
+        };
+        MembershipResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: date */
+            since?: string;
+            /** Format: date */
+            until?: string;
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MoveMembershipRequest: {
+            /** Format: uuid */
+            targetOrgUnitId: string;
+            /** Format: date */
+            date?: string;
+        };
+        EndMembershipRequest: {
+            /** Format: date */
+            until?: string;
+        };
         CreateMemberRequest: {
             login: string;
             lastName: string;
@@ -874,6 +1008,19 @@ export interface components {
             code?: string;
             label?: string;
             permissions?: components["schemas"]["PermissionDto"][];
+        };
+        PageResponseMembershipResponse: {
+            content?: components["schemas"]["MembershipResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
         };
         OrgUnitTreeNode: {
             /** Format: uuid */
@@ -1369,6 +1516,57 @@ export interface operations {
             };
         };
     };
+    ofUnit: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeEnded?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseMembershipResponse"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MembershipResponse"];
+                };
+            };
+        };
+    };
     archive_1: {
         parameters: {
             query?: never;
@@ -1387,6 +1585,58 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitResponse"];
+                };
+            };
+        };
+    };
+    move_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MembershipResponse"];
+                };
+            };
+        };
+    };
+    end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EndMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MembershipResponse"];
                 };
             };
         };
@@ -1866,6 +2116,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitTreeNode"][];
+                };
+            };
+        };
+    };
+    ofUser: {
+        parameters: {
+            query: {
+                userId: string;
+                page: components["schemas"]["PageParams"];
+                includeEnded?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseMembershipResponse"];
+                };
+            };
+        };
+    };
+    get_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MembershipResponse"];
                 };
             };
         };
