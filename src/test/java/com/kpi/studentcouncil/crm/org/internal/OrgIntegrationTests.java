@@ -78,6 +78,7 @@ class OrgIntegrationTests {
 
 	@BeforeEach
 	void setUp() throws Exception {
+		jdbc.update("delete from org_membership");
 		jdbc.update("update org_unit set parent_id = null");
 		jdbc.update("delete from org_unit");
 		SharedAdmin.ensure(jdbc, encoder);
