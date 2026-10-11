@@ -1,6 +1,7 @@
 package com.kpi.studentcouncil.crm.org.internal;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -13,8 +14,11 @@ class OrgQueryServiceImpl implements OrgQueryService {
 
 	private final MembershipRepository memberships;
 
-	OrgQueryServiceImpl(MembershipRepository memberships) {
+	private final AppointmentRepository appointments;
+
+	OrgQueryServiceImpl(MembershipRepository memberships, AppointmentRepository appointments) {
 		this.memberships = memberships;
+		this.appointments = appointments;
 	}
 
 	@Override
@@ -35,6 +39,12 @@ class OrgQueryServiceImpl implements OrgQueryService {
 	@Transactional(readOnly = true)
 	public boolean isMember(UUID userId, UUID orgUnitId) {
 		return memberships.existsByUserIdAndOrgUnitIdAndUntilIsNull(userId, orgUnitId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<UUID> headOfUnit(UUID orgUnitId) {
+		return appointments.activeHeadUserIds(orgUnitId).stream().findFirst();
 	}
 
 }

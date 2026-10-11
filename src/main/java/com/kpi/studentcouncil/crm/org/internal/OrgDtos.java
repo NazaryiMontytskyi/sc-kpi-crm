@@ -3,8 +3,11 @@ package com.kpi.studentcouncil.crm.org.internal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -51,6 +54,33 @@ final class OrgDtos {
 
 	record MembershipResponse(UUID id, UUID userId, UUID orgUnitId, LocalDate since, LocalDate until, boolean active,
 			Instant createdAt, Instant updatedAt) {
+	}
+
+	/** {@code capacity} defaults to 1; a head position always has capacity 1. */
+	record CreatePositionRequest(@NotBlank @Size(max = 200) String title, Set<UUID> defaultRoleIds,
+			Boolean isHead, @Min(1) @Max(100) Integer capacity) {
+	}
+
+	/** {@code capacity} and {@code defaultRoleIds} keep their current value when omitted. */
+	record UpdatePositionRequest(@NotBlank @Size(max = 200) String title, Set<UUID> defaultRoleIds,
+			@Min(1) @Max(100) Integer capacity) {
+	}
+
+	record PositionResponse(UUID id, String title, UUID orgUnitId, boolean isHead, int capacity,
+			List<UUID> defaultRoleIds, List<UUID> activeHolderIds, boolean vacant, boolean archived,
+			Instant archivedAt, Instant createdAt, Instant updatedAt) {
+	}
+
+	/** {@code startDate} defaults to today (Europe/Kyiv) and must not be in the future. */
+	record AppointRequest(@NotNull UUID userId, LocalDate startDate) {
+	}
+
+	/** {@code endDate} defaults to today (Europe/Kyiv) and must not be in the future. */
+	record EndAppointmentRequest(LocalDate endDate) {
+	}
+
+	record AppointmentResponse(UUID id, UUID positionId, UUID userId, LocalDate startDate, LocalDate endDate,
+			boolean active, Instant createdAt, Instant updatedAt) {
 	}
 
 }

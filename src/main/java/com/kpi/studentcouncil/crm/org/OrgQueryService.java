@@ -1,6 +1,7 @@
 package com.kpi.studentcouncil.crm.org;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** Public membership queries of the org module for other modules (task spaces, search, notifications, ...). */
@@ -14,5 +15,11 @@ public interface OrgQueryService {
 
 	/** True when the user has an active membership in the unit. */
 	boolean isMember(UUID userId, UUID orgUnitId);
+
+	/**
+	 * The head of the unit: the holder of the unit's active head position, derived from the appointment (no
+	 * separate stored value). Empty when there is no head position or it is vacant.
+	 */
+	Optional<UUID> headOfUnit(UUID orgUnitId);
 
 }
