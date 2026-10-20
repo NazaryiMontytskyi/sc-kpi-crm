@@ -333,7 +333,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** optional slice; orchestrator may defer.
 
 #### INC-024 — Tasks: Space with configurable statuses and custom fields (backend)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-017
 - **Scope:** `Space` (name, orgUnitId?, general flag); ordered `SpaceStatus` with category TODO|IN_PROGRESS|DONE|CANCELED; `CustomFieldDefinition` (text, number, date, select with options, person); CRUD (`spaces.manage`); new space gets default statuses; cannot delete/archive a status used by tasks without mapping to another; space archive (soft); reads need `tasks.view`.
