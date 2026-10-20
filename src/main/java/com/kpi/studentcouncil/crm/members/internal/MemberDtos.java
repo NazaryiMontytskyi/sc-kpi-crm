@@ -43,7 +43,7 @@ final class MemberDtos {
 	/** The member id equals the account (user) id. */
 	record MemberResponse(UUID id, String login, String lastName, String firstName, String middleName,
 			FacultyRef faculty, String studyGroup, String telegram, LocalDate joinedAt, UUID activityLevelId,
-			UUID avatarFileId, String bio, boolean archived, Instant archivedAt, Instant createdAt,
+			ActivityLevelDtos.LevelRef activityLevel, UUID avatarFileId, String bio, boolean archived, Instant archivedAt, Instant createdAt,
 			Instant updatedAt) {
 	}
 

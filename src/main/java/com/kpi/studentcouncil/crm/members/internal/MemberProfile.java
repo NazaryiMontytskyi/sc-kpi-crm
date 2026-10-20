@@ -118,6 +118,11 @@ class MemberProfile extends ArchivableEntity {
 		return avatarFileId;
 	}
 
+	/** Only the activity-level feature changes this; every change is recorded in the history. */
+	void setActivityLevelId(UUID activityLevelId) {
+		this.activityLevelId = activityLevelId;
+	}
+
 	String getBio() {
 		return bio;
 	}

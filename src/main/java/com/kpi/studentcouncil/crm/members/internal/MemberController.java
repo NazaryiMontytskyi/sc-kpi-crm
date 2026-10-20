@@ -57,12 +57,15 @@ class MemberController {
 	private final MemberDirectory directory;
 	private final FacultyLookup faculties;
 	private final AccountService users;
+	private final ActivityLevelService activityLevels;
 
-	MemberController(MemberService service, MemberDirectory directory, FacultyLookup faculties, AccountService users) {
+	MemberController(MemberService service, MemberDirectory directory, FacultyLookup faculties, AccountService users,
+			ActivityLevelService activityLevels) {
 		this.service = service;
 		this.directory = directory;
 		this.faculties = faculties;
 		this.users = users;
+		this.activityLevels = activityLevels;
 	}
 
 	@GetMapping
@@ -72,7 +75,7 @@ class MemberController {
 					+ "departmentId/divisionId: members with an active membership in the unit or any of its descendants. "
 					+ "positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are "
 					+ "honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a "
-					+ "deprecated alias of status=ALL. activityLevelId: reference filled by INC-022. Ties are broken by id, "
+					+ "deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, "
 					+ "so paging is stable.")
 	PageResponse<MemberSummary> list(@Valid PageParams page, @RequestParam(required = false) String q,
 			@RequestParam(required = false) UUID facultyId, @RequestParam(required = false) UUID departmentId,
@@ -174,7 +177,9 @@ class MemberController {
 	private MemberResponse toResponse(MemberProfile p) {
 		return new MemberResponse(p.getUserId(), users.findLogin(p.getUserId()).orElse(null), p.getLastName(),
 				p.getFirstName(), p.getMiddleName(), facultyRef(p.getFacultyId()), p.getStudyGroup(),
-				p.getTelegram(), p.getJoinedAt(), p.getActivityLevelId(), p.getAvatarFileId(), p.getBio(),
+				p.getTelegram(), p.getJoinedAt(), p.getActivityLevelId(),
+				activityLevels.findDefinition(p.getActivityLevelId()).map(MemberActivityLevelController::toRef).orElse(null),
+				p.getAvatarFileId(), p.getBio(),
 				p.isArchived(), p.getArchivedAt(), p.getCreatedAt(), p.getUpdatedAt());
 	}
 
