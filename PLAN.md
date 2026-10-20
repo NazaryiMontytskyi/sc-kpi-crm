@@ -347,7 +347,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-025 — Tasks: Task CRUD, labels, related tasks, archive
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-024, INC-009
 - **Scope:** `Task` (spaceId, title, rich-text description JSON, statusId, priority, labels[], dueDate, customFieldValues validated against the space definition, attachments[] via `files`, relatedTaskIds[] (no hierarchy), archivedAt); create (`tasks.create`), edit (task author or `Admin` only, per decision Q7), archive (`tasks.archive`), status change; list with filters (space, status, labels, due date) and pagination; change history through audit events.
