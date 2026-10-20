@@ -23,7 +23,27 @@
     "members": "Members",
     "org": "Structure",
     "tasks": "Tasks",
-    "spaces": "Spaces"
+    "spaces": "Spaces",
+    "myResolutions": "My resolutions",
+    "issuedByMe": "Issued by me"
+  },
+  "memberResolutions": {
+    "profileTitle": "Resolutions",
+    "counts": {
+      "active": "Active",
+      "overdue": "Overdue",
+      "accepted": "Accepted"
+    },
+    "empty": "No resolutions in this view.",
+    "emptyActive": "No active resolutions.",
+    "emptyIssued": "No issued resolutions in this view.",
+    "loadFailed": "Failed to load resolutions.",
+    "untitledTask": "Task",
+    "filter": {
+      "label": "Filter by state",
+      "ACTIVE": "Active",
+      "ALL": "All"
+    }
   },
   "layout": {
     "menu": "Menu",

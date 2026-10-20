@@ -23,7 +23,27 @@
     "members": "Учасники",
     "org": "Структура",
     "tasks": "Задачі",
-    "spaces": "Простори"
+    "spaces": "Простори",
+    "myResolutions": "Мої резолюції",
+    "issuedByMe": "Видані мною"
+  },
+  "memberResolutions": {
+    "profileTitle": "Резолюції",
+    "counts": {
+      "active": "Активні",
+      "overdue": "Прострочені",
+      "accepted": "Прийняті"
+    },
+    "empty": "У цьому розрізі резолюцій немає.",
+    "emptyActive": "Активних резолюцій немає.",
+    "emptyIssued": "У цьому розрізі виданих резолюцій немає.",
+    "loadFailed": "Не вдалося завантажити резолюції.",
+    "untitledTask": "Задача",
+    "filter": {
+      "label": "Фільтр за станом",
+      "ACTIVE": "Активні",
+      "ALL": "Усі"
+    }
   },
   "layout": {
     "menu": "Меню",
