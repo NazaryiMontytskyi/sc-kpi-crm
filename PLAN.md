@@ -469,7 +469,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Advisor cannot issue (seed, §5.2).
 
 #### INC-034 — Resolutions: redirect and chain
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-033
 - **Scope:** `POST /resolutions/{id}/redirect` (`resolutions.redirect`, executor of parent only, parent must be IN_PROGRESS): creates child resolution (parentResolutionId, new executor, instruction, due date <= parent's `[ASSUMPTION: not enforced, warning only]`), parent -> REDIRECTED atomically; `GET /resolutions/{id}/chain` returns the whole tree rooted at the first resolution, visible to everyone with `tasks.view`; when a child becomes ACCEPTED an event `ChildResolutionAccepted` notifies the parent executor, parent is NOT auto-submitted (§5.3 `[ASSUMPTION]`).
