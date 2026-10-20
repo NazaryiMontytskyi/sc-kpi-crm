@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
-import com.kpi.studentcouncil.crm.access.AccessService;
-import com.kpi.studentcouncil.crm.access.Permission;
 import com.kpi.studentcouncil.crm.audit.ActorProvider;
 import com.kpi.studentcouncil.crm.shared.error.ForbiddenException;
 
@@ -17,18 +15,18 @@ import com.kpi.studentcouncil.crm.shared.error.ForbiddenException;
 @Component
 class TaskEditPolicy {
 
-	private final AccessService access;
+	private final AdminCheck admin;
 	private final ActorProvider actors;
 
-	TaskEditPolicy(AccessService access, ActorProvider actors) {
-		this.access = access;
+	TaskEditPolicy(AdminCheck admin, ActorProvider actors) {
+		this.admin = admin;
 		this.actors = actors;
 	}
 
 	/** Edit of fields, links and attachments. */
 	void assertCanEdit(Task task) {
 		UUID actor = actors.currentActorId();
-		if (!canEdit(actor, task.getAuthorId(), isAdmin(actor))) {
+		if (!canEdit(actor, task.getAuthorId(), admin.isAdmin(actor))) {
 			throw new ForbiddenException("TASK_EDIT_FORBIDDEN");
 		}
 	}
@@ -47,14 +45,6 @@ class TaskEditPolicy {
 			return false;
 		}
 		return actorIsAdmin || actorId.equals(authorId);
-	}
-
-	/**
-	 * The Admin role is hardcoded and implies every permission of the catalog; the access module has no dedicated
-	 * "is admin" query yet, so Admin is recognised by holding all of them.
-	 */
-	private boolean isAdmin(UUID actorId) {
-		return access.effectivePermissions(actorId).containsAll(Permission.allKeys());
 	}
 
 }

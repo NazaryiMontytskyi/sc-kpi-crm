@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import com.kpi.studentcouncil.crm.tasks.CommentTargetType;
 import com.kpi.studentcouncil.crm.tasks.CustomFieldType;
 import com.kpi.studentcouncil.crm.tasks.StatusCategory;
 
@@ -100,6 +101,27 @@ final class TasksDtos {
 			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
 			List<AttachmentResponse> attachments, List<UUID> relatedTaskIds, UUID authorId, boolean archived,
 			Instant archivedAt, Instant createdAt, Instant updatedAt) {
+	}
+
+	// ---- comments ----
+
+	/**
+	 * {@code body} is a rich-text (TipTap) document; {@code mentionUserIds} must be exactly the ids of the mention nodes
+	 * in the body.
+	 */
+	record CreateCommentRequest(@NotNull CommentTargetType targetType, @NotNull UUID targetId,
+			@NotNull Map<String, Object> body, List<UUID> mentionUserIds, List<UUID> attachmentIds) {
+	}
+
+	/** Replaces body, mentions and attachments (the target never changes). */
+	record EditCommentRequest(@NotNull Map<String, Object> body, List<UUID> mentionUserIds,
+			List<UUID> attachmentIds) {
+	}
+
+	record CommentResponse(UUID id, CommentTargetType targetType, UUID targetId, UUID authorId,
+			Map<String, Object> body, List<UUID> mentionUserIds, List<AttachmentResponse> attachments,
+			boolean edited, Instant editedAt, boolean archived, Instant archivedAt, Instant createdAt,
+			Instant updatedAt) {
 	}
 
 }

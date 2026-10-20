@@ -22,7 +22,7 @@ class TaskEditPolicyTest {
 
 	private final AccessService access = mock(AccessService.class);
 	private final ActorProvider actors = mock(ActorProvider.class);
-	private final TaskEditPolicy policy = new TaskEditPolicy(access, actors);
+	private final TaskEditPolicy policy = new TaskEditPolicy(new AdminCheck(access), actors);
 
 	private final UUID author = UUID.randomUUID();
 	private final UUID stranger = UUID.randomUUID();
