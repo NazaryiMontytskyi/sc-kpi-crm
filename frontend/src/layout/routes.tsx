@@ -6,6 +6,7 @@ import { MembersPage } from '../members/MembersPage';
 import { OrgPage } from '../org/OrgPage';
 import { OrgUnitPage } from '../org/OrgUnitPage';
 import { PositionPage } from '../org/PositionPage';
+import { BoardPage } from '../tasks/BoardPage';
 import { SpaceSettingsPage } from '../tasks/SpaceSettingsPage';
 import { SpacesPage } from '../tasks/SpacesPage';
 import { TaskDetailPage } from '../tasks/TaskDetailPage';
@@ -34,6 +35,7 @@ export const appRoutes: AppRoute[] = [
   { path: '/org/positions/:id', element: <PositionPage /> },
   { path: '/org/:id', element: <OrgUnitPage /> },
   { path: '/tasks', element: <TasksPage />, nav: { labelKey: 'nav.tasks', permission: 'tasks.view' } },
+  { path: '/tasks/board', element: <BoardPage /> },
   { path: '/tasks/:id', element: <TaskDetailPage /> },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },
   { path: '/spaces/:id', element: <SpaceSettingsPage /> },

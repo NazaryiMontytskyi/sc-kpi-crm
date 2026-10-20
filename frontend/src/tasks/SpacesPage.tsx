@@ -67,9 +67,14 @@ export function SpacesPage() {
                   </Badge>
                 )}
               </Group>
+              <Group gap="md" wrap="nowrap">
               <Anchor component={Link} to={`/tasks?space=${s.id}`} size="sm" style={{ whiteSpace: 'nowrap' }}>
                 {t('tasks.spaces.openTasks')}
               </Anchor>
+                <Anchor component={Link} to={`/tasks/board?space=${s.id}`} size="sm" style={{ whiteSpace: 'nowrap' }}>
+                  {t('tasks.board.open')}
+                </Anchor>
+              </Group>
             </Group>
           </Card>
         ))}

@@ -645,6 +645,18 @@
     "archivedNotice": "This task is archived and read-only.",
     "spaceLabel": "Space",
     "due": "Due: {{date}}",
+    "board": {
+      "title": "Board",
+      "open": "Board",
+      "list": "List view",
+      "space": "Space",
+      "pickSpace": "Choose a space to see its board",
+      "empty": "No tasks",
+      "moveTo": "Move to",
+      "moveTitle": "Move “{{title}}” to",
+      "moveFailed": "Could not move the task: {{reason}}. The card was returned to its column.",
+      "count": "{{count}} tasks"
+    },
     "overdue": "overdue",
     "empty": "There are no tasks yet.",
     "emptyFiltered": "No tasks match the selected filters.",

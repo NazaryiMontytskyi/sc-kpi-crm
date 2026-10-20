@@ -27,7 +27,9 @@ import {
   type StatusInput,
   type TaskInput,
   type TaskQuery,
+  type TaskSummary,
 } from './tasksApi';
+import { withTaskStatus } from './boardLogic';
 
 export const TASKS_KEY = ['tasks'] as const;
 export const SPACES_KEY = ['spaces'] as const;
@@ -112,3 +114,51 @@ export const useUpdateCustomField = () =>
   );
 export const useArchiveCustomField = () =>
   useInvalidating((v: { spaceId: string; fieldId: string }) => archiveCustomField(v.spaceId, v.fieldId), [SPACES_KEY]);
+
+const BOARD_PAGE_SIZE = 100;
+const BOARD_MAX_PAGES = 20;
+
+const boardKey = (spaceId: string | undefined) => [...TASKS_KEY, 'board', spaceId] as const;
+
+/** All active tasks of one space (the board shows every card, so pages are fetched until the end). */
+export function useBoardTasks(spaceId: string | undefined) {
+  return useQuery({
+    queryKey: boardKey(spaceId),
+    enabled: !!spaceId,
+    queryFn: async () => {
+      const all: TaskSummary[] = [];
+      for (let page = 0; page < BOARD_MAX_PAGES; page++) {
+        const res = await listTasks({
+          spaceId,
+          labels: [],
+          includeArchived: false,
+          sortBy: 'createdAt',
+          direction: 'desc',
+          page,
+          size: BOARD_PAGE_SIZE,
+        });
+        all.push(...res.items);
+        if (page + 1 >= res.totalPages) break;
+      }
+      return all;
+    },
+  });
+}
+
+/** Moves a card: the board is updated at once and rolled back when the status-change API fails. */
+export function useMoveTask(spaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; statusId: string }) => changeTaskStatus(v.id, v.statusId),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: boardKey(spaceId) });
+      const previous = qc.getQueryData<TaskSummary[]>(boardKey(spaceId));
+      if (previous) qc.setQueryData(boardKey(spaceId), withTaskStatus(previous, v.id, v.statusId));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(boardKey(spaceId), ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: TASKS_KEY }),
+  });
+}

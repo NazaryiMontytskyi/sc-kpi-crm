@@ -106,6 +106,9 @@ export function TasksPage() {
         <Title order={1} size="h2">
           {t('tasks.title')}
         </Title>
+        <Anchor component={Link} to={query.spaceId ? `/tasks/board?space=${query.spaceId}` : '/tasks/board'} size="sm">
+          {t('tasks.board.open')}
+        </Anchor>
         {canCreate && (
           <Button mih={44} onClick={() => setCreating(true)}>
             {t('tasks.create')}
