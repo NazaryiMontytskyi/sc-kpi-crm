@@ -394,6 +394,49 @@
         }
       }
     },
+    "/api/v1/members/{id}/activity-level": {
+      "put": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Set the activity level of a member",
+        "description": "Appends a history row (append-only) and updates the current level. 422 when the level is archived/unknown or equals the current one; 409 for an archived member.",
+        "operationId": "setLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLevelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/members/me": {
       "put": {
         "tags": [
@@ -491,6 +534,78 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/FacultyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activity-levels/{id}": {
+      "get": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "Get one definition, including an archived one",
+        "operationId": "get_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "Edit an active definition",
+        "operationId": "update_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionResponse"
                 }
               }
             }
@@ -1172,7 +1287,7 @@
           "Members"
         ],
         "summary": "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
-        "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: reference filled by INC-022. Ties are broken by id, so paging is stable.",
+        "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.",
         "operationId": "list_1",
         "parameters": [
           {
@@ -1776,6 +1891,143 @@
         }
       }
     },
+    "/api/v1/activity-levels": {
+      "get": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "List activity level definitions (paginated, default order by sortOrder)",
+        "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
+        "operationId": "list_3",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseDefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "Create a definition",
+        "description": "Code is unique among active definitions (409 otherwise).",
+        "operationId": "create_5",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activity-levels/{id}/restore": {
+      "post": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "Restore an archived definition",
+        "description": "409 if its code is now used by an active one.",
+        "operationId": "restore_4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activity-levels/{id}/archive": {
+      "post": {
+        "tags": [
+          "Activity levels"
+        ],
+        "summary": "Archive a definition (soft)",
+        "description": "Members keep the level and the history keeps the reference; it just stops being selectable.",
+        "operationId": "archive_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/me/locale": {
       "patch": {
         "tags": [
@@ -1990,7 +2242,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_5",
+        "operationId": "get_6",
         "parameters": [
           {
             "name": "id",
@@ -2009,6 +2261,46 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/{id}/activity-level-history": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Activity level history of a member, newest first (paginated)",
+        "operationId": "history_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseChangeResponse"
                 }
               }
             }
@@ -2098,7 +2390,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_3",
+        "operationId": "list_4",
         "parameters": [
           {
             "name": "page",
@@ -2178,7 +2470,7 @@
         ],
         "summary": "History of one object, newest first (paginated); any authenticated user",
         "description": "403 for entity types registered as restricted when the permission is missing.",
-        "operationId": "history_1",
+        "operationId": "history_2",
         "parameters": [
           {
             "name": "type",
@@ -2607,6 +2899,27 @@
           }
         }
       },
+      "LevelRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "labelUk": {
+            "type": "string"
+          },
+          "labelEn": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
       "MemberResponse": {
         "type": "object",
         "properties": {
@@ -2643,6 +2956,9 @@
             "type": "string",
             "format": "uuid"
           },
+          "activityLevel": {
+            "$ref": "#/components/schemas/LevelRef"
+          },
           "avatarFileId": {
             "type": "string",
             "format": "uuid"
@@ -2662,6 +2978,56 @@
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SetLevelRequest": {
+        "type": "object",
+        "properties": {
+          "levelId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "levelId"
+        ]
+      },
+      "ChangeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "$ref": "#/components/schemas/LevelRef"
+          },
+          "to": {
+            "$ref": "#/components/schemas/LevelRef"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "changedById": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changedByLogin": {
+            "type": "string"
+          },
+          "changedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -2743,6 +3109,68 @@
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DefinitionRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 0,
+            "pattern": "[A-Za-z0-9._-]+"
+          },
+          "labelUk": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "labelEn": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 100000,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "code",
+          "labelEn",
+          "labelUk",
+          "sortOrder"
+        ]
+      },
+      "DefinitionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "labelUk": {
+            "type": "string"
+          },
+          "labelEn": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -3488,6 +3916,39 @@
           }
         }
       },
+      "PageResponseChangeResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangeResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
       "PageResponseFacultyResponse": {
         "type": "object",
         "properties": {
@@ -3584,6 +4045,39 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuditEntryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseDefinitionResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefinitionResponse"
             }
           },
           "page": {

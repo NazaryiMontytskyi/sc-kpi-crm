@@ -7,6 +7,7 @@ import { changeLanguage } from '../i18n';
 import * as orgApi from '../org/orgApi';
 import type { Appointment, Membership, OrgNode, Position } from '../org/orgApi';
 import { renderWithProviders } from '../test/render';
+import * as activityApi from './activityLevelApi';
 import * as facultyApi from './facultyApi';
 import * as api from './memberApi';
 import {
@@ -24,6 +25,7 @@ import { indexUnits, splitAppointments, splitMemberships } from './memberProfile
 import { MembersPage } from './MembersPage';
 
 vi.mock('./memberApi', async (orig) => ({ ...(await orig<typeof api>()), searchMembers: vi.fn() }));
+vi.mock('./activityLevelApi', async (orig) => ({ ...(await orig<typeof activityApi>()), listActivityLevels: vi.fn() }));
 vi.mock('./memberOrgApi', () => ({ listMembershipsOfUser: vi.fn(), listAppointmentsOfUser: vi.fn() }));
 vi.mock('./facultyApi', async (orig) => ({ ...(await orig<typeof facultyApi>()), listFaculties: vi.fn() }));
 vi.mock('../org/orgApi', async (orig) => ({
@@ -93,6 +95,9 @@ beforeEach(async () => {
   await changeLanguage('uk');
   vi.mocked(api.searchMembers).mockResolvedValue({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
   vi.mocked(facultyApi.listFaculties).mockResolvedValue([]);
+  vi.mocked(activityApi.listActivityLevels).mockResolvedValue([
+    { id: 'l1', code: 'HIGH', labelUk: 'Високий', labelEn: 'High', archived: false },
+  ]);
   vi.mocked(orgApi.getOrgTree).mockResolvedValue(TREE);
   vi.mocked(orgApi.listPositions).mockImplementation(async (unitId) => (unitId === 'v1' ? [POSITION] : []));
   vi.mocked(orgApi.getPosition).mockResolvedValue(POSITION);
@@ -148,6 +153,16 @@ describe('MemberFiltersPanel', () => {
     renderIn(<MemberFiltersPanel filters={EMPTY_FILTERS} onChange={onChange} canSeeArchived={false} />);
     await screen.findByTestId('member-filters');
     expect(screen.queryByText('Архівовані')).not.toBeInTheDocument();
+  });
+});
+
+describe('MemberFiltersPanel activity level', () => {
+  it('offers the configured levels and reports the chosen one', async () => {
+    const onChange = vi.fn();
+    renderIn(<MemberFiltersPanel filters={{ ...EMPTY_FILTERS, page: 2 }} onChange={onChange} canSeeArchived={false} />);
+    await userEvent.click((await screen.findAllByLabelText('Рівень активності'))[0]);
+    await userEvent.click(await screen.findByRole('option', { name: 'Високий', hidden: true }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ activityLevelId: 'l1', page: 0 }));
   });
 });
 

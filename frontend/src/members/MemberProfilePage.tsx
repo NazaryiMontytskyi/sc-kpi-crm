@@ -8,6 +8,7 @@ import { useAuth, usePermission } from '../auth/CurrentUser';
 import { isLanguage } from '../i18n';
 import { usePageTitle } from '../layout/pageTitle';
 import { MemberActionModal, type MemberAction } from './MemberActionModal';
+import { MemberActivitySection } from './MemberActivitySection';
 import { MemberAvatar } from './MemberAvatar';
 import { MemberFormModal } from './MemberFormModal';
 import { MemberOrgSections } from './MemberOrgSections';
@@ -205,6 +206,7 @@ export function MemberProfilePage() {
 
       <Detail member={member} />
       {isSelf && <LanguageSetting />}
+      <MemberActivitySection member={member} />
       <MemberOrgSections userId={member.id} />
 
       <Accordion variant="contained" multiple={false}>

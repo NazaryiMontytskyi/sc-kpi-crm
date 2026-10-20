@@ -109,6 +109,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{id}/activity-level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the activity level of a member
+         * @description Appends a history row (append-only) and updates the current level. 422 when the level is archived/unknown or equals the current one; 409 for an archived member.
+         */
+        put: operations["setLevel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/me": {
         parameters: {
             query?: never;
@@ -140,6 +160,24 @@ export interface paths {
         get: operations["get_4"];
         /** Edit an active faculty */
         put: operations["update_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity-levels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one definition, including an archived one */
+        get: operations["get_5"];
+        /** Edit an active definition */
+        put: operations["update_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -429,7 +467,7 @@ export interface paths {
         };
         /**
          * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
-         * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: reference filled by INC-022. Ties are broken by id, so paging is stable.
+         * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.
          */
         get: operations["list_1"];
         put?: never;
@@ -656,6 +694,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/activity-levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List activity level definitions (paginated, default order by sortOrder)
+         * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
+         */
+        get: operations["list_3"];
+        put?: never;
+        /**
+         * Create a definition
+         * @description Code is unique among active definitions (409 otherwise).
+         */
+        post: operations["create_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity-levels/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archived definition
+         * @description 409 if its code is now used by an active one.
+         */
+        post: operations["restore_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/activity-levels/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a definition (soft)
+         * @description Members keep the level and the history keeps the reference; it just stops being selectable.
+         */
+        post: operations["archive_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me/locale": {
         parameters: {
             query?: never;
@@ -772,7 +874,24 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_5"];
+        get: operations["get_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/activity-level-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activity level history of a member, newest first (paginated) */
+        get: operations["history_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -829,7 +948,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -849,7 +968,7 @@ export interface paths {
          * History of one object, newest first (paginated); any authenticated user
          * @description 403 for entity types registered as restricted when the permission is missing.
          */
-        get: operations["history_1"];
+        get: operations["history_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -989,6 +1108,14 @@ export interface components {
             nameEn?: string;
             active?: boolean;
         };
+        LevelRef: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            labelUk?: string;
+            labelEn?: string;
+            archived?: boolean;
+        };
         MemberResponse: {
             /** Format: uuid */
             id?: string;
@@ -1003,6 +1130,7 @@ export interface components {
             joinedAt?: string;
             /** Format: uuid */
             activityLevelId?: string;
+            activityLevel?: components["schemas"]["LevelRef"];
             /** Format: uuid */
             avatarFileId?: string;
             bio?: string;
@@ -1013,6 +1141,25 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        SetLevelRequest: {
+            /** Format: uuid */
+            levelId: string;
+            comment?: string;
+        };
+        ChangeResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            memberId?: string;
+            from?: components["schemas"]["LevelRef"];
+            to?: components["schemas"]["LevelRef"];
+            comment?: string;
+            /** Format: uuid */
+            changedById?: string;
+            changedByLogin?: string;
+            /** Format: date-time */
+            changedAt?: string;
         };
         SelfEditRequest: {
             telegram: string;
@@ -1038,6 +1185,25 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        DefinitionRequest: {
+            code: string;
+            labelUk: string;
+            labelEn: string;
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        DefinitionResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            labelUk?: string;
+            labelEn?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
         };
         AppointRequest: {
             /** Format: uuid */
@@ -1308,6 +1474,19 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
+        PageResponseChangeResponse: {
+            content?: components["schemas"]["ChangeResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
         PageResponseFacultyResponse: {
             content?: components["schemas"]["FacultyResponse"][];
             /** Format: int32 */
@@ -1343,6 +1522,19 @@ export interface components {
         };
         PageResponseAuditEntryResponse: {
             content?: components["schemas"]["AuditEntryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        PageResponseDefinitionResponse: {
+            content?: components["schemas"]["DefinitionResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -1597,6 +1789,32 @@ export interface operations {
             };
         };
     };
+    setLevel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLevelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ChangeResponse"];
+                };
+            };
+        };
+    };
     updateSelf: {
         parameters: {
             query?: never;
@@ -1665,6 +1883,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FacultyResponse"];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
+                };
+            };
+        };
+    };
+    update_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
                 };
             };
         };
@@ -2483,6 +2749,97 @@ export interface operations {
             };
         };
     };
+    list_3: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseDefinitionResponse"];
+                };
+            };
+        };
+    };
+    create_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefinitionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
+                };
+            };
+        };
+    };
+    restore_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
+                };
+            };
+        };
+    };
+    archive_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
+                };
+            };
+        };
+    };
     changeLocale: {
         parameters: {
             query?: never;
@@ -2617,7 +2974,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2635,6 +2992,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MembershipResponse"];
+                };
+            };
+        };
+    };
+    history_1: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseChangeResponse"];
                 };
             };
         };
@@ -2699,7 +3080,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -2727,7 +3108,7 @@ export interface operations {
             };
         };
     };
-    history_1: {
+    history_2: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];

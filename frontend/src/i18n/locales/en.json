@@ -127,7 +127,9 @@
     "APPOINTMENT_DUPLICATE": "The person already holds this position.",
     "APPOINTMENT_ALREADY_ENDED": "This appointment has already ended. Refresh the page.",
     "APPOINTMENT_INVALID_PERIOD": "The end date cannot be earlier than the start date.",
-    "APPOINTMENT_DATE_IN_FUTURE": "The date of an appointment cannot be in the future."
+    "APPOINTMENT_DATE_IN_FUTURE": "The date of an appointment cannot be in the future.",
+    "ACTIVITY_LEVEL_NOT_SELECTABLE": "This activity level is archived or does not exist. Pick another one.",
+    "ACTIVITY_LEVEL_UNCHANGED": "The member already has this activity level."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -362,7 +364,8 @@
       "sortJoinedAsc": "Joined: oldest first",
       "positionOption": "{{title}} — {{unit}}",
       "pagination": "List pages",
-      "departmentHint": "Members of the divisions of this department are included."
+      "departmentHint": "Members of the divisions of this department are included.",
+      "activityLevel": "Activity level"
     },
     "profile": {
       "positions": "Positions",
@@ -384,6 +387,19 @@
       "resolutionsEmpty": "The member’s resolutions will appear here once the task tracker is available.",
       "statistics": "Statistics",
       "statisticsEmpty": "Participation statistics will appear later."
+    },
+    "activity": {
+      "title": "Activity level",
+      "current": "Current level",
+      "none": "Not set",
+      "set": "Set level",
+      "setTitle": "Set activity level",
+      "level": "Level",
+      "choose": "Choose a level",
+      "comment": "Comment (optional)",
+      "save": "Save",
+      "history": "Change history",
+      "historyEmpty": "No changes yet."
     }
   },
   "org": {

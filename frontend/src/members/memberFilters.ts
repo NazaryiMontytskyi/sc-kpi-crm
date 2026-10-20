@@ -14,10 +14,7 @@ export interface MemberFilters {
   departmentId: string | null;
   divisionId: string | null;
   positionId: string | null;
-  /**
-   * Extension point for INC-022 (activity levels): the id is carried through the URL and the API call, but no
-   * picker exists yet because level definitions do not exist yet.
-   */
+  /** Id of an activity level definition (INC-022). */
   activityLevelId: string | null;
   status: MemberStatus;
   sort: MemberSort;

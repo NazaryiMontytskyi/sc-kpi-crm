@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { configure, screen, waitFor } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { STUB_AUTH_STATE, CurrentUserProvider, type AuthState } from '../auth/Cu
 import { changeLanguage } from '../i18n';
 import { appRoutes } from '../layout/routes';
 import { renderWithProviders } from '../test/render';
+import * as activityApi from './activityLevelApi';
 import * as facultyApi from './facultyApi';
 import * as api from './memberApi';
 import { formatDate, matchesSearch, telegramLink, telegramUsername } from './memberFormat';
@@ -28,6 +29,12 @@ vi.mock('./memberApi', async (orig) => ({
   restoreMember: vi.fn(),
   resetMemberPassword: vi.fn(),
   uploadAvatar: vi.fn(),
+}));
+vi.mock('./activityLevelApi', async (orig) => ({
+  ...(await orig<typeof activityApi>()),
+  listActivityLevels: vi.fn().mockResolvedValue([]),
+  listActivityLevelHistory: vi.fn().mockResolvedValue([]),
+  setActivityLevel: vi.fn(),
 }));
 vi.mock('./memberOrgApi', () => ({
   listMembershipsOfUser: vi.fn().mockResolvedValue([]),
@@ -65,6 +72,7 @@ const ARCHIVED: api.MemberSummary = { ...ANNA, id: 'm3', lastName: 'Архівн
 const member = (base: api.MemberSummary, extra: Partial<api.Member> = {}): api.Member => ({
   ...base,
   login: 'fake.login',
+  activityLevel: null,
   bio: 'Фейкова біографія',
   archivedAt: base.archived ? '2031-06-01T09:00:00Z' : null,
   createdAt: '2031-03-05T09:00:00Z',
@@ -320,6 +328,53 @@ describe('MembersPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
     expect(await screen.findByText('У вас немає прав на цю дію.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Зберегти' })).toBeEnabled();
+  });
+});
+
+const HIGH: activityApi.ActivityLevel = { id: 'l1', code: 'HIGH', labelUk: 'Високий', labelEn: 'High', archived: false };
+const LOW: activityApi.ActivityLevel = { id: 'l2', code: 'LOW', labelUk: 'Низький', labelEn: 'Low', archived: false };
+
+describe('MemberActivitySection', () => {
+  it('shows the current level and the change history without a set button for plain viewers', async () => {
+    vi.mocked(api.getMember).mockResolvedValue(member(ANNA, { activityLevel: LOW }));
+    vi.mocked(activityApi.listActivityLevelHistory).mockResolvedValue([
+      {
+        id: 'c1',
+        from: HIGH,
+        to: LOW,
+        comment: 'Фейковий коментар',
+        changedByLogin: 'fake.hr',
+        changedAt: '2031-03-05T09:00:00Z',
+      },
+    ]);
+    renderProfile('m1', ['members.view']);
+    const section = await screen.findByTestId('activity-section');
+    expect(await within(section).findByText('Фейковий коментар')).toBeInTheDocument();
+    expect(within(section).getByText('Високий → Низький')).toBeInTheDocument();
+    expect(within(section).getByText('Низький')).toBeInTheDocument();
+    expect(within(section).queryByRole('button', { name: 'Встановити рівень' })).not.toBeInTheDocument();
+  });
+
+  it('lets a members.activity.set holder pick another level and send it with a comment', async () => {
+    vi.mocked(api.getMember).mockResolvedValue(member(ANNA, { activityLevel: LOW }));
+    vi.mocked(activityApi.listActivityLevels).mockResolvedValue([HIGH, LOW]);
+    vi.mocked(activityApi.setActivityLevel).mockResolvedValue({
+      id: 'c2',
+      from: LOW,
+      to: HIGH,
+      comment: null,
+      changedByLogin: null,
+      changedAt: '',
+    });
+    renderProfile('m1', ['members.activity.set']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Встановити рівень' }));
+    await userEvent.click((await screen.findAllByLabelText('Рівень'))[0]);
+    // the current level is not offered again
+    expect(screen.queryByRole('option', { name: 'Низький', hidden: true })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', { name: 'Високий', hidden: true }));
+    await userEvent.type(screen.getByLabelText(/Коментар/), 'Фейкова причина');
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await waitFor(() => expect(activityApi.setActivityLevel).toHaveBeenCalledWith('m1', 'l1', 'Фейкова причина'));
   });
 });
 

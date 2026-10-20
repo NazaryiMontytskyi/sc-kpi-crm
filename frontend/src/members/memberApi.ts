@@ -1,6 +1,7 @@
 import { api, type components } from '../api/client';
 import { env } from '../config/env';
 import { toProblemError } from '../api/problem';
+import { toActivityLevel, type ActivityLevel } from './activityLevelApi';
 import { PAGE_SIZE as PAGE_SIZE_DIRECTORY, type MemberFilters } from './memberFilters';
 
 type MemberResponse = components['schemas']['MemberResponse'];
@@ -35,6 +36,8 @@ export interface MemberSummary {
 
 export interface Member extends MemberSummary {
   login: string;
+  /** Current activity level (HR); null until one is set. */
+  activityLevel: ActivityLevel | null;
   bio: string;
   archivedAt: string | null;
   createdAt: string | null;
@@ -70,6 +73,7 @@ export function toMember(m: MemberResponse): Member {
   return {
     ...toSummary(m),
     login: m.login ?? '',
+    activityLevel: toActivityLevel(m.activityLevel),
     bio: m.bio ?? '',
     archivedAt: m.archivedAt ?? null,
     createdAt: m.createdAt ?? null,

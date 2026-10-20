@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { activeUnits } from '../org/orgTree';
 import { FacultySelect } from './FacultySelect';
 import { SORT_OPTIONS, withFilter, type MemberFilters, type MemberSort, type MemberStatus } from './memberFilters';
+import { activityLevelLabel } from './activityLevelApi';
+import { useActivityLevels } from './useActivityLevels';
 import { usePositionOptions } from './useMemberOrg';
 
 const TOUCH = 44;
@@ -23,11 +25,12 @@ interface Props {
 }
 
 /**
- * The directory filter fields (INC-021): faculty, department, division, position, status, sort. Every change is
- * applied at once; the activity-level filter has no control yet (levels arrive with INC-022).
+ * The directory filter fields (INC-021, INC-022): faculty, department, division, position, activity level, status,
+ * sort. Every change is applied at once.
  */
 export function MemberFiltersPanel({ filters, onChange, canSeeArchived }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const levels = useActivityLevels();
   const { options: positions, tree } = usePositionOptions(true);
   const units = activeUnits(tree.data ?? []);
   const unitOptions = (type: string) =>
@@ -76,6 +79,15 @@ export function MemberFiltersPanel({ filters, onChange, canSeeArchived }: Props)
         }))}
         value={filters.positionId}
         onChange={(positionId) => set({ positionId })}
+        styles={INPUT_STYLES}
+      />
+      <Select
+        label={t('members.directory.activityLevel')}
+        placeholder={any}
+        clearable
+        data={(levels.data ?? []).map((l) => ({ value: l.id, label: activityLevelLabel(l, i18n.language) }))}
+        value={filters.activityLevelId}
+        onChange={(activityLevelId) => set({ activityLevelId })}
         styles={INPUT_STYLES}
       />
       {canSeeArchived && (
