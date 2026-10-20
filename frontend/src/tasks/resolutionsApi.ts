@@ -36,6 +36,11 @@ export interface ResolutionDetail extends Resolution {
   history: ResolutionHistoryEntry[];
 }
 
+/** A resolution of a redirect chain with its (non-archived) redirects nested below it. */
+export interface ResolutionChainNode extends Resolution {
+  children: ResolutionChainNode[];
+}
+
 export interface IssueInput {
   executorId: string;
   coExecutorIds: string[];
@@ -102,6 +107,17 @@ export async function listTaskResolutions(taskId: string, page: number): Promise
     totalPages: data.totalPages ?? 0,
     totalElements: data.totalElements ?? 0,
   };
+}
+
+function toChainNode(n: Schemas['ResolutionChainNode']): ResolutionChainNode {
+  return { ...toResolution(n), children: (n.children ?? []).map(toChainNode) };
+}
+
+/** The whole redirect chain of a resolution as a tree rooted at the first resolution. */
+export async function getResolutionChain(id: string): Promise<ResolutionChainNode> {
+  const { data, error, response } = await api.GET('/api/v1/resolutions/{id}/chain', { params: { path: { id } } });
+  if (!data) throw toProblemError(response, error);
+  return toChainNode(data);
 }
 
 export async function getResolution(id: string): Promise<ResolutionDetail> {

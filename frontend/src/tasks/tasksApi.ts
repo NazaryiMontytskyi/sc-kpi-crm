@@ -64,6 +64,8 @@ export interface Task extends TaskSummary {
   relatedTaskIds: string[];
   /** Ids of attached files; PUT is a full replacement, so they are sent back unchanged on edit. */
   attachmentIds: string[];
+  /** Computed by the backend: every non-canceled resolution is accepted and the task is not yet done. */
+  suggestDone: boolean;
 }
 
 export interface TaskInput {
@@ -191,6 +193,7 @@ function toTask(t: Schemas['TaskResponse']): Task {
     customFieldValues: t.customFieldValues ?? {},
     relatedTaskIds: t.relatedTaskIds ?? [],
     attachmentIds: (t.attachments ?? []).flatMap((a) => (a.id ? [a.id] : [])),
+    suggestDone: t.suggestDone === true,
   };
 }
 

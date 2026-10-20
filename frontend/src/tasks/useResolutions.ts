@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   cancelResolution,
   getResolution,
+  getResolutionChain,
   issueResolution,
   listTaskResolutions,
   redirectResolution,
@@ -29,6 +30,11 @@ export function useTaskResolutions(taskId: string) {
 /** One resolution with completion note and history; loaded only while its card is open. */
 export function useResolution(id: string, enabled: boolean) {
   return useQuery({ queryKey: [...RESOLUTIONS_KEY, 'one', id], queryFn: () => getResolution(id), enabled });
+}
+
+/** Redirect chain of a resolution; loaded only while the chain is expanded. */
+export function useResolutionChain(id: string, enabled: boolean) {
+  return useQuery({ queryKey: [...RESOLUTIONS_KEY, 'chain', id], queryFn: () => getResolutionChain(id), enabled });
 }
 
 export function useResolutionMutations(taskId: string) {

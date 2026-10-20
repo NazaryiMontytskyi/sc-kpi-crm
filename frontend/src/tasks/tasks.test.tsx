@@ -93,6 +93,7 @@ const TASK: api.Task = {
   customFieldValues: { f1: 'значення' },
   relatedTaskIds: ["rel1"],
   attachmentIds: ["att1", "att2"],
+  suggestDone: false,
 };
 
 const authWith = (permissions: string[], id = 'someone', isAdmin = false): AuthState => ({

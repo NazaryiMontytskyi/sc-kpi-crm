@@ -10,12 +10,15 @@ import { NoteDialog, ResolutionFormDialog } from './ResolutionDialogs';
 import {
   availableActions,
   canIssueResolution,
+  isInChain,
   resolutionErrorKey,
   resolutionWarningKey,
   STATE_COLORS,
   type ResolutionAction,
 } from './resolutionLogic';
-import type { Resolution, ResolutionState } from './resolutionsApi';
+import { ResolutionChain } from './ResolutionChain';
+import type { Resolution } from './resolutionsApi';
+import { StateBadge } from './StateBadge';
 import { useResolution, useResolutionMutations, useTaskResolutions } from './useResolutions';
 
 const TOUCH = 44;
@@ -24,15 +27,6 @@ type DialogKind = 'submit' | 'rework' | 'cancel' | 'redirect';
 interface OpenDialog {
   kind: DialogKind;
   resolution: Resolution;
-}
-
-export function StateBadge({ state }: { state: ResolutionState }) {
-  const { t } = useTranslation();
-  return (
-    <Badge color={STATE_COLORS[state]} variant={state === 'CANCELED' ? 'outline' : 'light'}>
-      {t(`tasks.resolutions.state.${state}`)}
-    </Badge>
-  );
 }
 
 function nameOf(members: readonly MemberSummary[], id: string, fallback: string): string {
@@ -167,6 +161,7 @@ function ResolutionCard({ resolution: r, members, onDialog, onSimple, busy }: Ca
           </Button>
         </Group>
         {open && <HistoryTimeline resolutionId={r.id} members={members} />}
+        {isInChain(r) && <ResolutionChain resolutionId={r.id} members={members} />}
       </Stack>
     </Card>
   );

@@ -10,6 +10,7 @@ import { useMembers } from '../members/useMembers';
 import { RichTextView } from '../shared/RichTextField';
 import { CommentsPanel } from './CommentsPanel';
 import { ResolutionsPanel } from './ResolutionsPanel';
+import { SuggestDoneBanner } from './SuggestDoneBanner';
 import { TaskFormModal } from './TaskFormModal';
 import { canEditTask, TASKS_ARCHIVE, taskErrorKey } from './taskLogic';
 import type { CustomField, Task } from './tasksApi';
@@ -86,6 +87,7 @@ function TaskBody({ task }: { task: Task }) {
       </Group>
       {failure !== null && <Alert color="red">{t(taskErrorKey(failure))}</Alert>}
       {task.archived && <Alert color="gray">{t('tasks.archivedNotice')}</Alert>}
+      <SuggestDoneBanner task={task} statuses={space.data?.statuses ?? []} />
 
       <Card withBorder padding="sm">
         <Stack gap="sm">

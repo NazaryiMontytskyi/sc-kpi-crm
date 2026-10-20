@@ -890,6 +890,22 @@
           "hint": "The resolution will be canceled together with all unfinished redirects made from it.",
           "confirm": "Cancel resolution"
         }
+      },
+      "chain": {
+        "show": "Redirect chain",
+        "hide": "Hide chain",
+        "title": "Redirect chain",
+        "loadFailed": "Failed to load the chain.",
+        "current": "this resolution",
+        "expandNode": "Show redirects",
+        "collapseNode": "Collapse redirects"
+      },
+      "suggestDone": {
+        "title": "All resolutions accepted",
+        "text": "All resolutions of this task are accepted. Move the task to Done?",
+        "statusLabel": "Status",
+        "confirm": "Move",
+        "dismiss": "Not now"
       }
     }
   }
