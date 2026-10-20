@@ -295,7 +295,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-021 — Members directory filters and extended profile
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `members` + frontend `members`
 - **Depends on:** INC-019, INC-016, INC-052
 - **Scope:** directory filters by department, division, faculty, position, activity level, status + search by name/telegram (backend uses `OrgQueryService`, no direct access to org tables); profile shows positions (current/past), memberships, and slots for active tasks/resolutions (filled in INC-037) and statistics placeholder; filter UI as collapsible drawer on mobile.
