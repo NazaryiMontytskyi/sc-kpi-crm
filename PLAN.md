@@ -438,7 +438,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** requires the Resolution entity from INC-032; schedule after it.
 
 #### INC-032 — Resolutions: domain model and lifecycle state machine
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-025
 - **Scope:** `Resolution` entity (taskId, authorId, executorId, coExecutorIds[], instruction, dueDate, parentResolutionId?, state, completionNote?, history[]); `ResolutionState`: NEW, IN_PROGRESS, SUBMITTED, REWORK, ACCEPTED, REDIRECTED, CANCELED; pure domain state machine with transitions exactly per §5.3; history entries (who, from, to, comment, at); migration; no API yet beyond internal service.
