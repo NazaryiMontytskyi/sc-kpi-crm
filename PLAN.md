@@ -454,7 +454,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** REWORK is a distinct state that moves to IN_PROGRESS (executor resumes).
 
 #### INC-033 — Resolutions: REST API (issue, accept, submit, rework, accept result, cancel)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-032, INC-005
 - **Scope:** `POST /tasks/{id}/resolutions` (`resolutions.create`; any executor allowed including peers/superiors; executor + co-executors must be ACTIVE members; due date >= today); transitions endpoints; list by task, by executor/author/state, "mine"; resolution detail with history; domain events `ResolutionIssued/Accepted/Submitted/Reworked/Closed/Canceled` + audit.
