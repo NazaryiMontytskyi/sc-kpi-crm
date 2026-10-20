@@ -321,7 +321,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** `[OPEN-Q3]` scale not decided; do not hardcode.
 
 #### INC-023 — Onboarding gate: first-login checklist for HR admission process
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `members`
 - **Depends on:** INC-015, INC-016
 - **Scope:** post-creation helper in the create-member flow supporting §5.1 steps 3–4 (profile, department(s), role in one wizard calling existing APIs); no new backend.
