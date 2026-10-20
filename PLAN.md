@@ -308,7 +308,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-022 — Activity level (HR) with history
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `members` + frontend `members`
 - **Depends on:** INC-021
 - **Scope:** `ActivityLevelDefinition` (code, label uk/en, order) as editable reference data seeded with a placeholder scale (High/Medium/Low/Inactive) `[OPEN-Q3]`; `ActivityLevelChange` history (member, from, to, comment?, changedBy, at); `PUT /members/{id}/activity-level` requires `members.activity.set`; filter by level in the directory; profile shows current level and change history.
