@@ -40,6 +40,9 @@ vi.mock('./tasksApi', async (orig) => ({
   changeTaskStatus: vi.fn(),
   reorderStatuses: vi.fn(),
   archiveTask: vi.fn(),
+  listSavedFilters: vi.fn(),
+  createSavedFilter: vi.fn(),
+  deleteSavedFilter: vi.fn(),
 }));
 vi.mock('./commentsApi', async (orig) => ({
   ...(await orig<typeof import('./commentsApi')>()),
@@ -118,6 +121,7 @@ beforeEach(async () => {
   vi.mocked(api.getSpace).mockResolvedValue(SPACE);
   vi.mocked(api.listTasks).mockResolvedValue({ items: [TASK], page: 0, totalPages: 1, totalElements: 1 });
   vi.mocked(api.getTask).mockResolvedValue(TASK);
+  vi.mocked(api.listSavedFilters).mockResolvedValue([]);
   vi.mocked(memberApi.listMembers).mockResolvedValue([]);
   vi.mocked(orgApi.getOrgTree).mockResolvedValue([]);
 });

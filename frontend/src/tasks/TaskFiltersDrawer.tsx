@@ -1,7 +1,9 @@
 import { Button, Drawer, Group, Select, Stack, Switch, TagsInput, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { fullName } from '../members/memberFormat';
+import { useMembers } from '../members/useMembers';
 import { DEFAULT_QUERY } from './taskLogic';
-import type { SpaceSummary, TaskQuery } from './tasksApi';
+import { RESOLUTION_STATE_LIST, type SpaceSummary, type TaskQuery } from './tasksApi';
 import { useSpace } from './useTasks';
 
 interface Props {
@@ -17,6 +19,8 @@ interface Props {
 export function TaskFiltersDrawer({ opened, onClose, query, onChange, spaces, canSeeArchived }: Props) {
   const { t } = useTranslation();
   const space = useSpace(query.spaceId);
+  const members = useMembers(false);
+  const memberOptions = (members.data ?? []).filter((m) => !m.archived).map((m) => ({ value: m.id, label: fullName(m) }));
   const set = (patch: Partial<TaskQuery>) => onChange({ ...query, ...patch, page: 0 });
   const statuses = (space.data?.statuses ?? []).filter((s) => !s.archived);
 
@@ -39,6 +43,33 @@ export function TaskFiltersDrawer({ opened, onClose, query, onChange, spaces, ca
           value={query.statusId ?? null}
           onChange={(v) => set({ statusId: v ?? undefined })}
           disabled={!query.spaceId}
+          clearable
+          size="md"
+        />
+        <Select
+          label={t('tasks.filters.executor')}
+          description={t('tasks.filters.executorHint')}
+          data={memberOptions}
+          value={query.executorId ?? null}
+          onChange={(v) => set({ executorId: v ?? undefined })}
+          clearable
+          searchable
+          size="md"
+        />
+        <Select
+          label={t('tasks.filters.resolutionAuthor')}
+          data={memberOptions}
+          value={query.authorId ?? null}
+          onChange={(v) => set({ authorId: v ?? undefined })}
+          clearable
+          searchable
+          size="md"
+        />
+        <Select
+          label={t('tasks.filters.resolutionState')}
+          data={RESOLUTION_STATE_LIST.map((st) => ({ value: st, label: t(`resolutions.state.${st}`) }))}
+          value={query.resolutionState ?? null}
+          onChange={(v) => set({ resolutionState: (v as TaskQuery['resolutionState']) ?? undefined })}
           clearable
           size="md"
         />

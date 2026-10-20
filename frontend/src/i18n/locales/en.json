@@ -184,7 +184,9 @@
     "RESOLUTION_ARCHIVED": "An archived resolution cannot be changed.",
     "RESOLUTION_REDIRECT_TO_SELF": "Choose a different executor to redirect the resolution to.",
     "RESOLUTION_REDIRECT_CYCLE": "This person is already an author or executor earlier in the chain of this resolution.",
-    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "The new resolution is due later than the original one."
+    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "The new resolution is due later than the original one.",
+    "SAVED_FILTER_NAME_TAKEN": "You already have a saved filter with this name.",
+    "SAVED_FILTER_LIMIT": "You can save at most 50 filters. Remove the ones you no longer need."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -711,7 +713,11 @@
       "statusNeedsSpace": "Choose a space first",
       "includeArchived": "Show archived",
       "reset": "Reset",
-      "done": "Done"
+      "done": "Done",
+      "executor": "Executor",
+      "executorHint": "Includes co-executors",
+      "resolutionAuthor": "Resolution author",
+      "resolutionState": "Resolution state"
     },
     "form": {
       "createTitle": "New task",
@@ -907,6 +913,24 @@
         "confirm": "Move",
         "dismiss": "Not now"
       }
+    },
+    "quickViews": {
+      "label": "Quick views",
+      "MY_RESOLUTIONS": "My resolutions",
+      "ISSUED_BY_ME": "Issued by me",
+      "OVERDUE": "Overdue"
+    },
+    "savedFilters": {
+      "menu": "Saved filters",
+      "none": "No saved filters yet.",
+      "saveCurrent": "Save current filter…",
+      "manage": "Manage saved filters…",
+      "saveTitle": "Save filter",
+      "manageTitle": "Saved filters",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name is too long (max 100 characters).",
+      "remove": "Remove filter {{name}}"
     }
   }
 }

@@ -103,6 +103,30 @@ export interface CreateCustomFieldInput extends CustomFieldInput {
   type: CustomFieldType;
 }
 
+export type ResolutionState = NonNullable<Schemas['SavedFilterCriteria']['resolutionState']>;
+export type QuickView = NonNullable<Schemas['SavedFilterCriteria']['view']>;
+export const RESOLUTION_STATE_LIST: readonly ResolutionState[] = ['NEW', 'IN_PROGRESS', 'SUBMITTED', 'REWORK', 'ACCEPTED', 'REDIRECTED', 'CANCELED'];
+export const QUICK_VIEWS: readonly QuickView[] = ['MY_RESOLUTIONS', 'ISSUED_BY_ME', 'OVERDUE'];
+
+/** The part of a task query that a saved filter stores (no sorting or paging). */
+export interface FilterCriteria {
+  spaceId?: string;
+  statusId?: string;
+  labels: string[];
+  executorId?: string;
+  authorId?: string;
+  resolutionState?: ResolutionState;
+  view?: QuickView;
+  dueFrom?: string;
+  dueTo?: string;
+}
+
+export interface SavedFilter {
+  id: string;
+  name: string;
+  criteria: FilterCriteria;
+}
+
 export type TaskSortField = 'createdAt' | 'updatedAt' | 'dueDate' | 'title';
 export type SortDirection = 'asc' | 'desc';
 
@@ -113,6 +137,12 @@ export interface TaskQuery {
   dueFrom?: string;
   dueTo?: string;
   includeArchived: boolean;
+  /** Resolution filters: executor (or co-executor), author, state; they apply to one and the same resolution. */
+  executorId?: string;
+  authorId?: string;
+  resolutionState?: ResolutionState;
+  /** Built-in quick view, evaluated by the backend for the current user. */
+  view?: QuickView;
   sortBy: TaskSortField;
   direction: SortDirection;
   page: number;
@@ -318,6 +348,10 @@ export async function listTasks(q: TaskQuery): Promise<Paged<TaskSummary>> {
         dueFrom: q.dueFrom,
         dueTo: q.dueTo,
         includeArchived: q.includeArchived || undefined,
+        executorId: q.executorId,
+        authorId: q.authorId,
+        resolutionState: q.resolutionState,
+        view: q.view,
       },
     },
   });
@@ -371,4 +405,35 @@ export async function restoreTask(id: string): Promise<Task> {
   const { data, error, response } = await api.POST('/api/v1/tasks/{id}/restore', { params: { path: { id } } });
   if (!data) throw toProblemError(response, error);
   return toTask(data);
+}
+
+// ---- saved filters ---------------------------------------------------------------------------
+
+function toSavedFilter(f: Schemas['SavedFilterResponse']): SavedFilter {
+  const c = f.criteria ?? {};
+  return {
+    id: f.id ?? '',
+    name: f.name ?? '',
+    criteria: { ...c, labels: c.labels ?? [] },
+  };
+}
+
+/** The caller's own saved filters (the backend allows at most 50 per user). */
+export async function listSavedFilters(): Promise<SavedFilter[]> {
+  const { data, error, response } = await api.GET('/api/v1/task-filters', {
+    params: { query: { page: { page: 0, size: PAGE_SIZE, sort: 'name' } } },
+  });
+  if (!data) throw toProblemError(response, error);
+  return (data.content ?? []).map(toSavedFilter);
+}
+
+export async function createSavedFilter(name: string, criteria: FilterCriteria): Promise<SavedFilter> {
+  const { data, error, response } = await api.POST('/api/v1/task-filters', { body: { name, criteria } });
+  if (!data) throw toProblemError(response, error);
+  return toSavedFilter(data);
+}
+
+export async function deleteSavedFilter(id: string): Promise<void> {
+  const { error, response } = await api.DELETE('/api/v1/task-filters/{id}', { params: { path: { id } } });
+  if (!response.ok) throw toProblemError(response, error);
 }

@@ -6,6 +6,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePermission } from '../auth/CurrentUser';
 import { usePageTitle } from '../layout/pageTitle';
 import { formatDate } from '../members/memberFormat';
+import { QuickViews } from './QuickViews';
 import { TaskFiltersDrawer } from './TaskFiltersDrawer';
 import { TaskFormModal } from './TaskFormModal';
 import {
@@ -98,7 +99,7 @@ export function TasksPage() {
   const list = useTaskList(query);
   const items = list.data?.items ?? [];
   const details = useSpaceDetails([...new Set(items.map((i) => i.spaceId))]);
-  const filterCount = activeFilterCount(query);
+  const filterCount = activeFilterCount(query) + (query.view ? 1 : 0);
 
   return (
     <Stack gap="md">
@@ -115,6 +116,8 @@ export function TasksPage() {
           </Button>
         )}
       </Group>
+
+      <QuickViews query={query} onChange={setQuery} />
 
       <Group gap="sm" align="flex-end">
         <Button variant="default" mih={44} onClick={drawerHandlers.open}>

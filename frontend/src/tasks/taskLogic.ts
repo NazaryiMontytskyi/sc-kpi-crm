@@ -1,6 +1,6 @@
 import { ApiProblemError, problemMessage } from '../api/problem';
 import type { CurrentUser } from '../auth/CurrentUser';
-import type { CustomField, CustomFieldValues, Space, TaskQuery, TaskSummary } from './tasksApi';
+import type { CustomField, CustomFieldValues, FilterCriteria, Space, TaskQuery, TaskSummary } from './tasksApi';
 
 export const TASKS_VIEW = 'tasks.view';
 export const TASKS_CREATE = 'tasks.create';
@@ -37,7 +37,62 @@ export const DEFAULT_QUERY: TaskQuery = {
 
 /** Number of active filters (shown on the drawer button); sort and paging are not filters. */
 export function activeFilterCount(q: TaskQuery): number {
-  return [q.spaceId, q.statusId, q.dueFrom, q.dueTo].filter(Boolean).length + (q.labels.length > 0 ? 1 : 0) + (q.includeArchived ? 1 : 0);
+  return [q.spaceId, q.statusId, q.dueFrom, q.dueTo, q.executorId, q.authorId, q.resolutionState].filter(Boolean).length + (q.labels.length > 0 ? 1 : 0) + (q.includeArchived ? 1 : 0);
+}
+
+/** The saved-filter part of a query (sorting, paging and the archived switch are not stored). */
+export function criteriaFromQuery(q: TaskQuery): FilterCriteria {
+  return {
+    spaceId: q.spaceId,
+    statusId: q.statusId,
+    labels: [...q.labels],
+    executorId: q.executorId,
+    authorId: q.authorId,
+    resolutionState: q.resolutionState,
+    view: q.view,
+    dueFrom: q.dueFrom,
+    dueTo: q.dueTo,
+  };
+}
+
+/** Applies stored criteria to a query: every filter is replaced, sorting and page size are kept, paging restarts. */
+export function queryFromCriteria(c: FilterCriteria, base: TaskQuery): TaskQuery {
+  return {
+    ...base,
+    spaceId: c.spaceId,
+    statusId: c.statusId,
+    labels: [...c.labels],
+    executorId: c.executorId,
+    authorId: c.authorId,
+    resolutionState: c.resolutionState,
+    view: c.view,
+    dueFrom: c.dueFrom,
+    dueTo: c.dueTo,
+    includeArchived: false,
+    page: 0,
+  };
+}
+
+const norm = (c: FilterCriteria) =>
+  JSON.stringify([
+    c.spaceId ?? null,
+    c.statusId ?? null,
+    [...c.labels].sort(),
+    c.executorId ?? null,
+    c.authorId ?? null,
+    c.resolutionState ?? null,
+    c.view ?? null,
+    c.dueFrom ?? null,
+    c.dueTo ?? null,
+  ]);
+
+export function sameCriteria(a: FilterCriteria, b: FilterCriteria): boolean {
+  return norm(a) === norm(b);
+}
+
+/** Whether the criteria carry any filter at all (an empty one is not worth saving). */
+export function hasCriteria(c: FilterCriteria): boolean {
+  return !sameCriteria(c, { labels: [] });
 }
 
 /** Today in Europe/Kyiv as `YYYY-MM-DD` (due dates are calendar dates, never shifted). */

@@ -7,10 +7,13 @@ import {
   archiveStatus,
   archiveTask,
   changeTaskStatus,
+  createSavedFilter,
   createSpace,
+  deleteSavedFilter,
   createTask,
   getSpace,
   getTask,
+  listSavedFilters,
   listSpaces,
   listTasks,
   reorderStatuses,
@@ -23,6 +26,7 @@ import {
   type CreateCustomFieldInput,
   type CreateTaskInput,
   type CustomFieldInput,
+  type FilterCriteria,
   type SpaceInput,
   type StatusInput,
   type TaskInput,
@@ -162,3 +166,14 @@ export function useMoveTask(spaceId: string | undefined) {
     onSettled: () => qc.invalidateQueries({ queryKey: TASKS_KEY }),
   });
 }
+
+export const SAVED_FILTERS_KEY = ['task-filters'] as const;
+
+/** The caller's own saved filters. */
+export function useSavedFilters() {
+  return useQuery({ queryKey: SAVED_FILTERS_KEY, queryFn: listSavedFilters });
+}
+
+export const useCreateSavedFilter = () =>
+  useInvalidating((v: { name: string; criteria: FilterCriteria }) => createSavedFilter(v.name, v.criteria), [SAVED_FILTERS_KEY]);
+export const useDeleteSavedFilter = () => useInvalidating((id: string) => deleteSavedFilter(id), [SAVED_FILTERS_KEY]);
