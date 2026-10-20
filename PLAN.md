@@ -375,7 +375,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Rich-text editor component is built in INC-038; here use a shared lightweight TipTap-based description field created in this increment and reused later `[extract to shared]`. Orchestrator may reorder INC-038's editor core ahead.
 
 #### INC-027 — Tasks: comments with @mentions and attachments
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks` + frontend `tasks`
 - **Depends on:** INC-025, INC-026
 - **Scope:** `Comment` (targetType, targetId, authorId, rich-text body, mentions[]); MVP target = `TASK` and `RESOLUTION` (type is generic for later targets); create/edit-own/archive-own (moderators `tasks.edit.any`); mention extraction (user ids) publishing `UserMentioned` events; attachments via `files`; UI thread with mention picker.
