@@ -21,7 +21,9 @@
     "roleAssignments": "Role assignments",
     "audit": "Audit log",
     "members": "Members",
-    "org": "Structure"
+    "org": "Structure",
+    "tasks": "Tasks",
+    "spaces": "Spaces"
   },
   "layout": {
     "menu": "Menu",
@@ -129,7 +131,35 @@
     "APPOINTMENT_INVALID_PERIOD": "The end date cannot be earlier than the start date.",
     "APPOINTMENT_DATE_IN_FUTURE": "The date of an appointment cannot be in the future.",
     "ACTIVITY_LEVEL_NOT_SELECTABLE": "This activity level is archived or does not exist. Pick another one.",
-    "ACTIVITY_LEVEL_UNCHANGED": "The member already has this activity level."
+    "ACTIVITY_LEVEL_UNCHANGED": "The member already has this activity level.",
+    "CUSTOM_FIELD_NAME_TAKEN": "A field with this name already exists.",
+    "CUSTOM_FIELD_OPTION_DUPLICATE": "Field options must be unique.",
+    "CUSTOM_FIELD_OPTION_INVALID": "A field option is empty or too long.",
+    "CUSTOM_FIELD_OPTIONS_NOT_ALLOWED": "Options are only allowed for Select fields.",
+    "CUSTOM_FIELD_OPTIONS_REQUIRED": "A Select field needs at least one option.",
+    "CUSTOM_FIELD_OPTIONS_TOO_MANY": "Too many field options.",
+    "CUSTOM_FIELD_REQUIRED": "A required custom field is empty.",
+    "CUSTOM_FIELD_UNKNOWN": "Unknown custom field. Reload the page.",
+    "CUSTOM_FIELD_VALUE_INVALID": "A custom field value is invalid.",
+    "SPACE_ARCHIVED": "The space is archived.",
+    "SPACE_GENERAL_HAS_ORG_UNIT": "A general space cannot be bound to a unit.",
+    "SPACE_ORG_UNIT_ARCHIVED": "The unit is archived.",
+    "SPACE_STATUS_CATEGORY_REQUIRED": "The space must keep a status of each required category.",
+    "SPACE_STATUS_IN_USE": "The status is used by tasks. Choose a replacement status.",
+    "SPACE_STATUS_NAME_TAKEN": "A status with this name already exists.",
+    "SPACE_STATUS_ORDER_MISMATCH": "The status order is outdated. Reload the page.",
+    "SPACE_STATUS_REPLACEMENT_INVALID": "The replacement status is not valid.",
+    "TASK_ARCHIVED": "The task is archived.",
+    "TASK_ATTACHMENT_INVALID": "The attachment is not valid.",
+    "TASK_EDIT_FORBIDDEN": "Only the task author or an Admin can edit this task.",
+    "TASK_LABEL_INVALID": "A label is empty or too long.",
+    "TASK_REFERENCE_INVALID": "The referenced object was not found.",
+    "TASK_RELATED_INVALID": "The related task is not valid.",
+    "TASK_RELATED_SELF": "A task cannot be related to itself.",
+    "TASK_STATUS_NOT_IN_SPACE": "This status does not belong to the task's space.",
+    "TASK_TOO_MANY_ATTACHMENTS": "Too many attachments.",
+    "TASK_TOO_MANY_LABELS": "Too many labels.",
+    "TASK_TOO_MANY_RELATED": "Too many related tasks."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -323,7 +353,11 @@
       "finish": "Done",
       "allDone": "All steps completed.",
       "remaining": "Steps not completed: {{count}}. Completed steps are kept; retry the rest or finish later from the profile or the structure page.",
-      "status": { "todo": "Pending", "done": "Done", "failed": "Failed" },
+      "status": {
+        "todo": "Pending",
+        "done": "Done",
+        "failed": "Failed"
+      },
       "task": {
         "department": "Add to unit \"{{name}}\"",
         "role": "Assign role \"{{name}}\""
@@ -579,6 +613,154 @@
       "dateInvalid": "Enter a valid date.",
       "dateFuture": "The date cannot be in the future.",
       "dateBeforeStart": "The date cannot be earlier than the start date."
+    }
+  },
+  "editor": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "bulletList": "Bullet list",
+    "orderedList": "Numbered list"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "create": "New task",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archivedBadge": "Archived",
+    "archivedNotice": "This task is archived and read-only.",
+    "spaceLabel": "Space",
+    "due": "Due: {{date}}",
+    "overdue": "overdue",
+    "empty": "There are no tasks yet.",
+    "emptyFiltered": "No tasks match the selected filters.",
+    "loadFailed": "Could not load the data.",
+    "notSet": "Not set",
+    "noMembers": "Nobody found",
+    "backToList": "← Back to tasks",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "priority": "Priority",
+      "dueDate": "Due date",
+      "labels": "Labels",
+      "status": "Status"
+    },
+    "priority": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "sort": {
+      "label": "Sort by",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "dueSoon": "Due date: soonest",
+      "dueLate": "Due date: latest",
+      "titleAsc": "Title A–Z",
+      "titleDesc": "Title Z–A",
+      "updated": "Recently updated"
+    },
+    "filters": {
+      "open": "Filters",
+      "title": "Filters",
+      "dueFrom": "Due from",
+      "dueTo": "Due to",
+      "labelsHint": "Tasks having any of these labels",
+      "statusNeedsSpace": "Choose a space first",
+      "includeArchived": "Show archived",
+      "reset": "Reset",
+      "done": "Done"
+    },
+    "form": {
+      "createTitle": "New task",
+      "editTitle": "Edit task"
+    },
+    "validation": {
+      "titleRequired": "Enter a title.",
+      "titleTooLong": "The title is too long (max 300 characters).",
+      "dueDateInvalid": "Enter a valid date.",
+      "labelsInvalid": "Up to 20 labels, 50 characters each.",
+      "spaceRequired": "Choose a space.",
+      "nameRequired": "Enter a name.",
+      "optionsRequired": "Add at least one option."
+    },
+    "fieldError": {
+      "required": "This field is required.",
+      "number": "Enter a number.",
+      "date": "Enter a valid date.",
+      "option": "Choose one of the options.",
+      "tooLong": "Too many characters."
+    },
+    "tabs": {
+      "comments": "Comments",
+      "resolutions": "Resolutions",
+      "history": "History",
+      "soon": "This section will appear later."
+    },
+    "spaces": {
+      "title": "Spaces",
+      "create": "New space",
+      "showArchived": "Show archived",
+      "empty": "There are no spaces yet.",
+      "generalBadge": "General",
+      "openTasks": "Tasks",
+      "back": "← Back to spaces"
+    },
+    "space": {
+      "createTitle": "New space",
+      "editTitle": "Edit space",
+      "name": "Name",
+      "general": "General space",
+      "orgUnit": "Unit",
+      "orgUnitHint": "Optional: bind to a unit"
+    },
+    "status": {
+      "title": "Statuses",
+      "add": "Add status",
+      "addTitle": "New status",
+      "editTitle": "Edit status",
+      "name": "Name",
+      "category": "Category",
+      "categories": {
+        "TODO": "To do",
+        "IN_PROGRESS": "In progress",
+        "DONE": "Done",
+        "CANCELED": "Canceled"
+      },
+      "moveUp": "Move status \"{{name}}\" up",
+      "moveDown": "Move status \"{{name}}\" down",
+      "editAria": "Edit status \"{{name}}\"",
+      "archiveAria": "Archive status \"{{name}}\"",
+      "archiveTitle": "Archive status \"{{name}}\"",
+      "archiveHint": "If tasks use this status, choose the status to move them to.",
+      "replacement": "Replacement status"
+    },
+    "customField": {
+      "title": "Custom fields",
+      "add": "Add field",
+      "addTitle": "New field",
+      "editTitle": "Edit field",
+      "empty": "There are no custom fields.",
+      "name": "Name",
+      "type": "Type",
+      "types": {
+        "TEXT": "Text",
+        "NUMBER": "Number",
+        "DATE": "Date",
+        "SELECT": "Select",
+        "PERSON": "Person"
+      },
+      "options": "Options",
+      "optionsHint": "Type an option and press Enter",
+      "required": "Required",
+      "requiredBadge": "Required",
+      "editAria": "Edit field \"{{name}}\"",
+      "archiveAria": "Archive field \"{{name}}\""
     }
   }
 }

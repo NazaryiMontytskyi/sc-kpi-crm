@@ -21,7 +21,9 @@
     "roleAssignments": "Призначення ролей",
     "audit": "Журнал аудиту",
     "members": "Учасники",
-    "org": "Структура"
+    "org": "Структура",
+    "tasks": "Задачі",
+    "spaces": "Простори"
   },
   "layout": {
     "menu": "Меню",
@@ -129,7 +131,35 @@
     "APPOINTMENT_INVALID_PERIOD": "Дата завершення не може бути раніше за дату початку.",
     "APPOINTMENT_DATE_IN_FUTURE": "Дата призначення не може бути в майбутньому.",
     "ACTIVITY_LEVEL_NOT_SELECTABLE": "Цей рівень активності архівовано або не існує. Оберіть інший.",
-    "ACTIVITY_LEVEL_UNCHANGED": "Учасник уже має цей рівень активності."
+    "ACTIVITY_LEVEL_UNCHANGED": "Учасник уже має цей рівень активності.",
+    "CUSTOM_FIELD_NAME_TAKEN": "Поле з такою назвою вже існує.",
+    "CUSTOM_FIELD_OPTION_DUPLICATE": "Варіанти поля не повинні повторюватися.",
+    "CUSTOM_FIELD_OPTION_INVALID": "Варіант поля порожній або задовгий.",
+    "CUSTOM_FIELD_OPTIONS_NOT_ALLOWED": "Варіанти доступні лише для поля типу «Вибір».",
+    "CUSTOM_FIELD_OPTIONS_REQUIRED": "Для поля типу «Вибір» потрібен хоча б один варіант.",
+    "CUSTOM_FIELD_OPTIONS_TOO_MANY": "Забагато варіантів поля.",
+    "CUSTOM_FIELD_REQUIRED": "Обов'язкове додаткове поле не заповнене.",
+    "CUSTOM_FIELD_UNKNOWN": "Невідоме додаткове поле. Оновіть сторінку.",
+    "CUSTOM_FIELD_VALUE_INVALID": "Недійсне значення додаткового поля.",
+    "SPACE_ARCHIVED": "Простір в архіві.",
+    "SPACE_GENERAL_HAS_ORG_UNIT": "Загальний простір не може бути прив'язаний до підрозділу.",
+    "SPACE_ORG_UNIT_ARCHIVED": "Підрозділ в архіві.",
+    "SPACE_STATUS_CATEGORY_REQUIRED": "У просторі має лишитися статус кожної потрібної категорії.",
+    "SPACE_STATUS_IN_USE": "Статус використовується задачами. Оберіть статус-заміну.",
+    "SPACE_STATUS_NAME_TAKEN": "Статус з такою назвою вже існує.",
+    "SPACE_STATUS_ORDER_MISMATCH": "Порядок статусів застарів. Оновіть сторінку.",
+    "SPACE_STATUS_REPLACEMENT_INVALID": "Недійсний статус-заміна.",
+    "TASK_ARCHIVED": "Задача в архіві.",
+    "TASK_ATTACHMENT_INVALID": "Недійсне вкладення.",
+    "TASK_EDIT_FORBIDDEN": "Редагувати задачу може лише її автор або адміністратор.",
+    "TASK_LABEL_INVALID": "Недійсна мітка (порожня або задовга).",
+    "TASK_REFERENCE_INVALID": "Пов'язаний об'єкт не знайдено.",
+    "TASK_RELATED_INVALID": "Недійсна пов'язана задача.",
+    "TASK_RELATED_SELF": "Задачу не можна пов'язати з нею самою.",
+    "TASK_STATUS_NOT_IN_SPACE": "Цей статус не належить простору задачі.",
+    "TASK_TOO_MANY_ATTACHMENTS": "Забагато вкладень.",
+    "TASK_TOO_MANY_LABELS": "Забагато міток.",
+    "TASK_TOO_MANY_RELATED": "Забагато пов'язаних задач."
   },
   "faculties": {
     "title": "Факультети та інститути",
@@ -323,7 +353,11 @@
       "finish": "Готово",
       "allDone": "Усі кроки виконано.",
       "remaining": "Не виконано кроків: {{count}}. Виконані кроки збережено; повторіть решту або завершіть пізніше з профілю чи сторінки структури.",
-      "status": { "todo": "Очікує", "done": "Виконано", "failed": "Помилка" },
+      "status": {
+        "todo": "Очікує",
+        "done": "Виконано",
+        "failed": "Помилка"
+      },
       "task": {
         "department": "Додати до підрозділу «{{name}}»",
         "role": "Призначити роль «{{name}}»"
@@ -579,6 +613,154 @@
       "dateInvalid": "Введіть коректну дату.",
       "dateFuture": "Дата не може бути в майбутньому.",
       "dateBeforeStart": "Дата не може бути раніше за дату початку."
+    }
+  },
+  "editor": {
+    "bold": "Жирний",
+    "italic": "Курсив",
+    "bulletList": "Маркований список",
+    "orderedList": "Нумерований список"
+  },
+  "tasks": {
+    "title": "Задачі",
+    "create": "Нова задача",
+    "edit": "Редагувати",
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "close": "Закрити",
+    "archive": "В архів",
+    "restore": "Відновити",
+    "archivedBadge": "В архіві",
+    "archivedNotice": "Задача в архіві та доступна лише для перегляду.",
+    "spaceLabel": "Простір",
+    "due": "Строк: {{date}}",
+    "overdue": "прострочено",
+    "empty": "Задач ще немає.",
+    "emptyFiltered": "Немає задач за обраними фільтрами.",
+    "loadFailed": "Не вдалося завантажити дані.",
+    "notSet": "Не вказано",
+    "noMembers": "Нікого не знайдено",
+    "backToList": "← До списку задач",
+    "fields": {
+      "title": "Назва",
+      "description": "Опис",
+      "priority": "Пріоритет",
+      "dueDate": "Строк",
+      "labels": "Мітки",
+      "status": "Статус"
+    },
+    "priority": {
+      "LOW": "Низький",
+      "NORMAL": "Звичайний",
+      "HIGH": "Високий",
+      "URGENT": "Терміновий"
+    },
+    "sort": {
+      "label": "Сортування",
+      "newest": "Спочатку нові",
+      "oldest": "Спочатку старі",
+      "dueSoon": "Строк: найближчі",
+      "dueLate": "Строк: найдальші",
+      "titleAsc": "Назва А–Я",
+      "titleDesc": "Назва Я–А",
+      "updated": "Нещодавно оновлені"
+    },
+    "filters": {
+      "open": "Фільтри",
+      "title": "Фільтри",
+      "dueFrom": "Строк від",
+      "dueTo": "Строк до",
+      "labelsHint": "Задачі з будь-якою з цих міток",
+      "statusNeedsSpace": "Спершу оберіть простір",
+      "includeArchived": "Показувати архівні",
+      "reset": "Скинути",
+      "done": "Готово"
+    },
+    "form": {
+      "createTitle": "Нова задача",
+      "editTitle": "Редагування задачі"
+    },
+    "validation": {
+      "titleRequired": "Вкажіть назву.",
+      "titleTooLong": "Назва задовга (до 300 символів).",
+      "dueDateInvalid": "Вкажіть коректну дату.",
+      "labelsInvalid": "До 20 міток, до 50 символів кожна.",
+      "spaceRequired": "Оберіть простір.",
+      "nameRequired": "Вкажіть назву.",
+      "optionsRequired": "Додайте хоча б один варіант."
+    },
+    "fieldError": {
+      "required": "Обов'язкове поле.",
+      "number": "Вкажіть число.",
+      "date": "Вкажіть коректну дату.",
+      "option": "Оберіть один із варіантів.",
+      "tooLong": "Забагато символів."
+    },
+    "tabs": {
+      "comments": "Коментарі",
+      "resolutions": "Рішення",
+      "history": "Історія",
+      "soon": "Цей розділ з'явиться згодом."
+    },
+    "spaces": {
+      "title": "Простори",
+      "create": "Новий простір",
+      "showArchived": "Показувати архівні",
+      "empty": "Просторів ще немає.",
+      "generalBadge": "Загальний",
+      "openTasks": "Задачі",
+      "back": "← До просторів"
+    },
+    "space": {
+      "createTitle": "Новий простір",
+      "editTitle": "Редагування простору",
+      "name": "Назва",
+      "general": "Загальний простір",
+      "orgUnit": "Підрозділ",
+      "orgUnitHint": "Необов'язково: прив'язка до підрозділу"
+    },
+    "status": {
+      "title": "Статуси",
+      "add": "Додати статус",
+      "addTitle": "Новий статус",
+      "editTitle": "Редагування статусу",
+      "name": "Назва",
+      "category": "Категорія",
+      "categories": {
+        "TODO": "До виконання",
+        "IN_PROGRESS": "У роботі",
+        "DONE": "Виконано",
+        "CANCELED": "Скасовано"
+      },
+      "moveUp": "Підняти статус «{{name}}»",
+      "moveDown": "Опустити статус «{{name}}»",
+      "editAria": "Редагувати статус «{{name}}»",
+      "archiveAria": "Архівувати статус «{{name}}»",
+      "archiveTitle": "Архівувати статус «{{name}}»",
+      "archiveHint": "Якщо задачі використовують цей статус, оберіть статус, на який їх перенести.",
+      "replacement": "Статус-заміна"
+    },
+    "customField": {
+      "title": "Додаткові поля",
+      "add": "Додати поле",
+      "addTitle": "Нове поле",
+      "editTitle": "Редагування поля",
+      "empty": "Додаткових полів немає.",
+      "name": "Назва",
+      "type": "Тип",
+      "types": {
+        "TEXT": "Текст",
+        "NUMBER": "Число",
+        "DATE": "Дата",
+        "SELECT": "Вибір",
+        "PERSON": "Людина"
+      },
+      "options": "Варіанти",
+      "optionsHint": "Введіть варіант і натисніть Enter",
+      "required": "Обов'язкове",
+      "requiredBadge": "Обов'язкове",
+      "editAria": "Редагувати поле «{{name}}»",
+      "archiveAria": "Архівувати поле «{{name}}»"
     }
   }
 }
