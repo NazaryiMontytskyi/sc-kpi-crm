@@ -362,7 +362,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q7): author-or-Admin edit rule.
 
 #### INC-026 — Tasks frontend: spaces management and task list view
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `tasks`
 - **Depends on:** INC-025, INC-008
 - **Scope:** spaces list/settings (statuses editor, custom fields editor, gated by `spaces.manage`); task list view with filters (space, status, due date, labels) and sorting; task create/edit form (title, rich-text description via shared minimal editor component, priority, labels, due date, custom fields); task detail page skeleton (comments, resolutions, history tabs wired later).
