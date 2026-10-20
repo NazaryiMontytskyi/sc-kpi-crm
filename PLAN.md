@@ -401,7 +401,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-029 — Tasks: saved filters and quick views
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks` + frontend `tasks`
 - **Depends on:** INC-025, INC-032
 - **Scope:** filters by executor, resolution author, resolution state, labels; built-in saved filters "My resolutions", "Issued by me", "Overdue"; user-defined saved filters persisted per user.
