@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.tasks.internal;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,5 +29,14 @@ interface ResolutionRepository extends ArchivableRepository<Resolution, UUID> {
 
 	/** Direct children (redirect targets), archived ones included. */
 	List<Resolution> findByParentResolutionIdOrderByCreatedAtAscIdAsc(UUID parentId);
+
+	/** Id, task, parent and state of a resolution. */
+	record TaskResolutionState(UUID id, UUID taskId, UUID parentResolutionId, ResolutionState state) {
+	}
+
+	/** Every non-archived resolution of the given tasks (batched, for the suggest-done flag). */
+	@Query("select new com.kpi.studentcouncil.crm.tasks.internal.ResolutionRepository$TaskResolutionState(r.id, r.taskId,"
+			+ " r.parentResolutionId, r.state) from Resolution r where r.taskId in :taskIds and r.archivedAt is null")
+	List<TaskResolutionState> findActiveStatesByTaskIdIn(@Param("taskIds") Collection<UUID> taskIds);
 
 }

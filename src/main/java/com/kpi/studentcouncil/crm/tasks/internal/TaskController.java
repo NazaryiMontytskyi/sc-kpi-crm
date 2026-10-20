@@ -128,15 +128,15 @@ class TaskController {
 		return new TaskResponse(t.getId(), t.getSpaceId(), t.getTitle(), t.getDescription(), t.getStatusId(),
 				t.getPriority(), t.getDueDate(), t.getLabels().stream().sorted().toList(), t.getCustomFieldValues(),
 				attachments, view.relatedTaskIds().stream().sorted().toList(), t.getAuthorId(), t.isArchived(),
-				t.getArchivedAt(), t.getCreatedAt(), t.getUpdatedAt());
+				t.getArchivedAt(), view.suggestDone(), t.getCreatedAt(), t.getUpdatedAt());
 	}
 
 	private static TaskSummaryResponse summary(TaskView view) {
 		Task t = view.task();
 		return new TaskSummaryResponse(t.getId(), t.getSpaceId(), t.getTitle(), t.getStatusId(), t.getPriority(),
 				t.getDueDate(), t.getLabels().stream().sorted().toList(), t.getAttachmentIds().size(),
-				view.relatedTaskIds().size(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(), t.getCreatedAt(),
-				t.getUpdatedAt());
+				view.relatedTaskIds().size(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(), view.suggestDone(),
+				t.getCreatedAt(), t.getUpdatedAt());
 	}
 
 }

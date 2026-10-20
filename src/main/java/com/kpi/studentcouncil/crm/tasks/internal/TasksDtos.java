@@ -92,15 +92,19 @@ final class TasksDtos {
 	}
 
 	/** List item: no description, custom fields or attachment details. */
+	/**
+	 * {@code suggestDone}: computed hint that every resolution of the task is accepted (see SuggestDoneRule); the task
+	 * is never moved automatically.
+	 */
 	record TaskSummaryResponse(UUID id, UUID spaceId, String title, UUID statusId, TaskPriority priority,
 			LocalDate dueDate, List<String> labels, int attachmentCount, int relatedCount, UUID authorId,
-			boolean archived, Instant archivedAt, Instant createdAt, Instant updatedAt) {
+			boolean archived, Instant archivedAt, boolean suggestDone, Instant createdAt, Instant updatedAt) {
 	}
 
 	record TaskResponse(UUID id, UUID spaceId, String title, Map<String, Object> description, UUID statusId,
 			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
 			List<AttachmentResponse> attachments, List<UUID> relatedTaskIds, UUID authorId, boolean archived,
-			Instant archivedAt, Instant createdAt, Instant updatedAt) {
+			Instant archivedAt, boolean suggestDone, Instant createdAt, Instant updatedAt) {
 	}
 
 	// ---- comments ----

@@ -40,6 +40,7 @@ class TaskServiceTest {
 	private final TaskLinkRepository links = mock(TaskLinkRepository.class);
 	private final SpaceRepository spaces = mock(SpaceRepository.class);
 	private final SpaceStatusRepository statuses = mock(SpaceStatusRepository.class);
+	private final ResolutionRepository resolutions = mock(ResolutionRepository.class);
 	private final CustomFieldDefinitionRepository fields = mock(CustomFieldDefinitionRepository.class);
 	private final FileService files = mock(FileService.class);
 	private final UserDirectory users = mock(UserDirectory.class);
@@ -71,7 +72,7 @@ class TaskServiceTest {
 			}
 			return t;
 		});
-		service = new TaskService(tasks, links, spaces, statuses, fields, files, users, editPolicy, audit, actors,
+		service = new TaskService(tasks, links, spaces, statuses, resolutions, fields, files, users, editPolicy, audit, actors,
 				events, Clock.systemUTC());
 	}
 

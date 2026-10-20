@@ -4306,6 +4306,9 @@
             "type": "string",
             "format": "date-time"
           },
+          "suggestDone": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -6155,6 +6158,9 @@
           "archivedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "suggestDone": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",

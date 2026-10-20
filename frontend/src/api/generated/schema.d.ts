@@ -1661,6 +1661,7 @@ export interface components {
             archived?: boolean;
             /** Format: date-time */
             archivedAt?: string;
+            suggestDone?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2278,6 +2279,7 @@ export interface components {
             archived?: boolean;
             /** Format: date-time */
             archivedAt?: string;
+            suggestDone?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

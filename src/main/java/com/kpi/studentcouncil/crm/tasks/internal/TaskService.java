@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,7 +45,7 @@ class TaskService {
 	static final String TASK = "Task";
 
 	/** A task together with the data that lives outside its row; {@code attachments} is null in list results. */
-	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments) {
+	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone) {
 	}
 
 	/** Filters of the task list. */
@@ -56,6 +57,7 @@ class TaskService {
 	private final TaskLinkRepository links;
 	private final SpaceRepository spaces;
 	private final SpaceStatusRepository statuses;
+	private final ResolutionRepository resolutions;
 	private final CustomFieldDefinitionRepository fields;
 	private final FileService files;
 	private final UserDirectory users;
@@ -66,12 +68,13 @@ class TaskService {
 	private final Clock clock;
 
 	TaskService(TaskRepository tasks, TaskLinkRepository links, SpaceRepository spaces, SpaceStatusRepository statuses,
-			CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
+			ResolutionRepository resolutions, CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
 			AuditPublisher audit, ActorProvider actors, ApplicationEventPublisher events, Clock clock) {
 		this.tasks = tasks;
 		this.links = links;
 		this.spaces = spaces;
 		this.statuses = statuses;
+		this.resolutions = resolutions;
 		this.fields = fields;
 		this.files = files;
 		this.users = users;
@@ -108,7 +111,7 @@ class TaskService {
 		audit.publish(AuditAction.CREATE, TASK, saved.getId(), null, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
 		publish(TaskEvent.Kind.CREATED, saved);
-		return new TaskView(saved, related, attachmentInfos(saved));
+		return view(saved, related);
 	}
 
 	/** Replaces the editable fields. Author or Admin only ({@link TaskEditPolicy}). */
@@ -150,7 +153,7 @@ class TaskService {
 		audit.publish(AuditAction.UPDATE, TASK, id, before, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
 		publish(TaskEvent.Kind.UPDATED, saved);
-		return new TaskView(saved, related, attachmentInfos(saved));
+		return view(saved, related);
 	}
 
 	/** Moves the task to another status of its space. Same rule as editing. */
@@ -171,7 +174,7 @@ class TaskService {
 			audit.publish(AuditAction.UPDATE, TASK, id, before, task.auditSnapshot(related));
 			publish(TaskEvent.Kind.UPDATED, task);
 		}
-		return new TaskView(task, related, attachmentInfos(task));
+		return view(task, related);
 	}
 
 	@Transactional
@@ -183,7 +186,7 @@ class TaskService {
 		Task saved = tasks.save(task);
 		audit.publish(AuditAction.ARCHIVE, TASK, id, before, saved.auditSnapshot(related));
 		publish(TaskEvent.Kind.ARCHIVED, saved);
-		return new TaskView(saved, related, attachmentInfos(saved));
+		return view(saved, related);
 	}
 
 	@Transactional
@@ -203,7 +206,7 @@ class TaskService {
 		Task saved = tasks.save(task);
 		audit.publish(AuditAction.RESTORE, TASK, id, before, saved.auditSnapshot(related));
 		publish(TaskEvent.Kind.RESTORED, saved);
-		return new TaskView(saved, related, attachmentInfos(saved));
+		return view(saved, related);
 	}
 
 	// ---- queries ----
@@ -211,7 +214,7 @@ class TaskService {
 	@Transactional(readOnly = true)
 	TaskView get(UUID id) {
 		Task task = require(id);
-		return new TaskView(task, relatedOf(id), attachmentInfos(task));
+		return view(task, relatedOf(id));
 	}
 
 	@Transactional(readOnly = true)
@@ -241,7 +244,15 @@ class TaskService {
 		}
 		Page<Task> page = tasks.findAll(spec, pageable);
 		Map<UUID, Set<UUID>> related = relatedOfAll(page.getContent().stream().map(Task::getId).toList());
-		return page.map(t -> new TaskView(t, related.getOrDefault(t.getId(), Set.of()), null));
+		Map<UUID, Boolean> suggestions = suggestDoneOfAll(page.getContent());
+		return page.map(t -> new TaskView(t, related.getOrDefault(t.getId(), Set.of()), null,
+				suggestions.getOrDefault(t.getId(), false)));
+	}
+
+	/** Whether the "all resolutions accepted" suggestion applies to the task ({@link SuggestDoneRule}); never changes it. */
+	@Transactional(readOnly = true)
+	boolean suggestDone(UUID taskId) {
+		return suggestDoneOfAll(List.of(require(taskId))).getOrDefault(taskId, false);
 	}
 
 	// ---- status usage (SpaceStatusUsageGuard) ----
@@ -265,6 +276,37 @@ class TaskService {
 	}
 
 	// ---- helpers ----
+
+	private TaskView view(Task task, Set<UUID> related) {
+		return new TaskView(task, related, attachmentInfos(task),
+				suggestDoneOfAll(List.of(task)).getOrDefault(task.getId(), false));
+	}
+
+	/** Two batched queries (resolution states, status categories) for any number of tasks. */
+	private Map<UUID, Boolean> suggestDoneOfAll(Collection<Task> list) {
+		Map<UUID, Boolean> result = new HashMap<>();
+		if (list.isEmpty()) {
+			return result;
+		}
+		Map<UUID, List<SuggestDoneRule.Node>> states = new HashMap<>();
+		for (ResolutionRepository.TaskResolutionState row : resolutions
+				.findActiveStatesByTaskIdIn(list.stream().map(Task::getId).toList())) {
+			states.computeIfAbsent(row.taskId(), k -> new ArrayList<>()).add(new SuggestDoneRule.Node(row.id(), row.parentResolutionId(), row.state()));
+		}
+		Set<UUID> statusIds = new HashSet<>();
+		list.forEach(t -> statusIds.add(t.getStatusId()));
+		Set<UUID> doneStatuses = new HashSet<>();
+		statuses.findByIdIn(statusIds).forEach(s -> {
+			if (s.getCategory() == StatusCategory.DONE) {
+				doneStatuses.add(s.getId());
+			}
+		});
+		for (Task t : list) {
+			result.put(t.getId(), SuggestDoneRule.suggest(states.getOrDefault(t.getId(), List.of()),
+					doneStatuses.contains(t.getStatusId())));
+		}
+		return result;
+	}
 
 	private Task require(UUID id) {
 		return tasks.findById(id).orElseThrow(() -> new NotFoundException(TASK, id));
