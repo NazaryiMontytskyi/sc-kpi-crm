@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -52,25 +54,44 @@ class MemberController {
 	private static final String ASSIGN_ROLES = "roles.assign";
 
 	private final MemberService service;
+	private final MemberDirectory directory;
 	private final FacultyLookup faculties;
 	private final AccountService users;
 
-	MemberController(MemberService service, FacultyLookup faculties, AccountService users) {
+	MemberController(MemberService service, MemberDirectory directory, FacultyLookup faculties, AccountService users) {
 		this.service = service;
+		this.directory = directory;
 		this.faculties = faculties;
 		this.users = users;
 	}
 
 	@GetMapping
-	@Operation(summary = "List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)",
-			description = "Active members only. includeArchived=true is honoured only for holders of "
-					+ "members.archive. Directory filters are added in a later increment.")
-	PageResponse<MemberSummary> list(@Valid PageParams page,
+	@Operation(summary = "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
+			description = "All filters are optional and combined with AND. q: case-insensitive text matched against "
+					+ "last/first/middle name and Telegram (a leading @ is ignored; several words must all match). "
+					+ "departmentId/divisionId: members with an active membership in the unit or any of its descendants. "
+					+ "positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are "
+					+ "honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a "
+					+ "deprecated alias of status=ALL. activityLevelId: reference filled by INC-022. Ties are broken by id, "
+					+ "so paging is stable.")
+	PageResponse<MemberSummary> list(@Valid PageParams page, @RequestParam(required = false) String q,
+			@RequestParam(required = false) UUID facultyId, @RequestParam(required = false) UUID departmentId,
+			@RequestParam(required = false) UUID divisionId, @RequestParam(required = false) UUID positionId,
+			@RequestParam(required = false) UUID activityLevelId,
+			@RequestParam(required = false) MemberFilter.Status status,
 			@RequestParam(defaultValue = "false") boolean includeArchived, Authentication authentication) {
-		boolean archivedAllowed = includeArchived && has(authentication, ARCHIVE);
+		MemberFilter.Status requested = status != null ? status
+				: includeArchived ? MemberFilter.Status.ALL : MemberFilter.Status.ACTIVE;
+		MemberFilter.Status effective = has(authentication, ARCHIVE) ? requested : MemberFilter.Status.ACTIVE;
+		String search = q == null || q.isBlank() ? null : q;
+		MemberFilter filter = new MemberFilter(search, facultyId, departmentId, divisionId, positionId,
+				activityLevelId, effective);
 		Sort defaultSort = Sort.by(Sort.Direction.ASC, "lastName").and(Sort.by(Sort.Direction.ASC, "firstName"));
-		return PageResponse.of(service.list(archivedAllowed, page.toPageable(SORTABLE, defaultSort)),
-				this::toSummary);
+		Pageable pageable = page.toPageable(SORTABLE, defaultSort);
+		// deterministic tiebreaker so paging is stable
+		pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+				pageable.getSort().and(Sort.by(Sort.Direction.ASC, "id")));
+		return PageResponse.of(directory.search(filter, pageable), this::toSummary);
 	}
 
 	@GetMapping("/{id}")

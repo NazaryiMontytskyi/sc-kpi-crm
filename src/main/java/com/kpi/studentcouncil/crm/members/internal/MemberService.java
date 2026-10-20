@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -152,14 +150,6 @@ class MemberService {
 	@Transactional(readOnly = true)
 	MemberProfile get(UUID memberId) {
 		return require(memberId);
-	}
-
-	@Transactional(readOnly = true)
-	Page<MemberProfile> list(boolean includeArchived, Pageable pageable) {
-		if (includeArchived) {
-			return profiles.findAll((root, query, cb) -> cb.conjunction(), pageable);
-		}
-		return profiles.findByArchivedAtIsNull(pageable);
 	}
 
 	private MemberProfile change(MemberProfile profile, Runnable mutation) {

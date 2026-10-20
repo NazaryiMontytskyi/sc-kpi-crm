@@ -22,4 +22,7 @@ public interface OrgQueryService {
 	 */
 	Optional<UUID> headOfUnit(UUID orgUnitId);
 
+	/** User ids of the people who currently hold the position (active appointments, no end date). */
+	List<UUID> holderIdsOfPosition(UUID positionId);
+
 }

@@ -47,4 +47,11 @@ class OrgQueryServiceImpl implements OrgQueryService {
 		return appointments.activeHeadUserIds(orgUnitId).stream().findFirst();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<UUID> holderIdsOfPosition(UUID positionId) {
+		return appointments.findByPositionIdAndEndDateIsNull(positionId).stream().map(Appointment::getUserId)
+				.distinct().toList();
+	}
+
 }
