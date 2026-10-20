@@ -193,6 +193,146 @@ class ResolutionServiceTest {
 		assertThat(root.getState()).isEqualTo(ResolutionState.NEW);
 	}
 
+	private Resolution inProgress(UUID resolutionAuthor, UUID resolutionExecutor, Resolution parent) {
+		Resolution r = existing(resolutionAuthor, resolutionExecutor, parent);
+		when(resolutions.findById(r.getId())).thenReturn(Optional.of(r));
+		r.apply(ResolutionAction.START, resolutionExecutor, null, clock.instant());
+		return r;
+	}
+
+	private DomainException redirectFailure(UUID id, UUID newExecutor) {
+		return (DomainException) org.assertj.core.api.Assertions
+				.catchThrowable(() -> service.redirect(id, newExecutor, "Pass on", LocalDate.of(2026, 3, 20)));
+	}
+
+	@Test
+	void redirectCreatesOneChildAuthoredByTheExecutorAndMovesTheParentToRedirected() {
+		activeTask();
+		Resolution parent = inProgress(author, executor, null);
+		UUID next = UUID.randomUUID();
+		when(actors.currentActorId()).thenReturn(executor);
+
+		var result = service.redirect(parent.getId(), next, "  Pass on  ", LocalDate.of(2026, 3, 20));
+
+		assertThat(parent.getState()).isEqualTo(ResolutionState.REDIRECTED);
+		assertThat(parent.getHistory()).extracting(ResolutionHistoryEntry::to).containsExactly(ResolutionState.NEW,
+				ResolutionState.IN_PROGRESS, ResolutionState.REDIRECTED);
+		Resolution child = result.child();
+		assertThat(child.getParentResolutionId()).isEqualTo(parent.getId());
+		assertThat(child.getAuthorId()).isEqualTo(executor);
+		assertThat(child.getExecutorId()).isEqualTo(next);
+		assertThat(child.getState()).isEqualTo(ResolutionState.NEW);
+		assertThat(child.getInstruction()).isEqualTo("Pass on");
+		assertThat(child.getTaskId()).isEqualTo(taskId);
+		assertThat(result.dueAfterParent()).isFalse();
+		verify(resolutions, org.mockito.Mockito.times(2)).save(any(Resolution.class));
+		verify(audit).publish(eq(AuditAction.CREATE), eq("Resolution"), eq(child.getId()), eq(null), any());
+		org.mockito.ArgumentCaptor<com.kpi.studentcouncil.crm.tasks.ResolutionEvent> captor = org.mockito.ArgumentCaptor
+				.forClass(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.class);
+		verify(events, org.mockito.Mockito.times(2)).publishEvent(captor.capture());
+		assertThat(captor.getAllValues()).extracting(com.kpi.studentcouncil.crm.tasks.ResolutionEvent::kind)
+				.containsExactly(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.REDIRECTED,
+						com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.ISSUED);
+	}
+
+	@Test
+	void aLaterDueDateThanTheParentsIsAcceptedWithAWarningFlag() {
+		activeTask();
+		Resolution parent = inProgress(author, executor, null);
+		when(actors.currentActorId()).thenReturn(executor);
+
+		var result = service.redirect(parent.getId(), UUID.randomUUID(), "x", LocalDate.of(2026, 5, 1));
+
+		assertThat(result.dueAfterParent()).isTrue();
+		assertThat(parent.getState()).isEqualTo(ResolutionState.REDIRECTED);
+	}
+
+	@Test
+	void redirectIsRejectedForNonExecutorsAndWrongStatesAndSavesNothing() {
+		activeTask();
+		Resolution parent = inProgress(author, executor, null);
+		when(actors.currentActorId()).thenReturn(author);
+		assertThat(redirectFailure(parent.getId(), UUID.randomUUID()).getCode()).isEqualTo("RESOLUTION_NOT_EXECUTOR");
+
+		Resolution fresh = existing(author, executor, null);
+		when(actors.currentActorId()).thenReturn(executor);
+		assertThat(redirectFailure(fresh.getId(), UUID.randomUUID()).getCode())
+				.isEqualTo("RESOLUTION_TRANSITION_NOT_ALLOWED");
+
+		verify(resolutions, never()).save(any());
+		assertThat(parent.getState()).isEqualTo(ResolutionState.IN_PROGRESS);
+	}
+
+	@Test
+	void redirectToSelfToAnInactiveUserAndToAnybodyInTheChainIsRejected() {
+		activeTask();
+		UUID deputy = UUID.randomUUID();
+		UUID head = UUID.randomUUID();
+		Resolution first = inProgress(head, deputy, null);
+		first.apply(ResolutionAction.REDIRECT, deputy, null, clock.instant());
+		Resolution second = inProgress(deputy, executor, first);
+		when(actors.currentActorId()).thenReturn(executor);
+
+		assertThat(redirectFailure(second.getId(), executor).getCode()).isEqualTo("RESOLUTION_REDIRECT_TO_SELF");
+		assertThat(redirectFailure(second.getId(), deputy).getCode()).isEqualTo("RESOLUTION_REDIRECT_CYCLE");
+		assertThat(redirectFailure(second.getId(), head).getCode()).isEqualTo("RESOLUTION_REDIRECT_CYCLE");
+		UUID blocked = UUID.randomUUID();
+		when(users.isActive(blocked)).thenReturn(false);
+		assertThat(redirectFailure(second.getId(), blocked).getCode()).isEqualTo("RESOLUTION_EXECUTOR_INVALID");
+
+		verify(resolutions, never()).save(any());
+		assertThat(second.getState()).isEqualTo(ResolutionState.IN_PROGRESS);
+	}
+
+	@Test
+	void redirectRejectsADueDateInThePast() {
+		activeTask();
+		Resolution parent = inProgress(author, executor, null);
+		when(actors.currentActorId()).thenReturn(executor);
+		assertThatThrownBy(() -> service.redirect(parent.getId(), UUID.randomUUID(), "x", LocalDate.of(2026, 3, 9)))
+				.isInstanceOf(BusinessRuleException.class)
+				.extracting(e -> ((DomainException) e).getCode()).isEqualTo("RESOLUTION_DUE_DATE_IN_PAST");
+		assertThat(parent.getState()).isEqualTo(ResolutionState.IN_PROGRESS);
+	}
+
+	@Test
+	void acceptingAChildNotifiesTheParentExecutorAndLeavesTheParentUntouched() {
+		Resolution parent = inProgress(author, executor, null);
+		parent.apply(ResolutionAction.REDIRECT, executor, null, clock.instant());
+		UUID next = UUID.randomUUID();
+		Resolution child = existing(executor, next, parent);
+		child.apply(ResolutionAction.START, next, null, clock.instant());
+		child.apply(ResolutionAction.SUBMIT, next, "done", clock.instant());
+		when(actors.currentActorId()).thenReturn(executor);
+
+		service.accept(child.getId());
+
+		assertThat(child.getState()).isEqualTo(ResolutionState.ACCEPTED);
+		assertThat(parent.getState()).isEqualTo(ResolutionState.REDIRECTED);
+		org.mockito.ArgumentCaptor<Object> captor = org.mockito.ArgumentCaptor.forClass(Object.class);
+		verify(events, org.mockito.Mockito.times(2)).publishEvent(captor.capture());
+		assertThat(captor.getAllValues().get(1)).isEqualTo(new com.kpi.studentcouncil.crm.tasks.ChildResolutionAccepted(
+				child.getId(), parent.getId(), taskId, executor, next, executor));
+		verify(resolutions, never()).save(parent);
+	}
+
+	@Test
+	void chainBuildsTheTreeFromTheRootStartingAnywhere() {
+		Resolution r1 = inProgress(author, executor, null);
+		Resolution r2 = inProgress(executor, UUID.randomUUID(), r1);
+		Resolution r3 = existing(r2.getExecutorId(), UUID.randomUUID(), r2);
+		when(resolutions.findById(r3.getId())).thenReturn(Optional.of(r3));
+		when(resolutions.findByParentResolutionIdOrderByCreatedAtAscIdAsc(r1.getId())).thenReturn(List.of(r2));
+		when(resolutions.findByParentResolutionIdOrderByCreatedAtAscIdAsc(r2.getId())).thenReturn(List.of(r3));
+		when(resolutions.findByParentResolutionIdOrderByCreatedAtAscIdAsc(r3.getId())).thenReturn(List.of());
+
+		var tree = service.chain(r3.getId());
+
+		assertThat(tree.resolution()).isSameAs(r1);
+		assertThat(tree.children()).hasSize(1);
+		assertThat(tree.children().get(0).resolution()).isSameAs(r2);
+		assertThat(tree.children().get(0).children().get(0).resolution()).isSameAs(r3);
+	}
 
 	@Test
 	void dueDateInThePastIsRejectedButTodayIsAccepted() {

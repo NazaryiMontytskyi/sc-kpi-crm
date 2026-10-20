@@ -664,6 +664,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resolutions/{id}/redirect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Executor redirects the resolution to a new executor (IN_PROGRESS to REDIRECTED)
+         * @description Creates exactly one child resolution (authored by the caller) and moves this one to REDIRECTED in one transaction. 403 RESOLUTION_NOT_EXECUTOR for anybody but the executor, 422 RESOLUTION_TRANSITION_NOT_ALLOWED unless IN_PROGRESS, 422 RESOLUTION_REDIRECT_TO_SELF, 422 RESOLUTION_REDIRECT_CYCLE for anybody already in the chain, 422 RESOLUTION_EXECUTOR_INVALID for a non-active executor. A due date later than the parent's is accepted; the response then carries the warning RESOLUTION_CHILD_DUE_AFTER_PARENT.
+         */
+        post: operations["redirect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resolutions/{id}/cancel": {
         parameters: {
             query?: never;
@@ -1365,6 +1385,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resolutions/{id}/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The redirect chain of a resolution as a tree rooted at the first resolution
+         * @description Works from any resolution of the chain; the root is returned with nested children.
+         */
+        get: operations["chain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permissions": {
         parameters: {
             query?: never;
@@ -2009,6 +2049,18 @@ export interface components {
         ReworkResolutionRequest: {
             comment: string;
         };
+        RedirectResolutionRequest: {
+            /** Format: uuid */
+            executorId: string;
+            instruction: string;
+            /** Format: date */
+            dueDate: string;
+        };
+        RedirectResolutionResponse: {
+            child?: components["schemas"]["ResolutionResponse"];
+            parent?: components["schemas"]["ResolutionResponse"];
+            warnings?: string[];
+        };
         CancelResolutionRequest: {
             comment?: string;
         };
@@ -2307,6 +2359,30 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+        };
+        ResolutionChainNode: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** Format: uuid */
+            executorId?: string;
+            coExecutorIds?: string[];
+            instruction?: string;
+            /** Format: date */
+            dueDate?: string;
+            /** Format: uuid */
+            parentResolutionId?: string;
+            /** @enum {string} */
+            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            overdue?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            children?: components["schemas"]["ResolutionChainNode"][];
         };
         PageResponseAppointmentResponse: {
             content?: components["schemas"]["AppointmentResponse"][];
@@ -3647,6 +3723,32 @@ export interface operations {
             };
         };
     };
+    redirect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedirectResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RedirectResolutionResponse"];
+                };
+            };
+        };
+    };
     cancel: {
         parameters: {
             query?: never;
@@ -4714,6 +4816,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    chain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionChainNode"];
                 };
             };
         };

@@ -29,6 +29,8 @@ public record ResolutionEvent(Kind kind, UUID id, UUID taskId, UUID authorId, UU
 		REWORKED,
 		/** The author accepted the result: the resolution is closed as done. */
 		CLOSED,
+		/** The executor redirected it: it is now REDIRECTED and a child resolution (ISSUED) exists. */
+		REDIRECTED,
 		/** The author canceled it (also for descendants canceled by the cascade). */
 		CANCELED
 	}

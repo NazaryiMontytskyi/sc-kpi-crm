@@ -23,10 +23,11 @@ import com.kpi.studentcouncil.crm.identity.UserDirectory;
 import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
 import com.kpi.studentcouncil.crm.shared.error.ConflictException;
 import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
+import com.kpi.studentcouncil.crm.tasks.ChildResolutionAccepted;
 import com.kpi.studentcouncil.crm.tasks.ResolutionEvent;
 
 /**
- * Commands and queries of resolutions (redirect comes with INC-034). The acting
+ * Commands and queries of resolutions, including redirect and the chain. The acting
  * user is always the current actor. Every change is audited inside the transaction.
  */
 @Service
@@ -133,6 +134,97 @@ class ResolutionService {
 		return changed;
 	}
 
+	/**
+	 * The executor of an IN_PROGRESS resolution hands it over: exactly one child resolution is created (authored by the
+	 * redirecting executor) and the parent becomes REDIRECTED, in one transaction. A due date later than the parent's is
+	 * accepted and only reported (decision: warning, not enforced). Redirecting to oneself or to anybody who already is in
+	 * the chain (author or executor of an ancestor) is rejected.
+	 */
+	@Transactional
+	RedirectResult redirect(UUID id, UUID newExecutorId, String instruction, LocalDate dueDate) {
+		Resolution parent = lockActive(id);
+		UUID actor = actors.currentActorId();
+		// transition and actor first: 403 / 422 before any data validation
+		ResolutionStateMachine.check(parent.getState(), ResolutionAction.REDIRECT, actor, parent.getAuthorId(),
+				parent.getExecutorId(), null);
+		var task = tasks.findById(parent.getTaskId())
+				.orElseThrow(() -> new NotFoundException(TaskService.TASK, parent.getTaskId()));
+		if (task.isArchived()) {
+			throw new ConflictException("TASK_ARCHIVED");
+		}
+		if (newExecutorId == null || !users.isActive(newExecutorId)) {
+			throw new BusinessRuleException("RESOLUTION_EXECUTOR_INVALID");
+		}
+		if (newExecutorId.equals(actor)) {
+			throw new BusinessRuleException("RESOLUTION_REDIRECT_TO_SELF");
+		}
+		if (chainParticipants(parent).contains(newExecutorId)) {
+			throw new BusinessRuleException("RESOLUTION_REDIRECT_CYCLE");
+		}
+		if (dueDate != null && dueDate.isBefore(LocalDate.now(clock.withZone(ResolutionStateMachine.DISPLAY_ZONE)))) {
+			throw new BusinessRuleException("RESOLUTION_DUE_DATE_IN_PAST");
+		}
+		Map<String, Object> before = parent.auditSnapshot();
+		parent.apply(ResolutionAction.REDIRECT, actor, null, clock.instant());
+		Resolution savedParent = resolutions.save(parent);
+		audit.publish(AuditAction.UPDATE, RESOLUTION, id, before, savedParent.auditSnapshot());
+		Resolution child = resolutions.save(new Resolution(parent.getTaskId(), actor, newExecutorId, Set.of(),
+				instruction, dueDate, parent.getId(), clock.instant()));
+		audit.publish(AuditAction.CREATE, RESOLUTION, child.getId(), null, child.auditSnapshot());
+		publish(ResolutionEvent.Kind.REDIRECTED, savedParent);
+		publish(ResolutionEvent.Kind.ISSUED, child);
+		return new RedirectResult(savedParent, child, dueDate != null && dueDate.isAfter(parent.getDueDate()));
+	}
+
+	/** Parent (now REDIRECTED), the new child, and whether the child's due date is later than the parent's. */
+	record RedirectResult(Resolution parent, Resolution child, boolean dueAfterParent) {
+	}
+
+	/** The redirect chain as a tree. */
+	record ChainNode(Resolution resolution, List<ChainNode> children) {
+	}
+
+	/** The whole chain the resolution belongs to, as a tree rooted at the first resolution. */
+	@Transactional(readOnly = true)
+	ChainNode chain(UUID id) {
+		Resolution root = get(id);
+		Set<UUID> seen = new java.util.HashSet<>();
+		seen.add(root.getId());
+		while (root.getParentResolutionId() != null) {
+			Resolution up = resolutions.findById(root.getParentResolutionId()).orElse(null);
+			if (up == null || !seen.add(up.getId())) {
+				break;
+			}
+			root = up;
+		}
+		return buildNode(root, new java.util.HashSet<>());
+	}
+
+	private ChainNode buildNode(Resolution resolution, Set<UUID> seen) {
+		seen.add(resolution.getId());
+		List<ChainNode> children = new java.util.ArrayList<>();
+		for (Resolution child : resolutions.findByParentResolutionIdOrderByCreatedAtAscIdAsc(resolution.getId())) {
+			if (!seen.contains(child.getId())) {
+				children.add(buildNode(child, seen));
+			}
+		}
+		return new ChainNode(resolution, children);
+	}
+
+	/** Authors and executors of the resolution and all its ancestors. */
+	private Set<UUID> chainParticipants(Resolution from) {
+		Set<UUID> people = new java.util.HashSet<>();
+		Set<UUID> seen = new java.util.HashSet<>();
+		Resolution current = from;
+		while (current != null && seen.add(current.getId())) {
+			people.add(current.getAuthorId());
+			people.add(current.getExecutorId());
+			current = current.getParentResolutionId() == null ? null
+					: resolutions.findById(current.getParentResolutionId()).orElse(null);
+		}
+		return people;
+	}
+
 	@Transactional(readOnly = true)
 	Resolution get(UUID id) {
 		return resolutions.findById(id).orElseThrow(() -> new NotFoundException(RESOLUTION, id));
@@ -188,6 +280,12 @@ class ResolutionService {
 			case CANCEL -> ResolutionEvent.Kind.CANCELED;
 			case REDIRECT -> throw new IllegalStateException("Redirect is not handled here");
 		}, saved);
+		if (action == ResolutionAction.ACCEPT && saved.getParentResolutionId() != null) {
+			// tell the parent executor; the parent itself is deliberately left untouched (5.3)
+			resolutions.findById(saved.getParentResolutionId()).ifPresent(parent -> events.publishEvent(
+					new ChildResolutionAccepted(saved.getId(), parent.getId(), saved.getTaskId(), parent.getExecutorId(),
+							saved.getExecutorId(), actors.currentActorId())));
+		}
 		return saved;
 	}
 

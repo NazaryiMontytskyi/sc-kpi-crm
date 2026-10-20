@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8080",
+      "url": "http://localhost",
       "description": "Generated server url"
     }
   ],
@@ -1901,6 +1901,49 @@
         }
       }
     },
+    "/api/v1/resolutions/{id}/redirect": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Executor redirects the resolution to a new executor (IN_PROGRESS to REDIRECTED)",
+        "description": "Creates exactly one child resolution (authored by the caller) and moves this one to REDIRECTED in one transaction. 403 RESOLUTION_NOT_EXECUTOR for anybody but the executor, 422 RESOLUTION_TRANSITION_NOT_ALLOWED unless IN_PROGRESS, 422 RESOLUTION_REDIRECT_TO_SELF, 422 RESOLUTION_REDIRECT_CYCLE for anybody already in the chain, 422 RESOLUTION_EXECUTOR_INVALID for a non-active executor. A due date later than the parent's is accepted; the response then carries the warning RESOLUTION_CHILD_DUE_AFTER_PARENT.",
+        "operationId": "redirect",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedirectResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedirectResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/resolutions/{id}/cancel": {
       "post": {
         "tags": [
@@ -3611,6 +3654,39 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/chain": {
+      "get": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "The redirect chain of a resolution as a tree rooted at the first resolution",
+        "description": "Works from any resolution of the chain; the root is returned with nested children.",
+        "operationId": "chain",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionChainNode"
                 }
               }
             }
@@ -5430,6 +5506,46 @@
           "comment"
         ]
       },
+      "RedirectResolutionRequest": {
+        "type": "object",
+        "properties": {
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "dueDate",
+          "executorId",
+          "instruction"
+        ]
+      },
+      "RedirectResolutionResponse": {
+        "type": "object",
+        "properties": {
+          "child": {
+            "$ref": "#/components/schemas/ResolutionResponse"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/ResolutionResponse"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CancelResolutionRequest": {
         "type": "object",
         "properties": {
@@ -6242,6 +6358,74 @@
           },
           "last": {
             "type": "boolean"
+          }
+        }
+      },
+      "ResolutionChainNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "coExecutorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "parentResolutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolutionChainNode"
+            }
           }
         }
       },

@@ -153,6 +153,24 @@ final class TasksDtos {
 			Instant createdAt, Instant updatedAt) {
 	}
 
+	/** Redirect: the caller (executor of the resolution) hands it over to a new executor with an own instruction and due date. */
+	record RedirectResolutionRequest(@NotNull UUID executorId, @NotBlank @Size(max = 5000) String instruction,
+			@NotNull LocalDate dueDate) {
+	}
+
+	/**
+	 * Result of a redirect: the child and the parent (now REDIRECTED). {@code warnings} may contain
+	 * {@code RESOLUTION_CHILD_DUE_AFTER_PARENT} when the child's due date is later than the parent's (not enforced).
+	 */
+	record RedirectResolutionResponse(ResolutionResponse child, ResolutionResponse parent, List<String> warnings) {
+	}
+
+	/** A node of the redirect chain tree; {@code children} are the resolutions redirected from it. */
+	record ResolutionChainNode(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
+			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
+			Instant createdAt, Instant updatedAt, List<ResolutionChainNode> children) {
+	}
+
 	record ResolutionResponse(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
 			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
 			String completionNote, List<ResolutionHistoryResponse> history, Instant createdAt, Instant updatedAt) {

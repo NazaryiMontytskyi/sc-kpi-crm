@@ -2,6 +2,7 @@ package com.kpi.studentcouncil.crm.tasks.internal;
 
 import java.net.URI;
 import java.time.Clock;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +26,9 @@ import com.kpi.studentcouncil.crm.shared.web.ApiV1;
 import com.kpi.studentcouncil.crm.tasks.internal.ResolutionService.ResolutionFilter;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.CancelResolutionRequest;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.IssueResolutionRequest;
+import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.RedirectResolutionRequest;
+import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.RedirectResolutionResponse;
+import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.ResolutionChainNode;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.ReworkResolutionRequest;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.ResolutionHistoryResponse;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.ResolutionResponse;
@@ -140,6 +144,40 @@ class ResolutionController {
 	ResolutionResponse cancel(@PathVariable UUID id,
 			@RequestBody(required = false) @Valid CancelResolutionRequest request) {
 		return detail(service.cancel(id, request == null ? null : request.comment()).get(0));
+	}
+
+	@PostMapping("/resolutions/{id}/redirect")
+	@PreAuthorize("hasAuthority('resolutions.redirect')")
+	@Operation(summary = "Executor redirects the resolution to a new executor (IN_PROGRESS to REDIRECTED)",
+			description = "Creates exactly one child resolution (authored by the caller) and moves this one to REDIRECTED in "
+					+ "one transaction. 403 RESOLUTION_NOT_EXECUTOR for anybody but the executor, 422 "
+					+ "RESOLUTION_TRANSITION_NOT_ALLOWED unless IN_PROGRESS, 422 RESOLUTION_REDIRECT_TO_SELF, 422 "
+					+ "RESOLUTION_REDIRECT_CYCLE for anybody already in the chain, 422 RESOLUTION_EXECUTOR_INVALID for a "
+					+ "non-active executor. A due date later than the parent's is accepted; the response then carries the "
+					+ "warning RESOLUTION_CHILD_DUE_AFTER_PARENT.")
+	ResponseEntity<RedirectResolutionResponse> redirect(@PathVariable UUID id,
+			@Valid @RequestBody RedirectResolutionRequest request) {
+		var result = service.redirect(id, request.executorId(), request.instruction(), request.dueDate());
+		return ResponseEntity.status(HttpStatus.CREATED)
+				.location(URI.create("/api/v1/resolutions/" + result.child().getId()))
+				.body(new RedirectResolutionResponse(detail(result.child()), detail(result.parent()),
+						result.dueAfterParent() ? List.of("RESOLUTION_CHILD_DUE_AFTER_PARENT") : List.of()));
+	}
+
+	@GetMapping("/resolutions/{id}/chain")
+	@PreAuthorize("hasAuthority('tasks.view')")
+	@Operation(summary = "The redirect chain of a resolution as a tree rooted at the first resolution",
+			description = "Works from any resolution of the chain; the root is returned with nested children.")
+	ResolutionChainNode chain(@PathVariable UUID id) {
+		return node(service.chain(id));
+	}
+
+	private ResolutionChainNode node(ResolutionService.ChainNode n) {
+		Resolution r = n.resolution();
+		return new ResolutionChainNode(r.getId(), r.getTaskId(), r.getAuthorId(), r.getExecutorId(),
+				r.getCoExecutorIds().stream().sorted().toList(), r.getInstruction(), r.getDueDate(),
+				r.getParentResolutionId(), r.getState(), r.isOverdue(clock), r.getCreatedAt(), r.getUpdatedAt(),
+				n.children().stream().map(this::node).toList());
 	}
 
 	private ResolutionSummaryResponse summary(Resolution r) {

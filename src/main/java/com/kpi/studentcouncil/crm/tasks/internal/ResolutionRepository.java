@@ -26,4 +26,7 @@ interface ResolutionRepository extends ArchivableRepository<Resolution, UUID> {
 
 	List<Resolution> findByTaskId(UUID taskId);
 
+	/** Direct children (redirect targets), archived ones included. */
+	List<Resolution> findByParentResolutionIdOrderByCreatedAtAscIdAsc(UUID parentId);
+
 }

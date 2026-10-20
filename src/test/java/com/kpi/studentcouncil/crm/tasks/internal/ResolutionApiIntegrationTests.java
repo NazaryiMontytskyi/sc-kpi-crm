@@ -37,7 +37,10 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crm.access.AccessService;
+import com.kpi.studentcouncil.crm.audit.AuditPublisher;
+import com.kpi.studentcouncil.crm.tasks.ChildResolutionAccepted;
 import com.kpi.studentcouncil.crm.tasks.ResolutionEvent;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /** REST API of resolutions: permission and actor matrix, issue directions, validation, lists and events. */
 @SpringBootTest
@@ -59,6 +62,17 @@ class ResolutionApiIntegrationTests {
 
 	}
 
+	static class CollectedChildEvents {
+
+		final List<ChildResolutionAccepted> all = new CopyOnWriteArrayList<>();
+
+		@EventListener
+		void on(ChildResolutionAccepted event) {
+			all.add(event);
+		}
+
+	}
+
 	@TestConfiguration(proxyBeanMethods = false)
 	static class EventsConfig {
 
@@ -67,7 +81,18 @@ class ResolutionApiIntegrationTests {
 			return new CollectedEvents();
 		}
 
+		@Bean
+		CollectedChildEvents collectedChildResolutionEvents() {
+			return new CollectedChildEvents();
+		}
+
 	}
+
+	@MockitoSpyBean
+	AuditPublisher audit;
+
+	@Autowired
+	CollectedChildEvents childEvents;
 
 	@Autowired
 	MockMvc mvc;
@@ -95,6 +120,7 @@ class ResolutionApiIntegrationTests {
 	@BeforeEach
 	void setUp() {
 		events.all.clear();
+		childEvents.all.clear();
 		space = UUID.randomUUID();
 		jdbc.update("insert into task_space (id, name, is_general, created_at, updated_at) values (?, ?, true, now(),"
 				+ " now())", space, "Resolution API " + space);
@@ -328,28 +354,244 @@ class ResolutionApiIntegrationTests {
 	@Test
 	void cancelIsAuthorOnlyAndCascadesToNonFinalDescendants() throws Exception {
 		Account author = issuer();
-		Account executor = viewer();
+		Account executor = redirector();
 		Account stranger = viewer();
+		Account tail = redirector();
 		UUID root = issue(author, executor.id());
-		// a redirected chain does not exist via API yet (INC-034): insert a child directly
-		UUID child = UUID.randomUUID();
-		jdbc.update("insert into resolution (id, task_id, author_id, executor_id, instruction, due_date,"
-				+ " parent_resolution_id, state, created_at, updated_at) values (?, ?, ?, ?, 'child', ?, ?, 'IN_PROGRESS',"
-				+ " now(), now())", child, task, executor.id(), stranger.id(), LocalDate.now().plusDays(3), root);
-		jdbc.update("insert into resolution_history (resolution_id, position, actor_id, from_state, to_state,"
-				+ " occurred_at) values (?, 0, ?, null, 'NEW', now())", child, executor.id());
+		send(executor, "/resolutions/" + root + "/start", "").andExpect(status().isOk());
+		UUID child = redirect(executor, root, tail.id());
 
 		expectCode(send(executor, "/resolutions/" + root + "/cancel", ""), 403, "RESOLUTION_NOT_AUTHOR");
 		expectCode(send(stranger, "/resolutions/" + root + "/cancel", "{\"comment\":\"x\"}"), 403,
 				"RESOLUTION_NOT_AUTHOR");
+		events.all.clear();
 		send(author, "/resolutions/" + root + "/cancel", "{\"comment\":\"No longer needed\"}")
 				.andExpect(status().isOk()).andExpect(jsonPath("$.state").value("CANCELED"));
 
 		assertThat(jdbc.queryForObject("select state from resolution where id = ?", String.class, child))
 				.isEqualTo("CANCELED");
-		assertThat(events.all).extracting(ResolutionEvent::kind).containsExactlyInAnyOrder(
-				ResolutionEvent.Kind.ISSUED, ResolutionEvent.Kind.CANCELED, ResolutionEvent.Kind.CANCELED);
-		jdbc.update("update resolution set parent_resolution_id = null where task_id = ?", task);
+		assertThat(events.all).extracting(ResolutionEvent::kind).containsOnly(ResolutionEvent.Kind.CANCELED);
+		assertThat(events.all).extracting(ResolutionEvent::executorId).containsExactlyInAnyOrder(executor.id(),
+				tail.id());
+	}
+
+	/** An active user who may issue and redirect resolutions. */
+	private Account redirector() throws Exception {
+		return account("ACTIVE", "tasks.view", "resolutions.create", "resolutions.redirect");
+	}
+
+	private ResultActions redirectRaw(Account who, UUID resolution, UUID to, LocalDate due) throws Exception {
+		return send(who, "/resolutions/" + resolution + "/redirect", "{\"executorId\":\"" + to
+				+ "\",\"instruction\":\"Please take over\",\"dueDate\":\"" + due + "\"}");
+	}
+
+	private UUID redirect(Account who, UUID resolution, UUID to) throws Exception {
+		ResultActions r = redirectRaw(who, resolution, to, LocalDate.now().plusDays(3)).andExpect(status().isCreated());
+		return UUID.fromString(JsonPath.read(r.andReturn().getResponse().getContentAsString(), "$.child.id"));
+	}
+
+	private void start(Account who, UUID resolution) throws Exception {
+		send(who, "/resolutions/" + resolution + "/start", "").andExpect(status().isOk());
+	}
+
+	private String state(UUID resolution) {
+		return jdbc.queryForObject("select state from resolution where id = ?", String.class, resolution);
+	}
+
+	@Test
+	void redirectCreatesOneChildAndMovesTheParentAtomically() throws Exception {
+		Account head = issuer();
+		Account deputy = redirector();
+		Account next = viewer();
+		UUID parent = issue(head, deputy.id());
+		expectCode(redirectRaw(deputy, parent, next.id(), LocalDate.now().plusDays(1)), 422,
+				"RESOLUTION_TRANSITION_NOT_ALLOWED");
+		start(deputy, parent);
+		events.all.clear();
+
+		redirectRaw(deputy, parent, next.id(), LocalDate.now().plusDays(3)).andExpect(status().isCreated())
+				.andExpect(jsonPath("$.child.state").value("NEW"))
+				.andExpect(jsonPath("$.child.parentResolutionId").value(parent.toString()))
+				.andExpect(jsonPath("$.child.authorId").value(deputy.id().toString()))
+				.andExpect(jsonPath("$.child.executorId").value(next.id().toString()))
+				.andExpect(jsonPath("$.parent.state").value("REDIRECTED")).andExpect(jsonPath("$.warnings", hasSize(0)));
+
+		assertThat(state(parent)).isEqualTo("REDIRECTED");
+		assertThat(jdbc.queryForObject("select count(*) from resolution where parent_resolution_id = ?", Long.class,
+				parent)).isEqualTo(1);
+		assertThat(events.all).extracting(ResolutionEvent::kind).containsExactly(ResolutionEvent.Kind.REDIRECTED,
+				ResolutionEvent.Kind.ISSUED);
+		// a second redirect of the same resolution is no longer possible
+		expectCode(redirectRaw(deputy, parent, head.id(), LocalDate.now().plusDays(1)), 422,
+				"RESOLUTION_TRANSITION_NOT_ALLOWED");
+		assertThat(jdbc.queryForObject("select count(*) from resolution where parent_resolution_id = ?", Long.class,
+				parent)).isEqualTo(1);
+	}
+
+	@Test
+	void aLaterDueDateIsOnlyAWarning() throws Exception {
+		Account head = issuer();
+		Account deputy = redirector();
+		Account next = viewer();
+		UUID parent = issue(head, deputy.id());
+		start(deputy, parent);
+		redirectRaw(deputy, parent, next.id(), LocalDate.now().plusDays(30)).andExpect(status().isCreated())
+				.andExpect(jsonPath("$.warnings[0]").value("RESOLUTION_CHILD_DUE_AFTER_PARENT"));
+	}
+
+	@Test
+	void redirectNeedsThePermissionAndTheExecutor() throws Exception {
+		Account head = issuer();
+		Account deputy = redirector();
+		Account noPermissionExecutor = issuer();
+		Account other = redirector();
+		Account next = viewer();
+		UUID parent = issue(head, deputy.id());
+		start(deputy, parent);
+		UUID second = issue(head, noPermissionExecutor.id());
+		start(noPermissionExecutor, second);
+
+		// not the executor (even with the permission, even the author)
+		expectCode(redirectRaw(other, parent, next.id(), LocalDate.now().plusDays(1)), 403, "RESOLUTION_NOT_EXECUTOR");
+		redirectRaw(head, parent, next.id(), LocalDate.now().plusDays(1)).andExpect(status().isForbidden());
+		// executor without resolutions.redirect
+		redirectRaw(noPermissionExecutor, second, next.id(), LocalDate.now().plusDays(1))
+				.andExpect(status().isForbidden());
+		assertThat(state(parent)).isEqualTo("IN_PROGRESS");
+		assertThat(state(second)).isEqualTo("IN_PROGRESS");
+		assertThat(jdbc.queryForObject("select count(*) from resolution where task_id = ?", Long.class, task))
+				.isEqualTo(2);
+	}
+
+	@Test
+	void redirectToSelfToTheChainToInactiveUsersAndWithPastDueDateIsRejected() throws Exception {
+		Account head = redirector();
+		Account deputy = redirector();
+		Account hod = redirector();
+		Account blocked = account("BLOCKED");
+		UUID r1 = issue(head, deputy.id());
+		start(deputy, r1);
+		UUID r2 = redirect(deputy, r1, hod.id());
+		start(hod, r2);
+
+		expectCode(redirectRaw(hod, r2, hod.id(), LocalDate.now().plusDays(1)), 422, "RESOLUTION_REDIRECT_TO_SELF");
+		expectCode(redirectRaw(hod, r2, deputy.id(), LocalDate.now().plusDays(1)), 422, "RESOLUTION_REDIRECT_CYCLE");
+		expectCode(redirectRaw(hod, r2, head.id(), LocalDate.now().plusDays(1)), 422, "RESOLUTION_REDIRECT_CYCLE");
+		expectCode(redirectRaw(hod, r2, blocked.id(), LocalDate.now().plusDays(1)), 422, "RESOLUTION_EXECUTOR_INVALID");
+		expectCode(redirectRaw(hod, r2, UUID.randomUUID(), LocalDate.now().plusDays(1)), 422,
+				"RESOLUTION_EXECUTOR_INVALID");
+		expectCode(redirectRaw(hod, r2, viewer().id(), LocalDate.now().minusDays(1)), 422,
+				"RESOLUTION_DUE_DATE_IN_PAST");
+		assertThat(state(r2)).isEqualTo("IN_PROGRESS");
+		assertThat(jdbc.queryForObject("select count(*) from resolution where parent_resolution_id = ?", Long.class,
+				r2)).isZero();
+	}
+
+	@Test
+	void aFailureWhileCreatingTheChildRollsTheParentBack() throws Exception {
+		Account head = issuer();
+		Account deputy = redirector();
+		Account next = viewer();
+		UUID parent = issue(head, deputy.id());
+		start(deputy, parent);
+		org.mockito.Mockito.doThrow(new IllegalStateException("audit down")).when(audit).publish(
+				org.mockito.ArgumentMatchers.eq(com.kpi.studentcouncil.crm.audit.AuditAction.CREATE),
+				org.mockito.ArgumentMatchers.eq("Resolution"), org.mockito.ArgumentMatchers.any(),
+				org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+		try {
+			// depending on the error handling the failure is a 500 response or a propagated exception
+			int httpStatus = redirectRaw(deputy, parent, next.id(), LocalDate.now().plusDays(2)).andReturn()
+					.getResponse().getStatus();
+			assertThat(httpStatus).isGreaterThanOrEqualTo(500);
+		}
+		catch (jakarta.servlet.ServletException expected) {
+			assertThat(expected).hasRootCauseInstanceOf(IllegalStateException.class);
+		}
+		finally {
+			org.mockito.Mockito.reset(audit);
+		}
+
+		assertThat(state(parent)).isEqualTo("IN_PROGRESS");
+		assertThat(jdbc.queryForObject("select count(*) from resolution where parent_resolution_id = ?", Long.class,
+				parent)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from resolution_history where resolution_id = ?", Long.class,
+				parent)).isEqualTo(2);
+	}
+
+	@Test
+	void chainReturnsTheFourLevelTreeFromAnyResolutionOfIt() throws Exception {
+		Account head = redirector();
+		Account deputy = redirector();
+		Account hod = redirector();
+		Account member = viewer();
+		UUID r1 = issue(head, deputy.id());
+		start(deputy, r1);
+		UUID r2 = redirect(deputy, r1, hod.id());
+		start(hod, r2);
+		UUID r3 = redirect(hod, r2, member.id());
+		Account outsider = viewer();
+
+		for (UUID from : List.of(r1, r2, r3)) {
+			read(outsider, "/resolutions/" + from + "/chain").andExpect(status().isOk())
+					.andExpect(jsonPath("$.id").value(r1.toString()))
+					.andExpect(jsonPath("$.executorId").value(deputy.id().toString()))
+					.andExpect(jsonPath("$.state").value("REDIRECTED"))
+					.andExpect(jsonPath("$.children", hasSize(1)))
+					.andExpect(jsonPath("$.children[0].id").value(r2.toString()))
+					.andExpect(jsonPath("$.children[0].executorId").value(hod.id().toString()))
+					.andExpect(jsonPath("$.children[0].children[0].id").value(r3.toString()))
+					.andExpect(jsonPath("$.children[0].children[0].executorId").value(member.id().toString()))
+					.andExpect(jsonPath("$.children[0].children[0].authorId").value(hod.id().toString()))
+					.andExpect(jsonPath("$.children[0].children[0].children", hasSize(0)));
+		}
+		read(outsider, "/resolutions/" + UUID.randomUUID() + "/chain").andExpect(status().isNotFound());
+		Account noView = account("ACTIVE");
+		read(noView, "/resolutions/" + r1 + "/chain").andExpect(status().isForbidden());
+	}
+
+	@Test
+	void acceptingAChildNotifiesTheParentExecutorWithoutChangingTheParent() throws Exception {
+		Account head = redirector();
+		Account deputy = redirector();
+		Account member = viewer();
+		UUID r1 = issue(head, deputy.id());
+		start(deputy, r1);
+		UUID r2 = redirect(deputy, r1, member.id());
+		start(member, r2);
+		send(member, "/resolutions/" + r2 + "/submit", "{\"completionNote\":\"done\"}").andExpect(status().isOk());
+		childEvents.all.clear();
+
+		send(deputy, "/resolutions/" + r2 + "/accept", "").andExpect(status().isOk());
+
+		assertThat(childEvents.all).hasSize(1);
+		var event = childEvents.all.get(0);
+		assertThat(event.childId()).isEqualTo(r2);
+		assertThat(event.parentId()).isEqualTo(r1);
+		assertThat(event.parentExecutorId()).isEqualTo(deputy.id());
+		assertThat(state(r1)).isEqualTo("REDIRECTED");
+	}
+
+	@Test
+	void cancelingTheRootOfAFourLevelChainCancelsOnlyNonFinalDescendantsAndNotifiesTheirExecutors() throws Exception {
+		Account head = redirector();
+		Account deputy = redirector();
+		Account hod = redirector();
+		Account member = viewer();
+		UUID r1 = issue(head, deputy.id());
+		start(deputy, r1);
+		UUID r2 = redirect(deputy, r1, hod.id());
+		start(hod, r2);
+		UUID r3 = redirect(hod, r2, member.id());
+		start(member, r3);
+		events.all.clear();
+
+		send(head, "/resolutions/" + r1 + "/cancel", "{\"comment\":\"Not needed\"}").andExpect(status().isOk());
+
+		assertThat(List.of(state(r1), state(r2), state(r3))).containsOnly("CANCELED");
+		assertThat(events.all).extracting(ResolutionEvent::kind).containsOnly(ResolutionEvent.Kind.CANCELED);
+		assertThat(events.all).extracting(ResolutionEvent::executorId).containsExactlyInAnyOrder(deputy.id(), hod.id(),
+				member.id());
+		read(head, "/resolutions/" + r3).andExpect(jsonPath("$.history[2].causedByResolutionId").value(r1.toString()));
 	}
 
 	@Test
