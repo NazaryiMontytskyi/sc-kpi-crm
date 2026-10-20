@@ -1,7 +1,9 @@
 package com.kpi.studentcouncil.crm.tasks.internal;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotBlank;
@@ -62,6 +64,42 @@ final class TasksDtos {
 
 	record CustomFieldResponse(UUID id, UUID spaceId, String name, CustomFieldType type, boolean required,
 			List<String> options, boolean archived, Instant createdAt, Instant updatedAt) {
+	}
+
+	// ---- tasks ----
+
+	/**
+	 * {@code statusId} defaults to the first TODO status of the space, {@code priority} to NORMAL. {@code description}
+	 * is a rich-text (TipTap) JSON document. {@code customFieldValues} is keyed by custom field id.
+	 */
+	record CreateTaskRequest(@NotNull UUID spaceId, @NotBlank @Size(max = 300) String title,
+			Map<String, Object> description, UUID statusId, TaskPriority priority, LocalDate dueDate,
+			List<String> labels, Map<String, Object> customFieldValues, List<UUID> attachmentIds,
+			List<UUID> relatedTaskIds) {
+	}
+
+	/** Replaces every editable field (the space and the status are not changed here). */
+	record UpdateTaskRequest(@NotBlank @Size(max = 300) String title, Map<String, Object> description,
+			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
+			List<UUID> attachmentIds, List<UUID> relatedTaskIds) {
+	}
+
+	record ChangeTaskStatusRequest(@NotNull UUID statusId) {
+	}
+
+	record AttachmentResponse(UUID id, String fileName, String mimeType, long size) {
+	}
+
+	/** List item: no description, custom fields or attachment details. */
+	record TaskSummaryResponse(UUID id, UUID spaceId, String title, UUID statusId, TaskPriority priority,
+			LocalDate dueDate, List<String> labels, int attachmentCount, int relatedCount, UUID authorId,
+			boolean archived, Instant archivedAt, Instant createdAt, Instant updatedAt) {
+	}
+
+	record TaskResponse(UUID id, UUID spaceId, String title, Map<String, Object> description, UUID statusId,
+			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
+			List<AttachmentResponse> attachments, List<UUID> relatedTaskIds, UUID authorId, boolean archived,
+			Instant archivedAt, Instant createdAt, Instant updatedAt) {
 	}
 
 }
