@@ -426,7 +426,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** may be merged into INC-026/027 by the orchestrator.
 
 #### INC-031 — Tasks: "all resolutions accepted" suggestion hook (task side)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-025, INC-032
 - **Scope:** `TaskService.suggestDone(taskId)` computed field `suggestDone=true` on the task DTO when the task has >= 1 resolution and all non-canceled resolutions are ACCEPTED and the task is not in a DONE-category status; no automatic status change (§5.3).
