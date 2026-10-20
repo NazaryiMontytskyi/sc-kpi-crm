@@ -498,7 +498,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-036 — Resolutions frontend: chain tree and "task done" suggestion
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `resolutions`
 - **Depends on:** INC-034, INC-031, INC-035
 - **Scope:** collapsible tree of the redirect chain visible to the root author; banner "all resolutions accepted — move task to Done?" using `suggestDone`, with one-click move to a DONE-category status (user choice among DONE statuses).
