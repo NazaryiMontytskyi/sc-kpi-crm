@@ -388,7 +388,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** commenting needs authentication only (no comment permission in §5.2); edit/archive of a comment only by its own author or Admin.
 
 #### INC-028 — Tasks: kanban view
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `tasks` (backend status-change endpoint already exists)
 - **Depends on:** INC-026
 - **Scope:** kanban board per space (columns = statuses, ordered); move cards via drag-and-drop on desktop and a "move to" menu on touch; WIP-free; card shows title, due, labels, overdue highlight.
