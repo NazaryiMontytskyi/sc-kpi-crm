@@ -28,6 +28,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a task (archived ones too) */
+        get: operations["get"];
+        /**
+         * Edit a task (replaces all editable fields)
+         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived. The relatedTaskIds list is the complete new set of symmetric links.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a space with its ordered statuses and custom fields */
+        get: operations["get_1"];
+        /**
+         * Update name, unit binding and general flag of a space
+         * @description 409 when archived.
+         */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/statuses/{statusId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename a status and/or change its category
+         * @description The space must keep at least one TODO and one DONE status (422).
+         */
+        put: operations["updateStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/statuses/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the statuses
+         * @description statusIds must list every active status of the space exactly once (422 otherwise).
+         */
+        put: operations["reorderStatuses"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/custom-fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update a custom field (the type is fixed) */
+        put: operations["updateField"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles/{id}": {
         parameters: {
             query?: never;
@@ -36,12 +135,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one role, including an archived one, or the built-in Admin role */
-        get: operations["get"];
+        get: operations["get_2"];
         /**
          * Rename a role and replace its permission set
          * @description Takes effect for all holders immediately. 403 for the Admin role.
          */
-        put: operations["update"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -57,12 +156,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one position, including archived ones */
-        get: operations["get_1"];
+        get: operations["get_3"];
         /**
          * Update title, capacity and bound roles of a position
          * @description A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.
          */
-        put: operations["update_1"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -78,9 +177,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one unit, including archived ones, with its ancestor ids and active child ids */
-        get: operations["get_2"];
+        get: operations["get_4"];
         /** Rename a unit / change its description */
-        put: operations["update_2"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -96,12 +195,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one member profile, including an archived one */
-        get: operations["get_3"];
+        get: operations["get_5"];
         /**
          * Edit a member profile
          * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
          */
-        put: operations["update_3"];
+        put: operations["update_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -157,9 +256,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one faculty, including an archived one (existing profiles may reference it) */
-        get: operations["get_4"];
+        get: operations["get_6"];
         /** Edit an active faculty */
-        put: operations["update_4"];
+        put: operations["update_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -175,10 +274,228 @@ export interface paths {
             cookie?: never;
         };
         /** Get one definition, including an archived one */
-        get: operations["get_5"];
+        get: operations["get_7"];
         /** Edit an active definition */
-        put: operations["update_5"];
+        put: operations["update_7"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)
+         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates).
+         */
+        get: operations["list"];
+        put?: never;
+        /**
+         * Create a task
+         * @description The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the author.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the status of a task
+         * @description Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422).
+         */
+        post: operations["changeStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archived task
+         * @description 409 while its space is archived.
+         */
+        post: operations["restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a task (soft) */
+        post: operations["archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Spaces (paginated, sortable by name, createdAt; default name)
+         * @description Archived spaces only with includeArchived=true. Optional filter by orgUnitId.
+         */
+        get: operations["list_1"];
+        put?: never;
+        /**
+         * Create a space
+         * @description The new space gets the default statuses (To do, In progress, Done, Canceled). A general space has no orgUnitId (422); the unit must exist and not be archived.
+         */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active statuses of a space, in order */
+        get: operations["statuses"];
+        put?: never;
+        /**
+         * Add a status at the end of the order
+         * @description Names are unique within the space, ignoring case (409).
+         */
+        post: operations["addStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/statuses/{statusId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a status
+         * @description While tasks use the status, replacementStatusId (another active status of the space) is required (409 otherwise) and the tasks are moved to it. The space must keep a TODO and a DONE status (422).
+         */
+        post: operations["archiveStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived space */
+        post: operations["restore_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/custom-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active custom field definitions of a space */
+        get: operations["fields"];
+        put?: never;
+        /**
+         * Define a custom field
+         * @description Types: TEXT, NUMBER, DATE, SELECT, PERSON. SELECT requires options (422); other types must not have any. Names are unique within the space (409).
+         */
+        post: operations["addField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/custom-fields/{fieldId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a custom field (soft) */
+        post: operations["archiveField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/spaces/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a space (soft) */
+        post: operations["archive_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -196,13 +513,13 @@ export interface paths {
          * List roles (paginated, by name; the built-in Admin role first)
          * @description includeArchived=true is honoured only for holders of roles.manage.
          */
-        get: operations["list"];
+        get: operations["list_2"];
         put?: never;
         /**
          * Create a role
          * @description The name is unique among active roles (409); Admin is reserved.
          */
-        post: operations["create"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -222,7 +539,7 @@ export interface paths {
          * Archive a role (soft)
          * @description Allowed while assigned: holders lose its permissions. 403 for the Admin role.
          */
-        post: operations["archive"];
+        post: operations["archive_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -239,7 +556,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Restore an archived position */
-        post: operations["restore"];
+        post: operations["restore_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -259,7 +576,7 @@ export interface paths {
          * Archive a position (soft)
          * @description 409 while it has active appointments.
          */
-        post: operations["archive_1"];
+        post: operations["archive_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -303,7 +620,7 @@ export interface paths {
          * Create a unit
          * @description Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).
          */
-        post: operations["create_1"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -323,7 +640,7 @@ export interface paths {
          * Restore an archived unit
          * @description Requires an active parent.
          */
-        post: operations["restore_1"];
+        post: operations["restore_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -347,7 +664,7 @@ export interface paths {
          * Create a position in a unit
          * @description Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.
          */
-        post: operations["create_2"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -411,7 +728,7 @@ export interface paths {
          * Archive a unit (soft)
          * @description Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.
          */
-        post: operations["archive_2"];
+        post: operations["archive_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -469,13 +786,13 @@ export interface paths {
          * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
          * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.
          */
-        get: operations["list_1"];
+        get: operations["list_3"];
         put?: never;
         /**
          * Create an account and profile
          * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
          */
-        post: operations["create_3"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -492,7 +809,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Restore an archived member and re-enable sign-in */
-        post: operations["restore_2"];
+        post: operations["restore_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -532,7 +849,7 @@ export interface paths {
          * Archive a member (soft) and block sign-in
          * @description Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.
          */
-        post: operations["archive_3"];
+        post: operations["archive_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -570,13 +887,13 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list_2"];
+        get: operations["list_4"];
         put?: never;
         /**
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_4"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -596,7 +913,7 @@ export interface paths {
          * Restore an archived faculty
          * @description 409 if its code or a name is now used by an active faculty.
          */
-        post: operations["restore_3"];
+        post: operations["restore_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -616,7 +933,7 @@ export interface paths {
          * Archive a faculty (soft)
          * @description Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.
          */
-        post: operations["archive_4"];
+        post: operations["archive_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -705,13 +1022,13 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_3"];
+        get: operations["list_5"];
         put?: never;
         /**
          * Create a definition
          * @description Code is unique among active definitions (409 otherwise).
          */
-        post: operations["create_5"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -731,7 +1048,7 @@ export interface paths {
          * Restore an archived definition
          * @description 409 if its code is now used by an active one.
          */
-        post: operations["restore_4"];
+        post: operations["restore_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -751,7 +1068,7 @@ export interface paths {
          * Archive a definition (soft)
          * @description Members keep the level and the history keeps the reference; it just stops being selectable.
          */
-        post: operations["archive_5"];
+        post: operations["archive_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -874,7 +1191,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_6"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -948,7 +1265,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_4"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1015,6 +1332,129 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UpdateTaskRequest: {
+            title: string;
+            description?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            dueDate?: string;
+            labels?: string[];
+            customFieldValues?: {
+                [key: string]: unknown;
+            };
+            attachmentIds?: string[];
+            relatedTaskIds?: string[];
+        };
+        AttachmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            fileName?: string;
+            mimeType?: string;
+            /** Format: int64 */
+            size?: number;
+        };
+        TaskResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            spaceId?: string;
+            title?: string;
+            description?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            statusId?: string;
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            dueDate?: string;
+            labels?: string[];
+            customFieldValues?: {
+                [key: string]: unknown;
+            };
+            attachments?: components["schemas"]["AttachmentResponse"][];
+            relatedTaskIds?: string[];
+            /** Format: uuid */
+            authorId?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        UpdateSpaceRequest: {
+            name: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            general?: boolean;
+        };
+        CustomFieldResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            spaceId?: string;
+            name?: string;
+            /** @enum {string} */
+            type?: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "PERSON";
+            required?: boolean;
+            options?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SpaceResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            general?: boolean;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            statuses?: components["schemas"]["SpaceStatusResponse"][];
+            customFields?: components["schemas"]["CustomFieldResponse"][];
+        };
+        SpaceStatusResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            spaceId?: string;
+            name?: string;
+            /** @enum {string} */
+            category?: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELED";
+            /** Format: int32 */
+            position?: number;
+            archived?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        StatusRequest: {
+            name: string;
+            /** @enum {string} */
+            category: "TODO" | "IN_PROGRESS" | "DONE" | "CANCELED";
+        };
+        ReorderStatusesRequest: {
+            statusIds: string[];
+        };
+        UpdateCustomFieldRequest: {
+            name: string;
+            required?: boolean;
+            options?: string[];
+        };
         RoleRequest: {
             name: string;
             description?: string;
@@ -1205,6 +1645,47 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
         };
+        CreateTaskRequest: {
+            /** Format: uuid */
+            spaceId: string;
+            title: string;
+            description?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            statusId?: string;
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            dueDate?: string;
+            labels?: string[];
+            customFieldValues?: {
+                [key: string]: unknown;
+            };
+            attachmentIds?: string[];
+            relatedTaskIds?: string[];
+        };
+        ChangeTaskStatusRequest: {
+            /** Format: uuid */
+            statusId: string;
+        };
+        CreateSpaceRequest: {
+            name: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            general?: boolean;
+        };
+        ArchiveStatusRequest: {
+            /** Format: uuid */
+            replacementStatusId?: string;
+        };
+        CreateCustomFieldRequest: {
+            name: string;
+            /** @enum {string} */
+            type: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "PERSON";
+            required?: boolean;
+            options?: string[];
+        };
         AppointRequest: {
             /** Format: uuid */
             userId: string;
@@ -1372,6 +1853,74 @@ export interface components {
             /** Format: int32 */
             size?: number;
             sort?: string;
+        };
+        PageResponseTaskSummaryResponse: {
+            content?: components["schemas"]["TaskSummaryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        TaskSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            spaceId?: string;
+            title?: string;
+            /** Format: uuid */
+            statusId?: string;
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            dueDate?: string;
+            labels?: string[];
+            /** Format: int32 */
+            attachmentCount?: number;
+            /** Format: int32 */
+            relatedCount?: number;
+            /** Format: uuid */
+            authorId?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PageResponseSpaceSummaryResponse: {
+            content?: components["schemas"]["SpaceSummaryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        SpaceSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            general?: boolean;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         PageResponseRoleResponse: {
             content?: components["schemas"]["RoleResponse"][];
@@ -1614,12 +2163,188 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RoleResponse"];
+                    "*/*": components["schemas"]["TaskResponse"];
                 };
             };
         };
     };
     update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSpaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    updateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                statusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceStatusResponse"];
+                };
+            };
+        };
+    };
+    reorderStatuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderStatusesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceStatusResponse"][];
+                };
+            };
+        };
+    };
+    updateField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fieldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCustomFieldRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1645,7 +2370,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1667,7 +2392,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1693,7 +2418,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1715,7 +2440,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1741,7 +2466,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1763,7 +2488,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1839,7 +2564,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1861,7 +2586,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1887,7 +2612,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -1909,7 +2634,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -1939,6 +2664,366 @@ export interface operations {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
+                spaceId?: string;
+                statusId?: string;
+                labels?: string[];
+                dueFrom?: string;
+                dueTo?: string;
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseTaskSummaryResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
+                };
+            };
+        };
+    };
+    changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeTaskStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
+                };
+            };
+        };
+    };
+    restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
+                };
+            };
+        };
+    };
+    archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                includeArchived?: boolean;
+                orgUnitId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseSpaceSummaryResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSpaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    statuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceStatusResponse"][];
+                };
+            };
+        };
+    };
+    addStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceStatusResponse"];
+                };
+            };
+        };
+    };
+    archiveStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                statusId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ArchiveStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceStatusResponse"];
+                };
+            };
+        };
+    };
+    restore_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomFieldResponse"][];
+                };
+            };
+        };
+    };
+    addField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCustomFieldRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+        };
+    };
+    archiveField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fieldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+        };
+    };
+    archive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
                 includeArchived?: boolean;
             };
             header?: never;
@@ -1958,7 +3043,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1982,7 +3067,7 @@ export interface operations {
             };
         };
     };
-    archive: {
+    archive_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2004,7 +3089,7 @@ export interface operations {
             };
         };
     };
-    restore: {
+    restore_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2026,7 +3111,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2099,7 +3184,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2123,7 +3208,7 @@ export interface operations {
             };
         };
     };
-    restore_1: {
+    restore_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2170,7 +3255,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2273,7 +3358,7 @@ export interface operations {
             };
         };
     };
-    archive_2: {
+    archive_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2347,7 +3432,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_3: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -2377,7 +3462,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2401,7 +3486,7 @@ export interface operations {
             };
         };
     };
-    restore_2: {
+    restore_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2445,7 +3530,7 @@ export interface operations {
             };
         };
     };
-    archive_3: {
+    archive_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2521,7 +3606,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_4: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -2544,7 +3629,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2568,7 +3653,7 @@ export interface operations {
             };
         };
     };
-    restore_3: {
+    restore_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2590,7 +3675,7 @@ export interface operations {
             };
         };
     };
-    archive_4: {
+    archive_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2749,7 +3834,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_5: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -2772,7 +3857,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -2796,7 +3881,7 @@ export interface operations {
             };
         };
     };
-    restore_4: {
+    restore_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2818,7 +3903,7 @@ export interface operations {
             };
         };
     };
-    archive_5: {
+    archive_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -2974,7 +4059,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -3080,7 +4165,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_6: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];

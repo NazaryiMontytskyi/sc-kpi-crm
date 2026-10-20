@@ -103,13 +103,308 @@
         }
       }
     },
+    "/api/v1/tasks/{id}": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get a task (archived ones too)",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Edit a task (replaces all editable fields)",
+        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived. The relatedTaskIds list is the complete new set of symmetric links.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}": {
+      "get": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Get a space with its ordered statuses and custom fields",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Update name, unit binding and general flag of a space",
+        "description": "409 when archived.",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/statuses/{statusId}": {
+      "put": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Rename a status and/or change its category",
+        "description": "The space must keep at least one TODO and one DONE status (422).",
+        "operationId": "updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/statuses/order": {
+      "put": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Reorder the statuses",
+        "description": "statusIds must list every active status of the space exactly once (422 otherwise).",
+        "operationId": "reorderStatuses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderStatusesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpaceStatusResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/custom-fields/{fieldId}": {
+      "put": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Update a custom field (the type is fixed)",
+        "operationId": "updateField",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fieldId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomFieldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles/{id}": {
       "get": {
         "tags": [
           "Roles"
         ],
         "summary": "Get one role, including an archived one, or the built-in Admin role",
-        "operationId": "get",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -140,7 +435,7 @@
         ],
         "summary": "Rename a role and replace its permission set",
         "description": "Takes effect for all holders immediately. 403 for the Admin role.",
-        "operationId": "update",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "id",
@@ -182,7 +477,7 @@
           "Org positions"
         ],
         "summary": "Get one position, including archived ones",
-        "operationId": "get_1",
+        "operationId": "get_3",
         "parameters": [
           {
             "name": "id",
@@ -213,7 +508,7 @@
         ],
         "summary": "Update title, capacity and bound roles of a position",
         "description": "A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.",
-        "operationId": "update_1",
+        "operationId": "update_3",
         "parameters": [
           {
             "name": "id",
@@ -255,7 +550,7 @@
           "Org structure"
         ],
         "summary": "Get one unit, including archived ones, with its ancestor ids and active child ids",
-        "operationId": "get_2",
+        "operationId": "get_4",
         "parameters": [
           {
             "name": "id",
@@ -285,7 +580,7 @@
           "Org structure"
         ],
         "summary": "Rename a unit / change its description",
-        "operationId": "update_2",
+        "operationId": "update_4",
         "parameters": [
           {
             "name": "id",
@@ -327,7 +622,7 @@
           "Members"
         ],
         "summary": "Get one member profile, including an archived one",
-        "operationId": "get_3",
+        "operationId": "get_5",
         "parameters": [
           {
             "name": "id",
@@ -358,7 +653,7 @@
         ],
         "summary": "Edit a member profile",
         "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
-        "operationId": "update_3",
+        "operationId": "update_5",
         "parameters": [
           {
             "name": "id",
@@ -475,7 +770,7 @@
           "Faculties"
         ],
         "summary": "Get one faculty, including an archived one (existing profiles may reference it)",
-        "operationId": "get_4",
+        "operationId": "get_6",
         "parameters": [
           {
             "name": "id",
@@ -505,7 +800,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_4",
+        "operationId": "update_6",
         "parameters": [
           {
             "name": "id",
@@ -547,7 +842,7 @@
           "Activity levels"
         ],
         "summary": "Get one definition, including an archived one",
-        "operationId": "get_5",
+        "operationId": "get_7",
         "parameters": [
           {
             "name": "id",
@@ -577,7 +872,7 @@
           "Activity levels"
         ],
         "summary": "Edit an active definition",
-        "operationId": "update_5",
+        "operationId": "update_7",
         "parameters": [
           {
             "name": "id",
@@ -613,6 +908,620 @@
         }
       }
     },
+    "/api/v1/tasks": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)",
+        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates).",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "statusId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "labels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "dueFrom",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dueTo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseTaskSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Create a task",
+        "description": "The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the author.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}/status": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Change the status of a task",
+        "description": "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422).",
+        "operationId": "changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTaskStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}/restore": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Restore an archived task",
+        "description": "409 while its space is archived.",
+        "operationId": "restore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}/archive": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Archive a task (soft)",
+        "operationId": "archive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces": {
+      "get": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Spaces (paginated, sortable by name, createdAt; default name)",
+        "description": "Archived spaces only with includeArchived=true. Optional filter by orgUnitId.",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "orgUnitId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseSpaceSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Create a space",
+        "description": "The new space gets the default statuses (To do, In progress, Done, Canceled). A general space has no orgUnitId (422); the unit must exist and not be archived.",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSpaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/statuses": {
+      "get": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Active statuses of a space, in order",
+        "operationId": "statuses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpaceStatusResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Add a status at the end of the order",
+        "description": "Names are unique within the space, ignoring case (409).",
+        "operationId": "addStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/statuses/{statusId}/archive": {
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Archive a status",
+        "description": "While tasks use the status, replacementStatusId (another active status of the space) is required (409 otherwise) and the tasks are moved to it. The space must keep a TODO and a DONE status (422).",
+        "operationId": "archiveStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/restore": {
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Restore an archived space",
+        "operationId": "restore_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/custom-fields": {
+      "get": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Active custom field definitions of a space",
+        "operationId": "fields",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomFieldResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Define a custom field",
+        "description": "Types: TEXT, NUMBER, DATE, SELECT, PERSON. SELECT requires options (422); other types must not have any. Names are unique within the space (409).",
+        "operationId": "addField",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomFieldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/custom-fields/{fieldId}/archive": {
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Archive a custom field (soft)",
+        "operationId": "archiveField",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fieldId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/spaces/{id}/archive": {
+      "post": {
+        "tags": [
+          "Task spaces"
+        ],
+        "summary": "Archive a space (soft)",
+        "operationId": "archive_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles": {
       "get": {
         "tags": [
@@ -620,7 +1529,7 @@
         ],
         "summary": "List roles (paginated, by name; the built-in Admin role first)",
         "description": "includeArchived=true is honoured only for holders of roles.manage.",
-        "operationId": "list",
+        "operationId": "list_2",
         "parameters": [
           {
             "name": "page",
@@ -659,7 +1568,7 @@
         ],
         "summary": "Create a role",
         "description": "The name is unique among active roles (409); Admin is reserved.",
-        "operationId": "create",
+        "operationId": "create_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -691,7 +1600,7 @@
         ],
         "summary": "Archive a role (soft)",
         "description": "Allowed while assigned: holders lose its permissions. 403 for the Admin role.",
-        "operationId": "archive",
+        "operationId": "archive_2",
         "parameters": [
           {
             "name": "id",
@@ -723,7 +1632,7 @@
           "Org positions"
         ],
         "summary": "Restore an archived position",
-        "operationId": "restore",
+        "operationId": "restore_2",
         "parameters": [
           {
             "name": "id",
@@ -756,7 +1665,7 @@
         ],
         "summary": "Archive a position (soft)",
         "description": "409 while it has active appointments.",
-        "operationId": "archive_1",
+        "operationId": "archive_3",
         "parameters": [
           {
             "name": "id",
@@ -880,7 +1789,7 @@
         ],
         "summary": "Create a unit",
         "description": "Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).",
-        "operationId": "create_1",
+        "operationId": "create_3",
         "requestBody": {
           "content": {
             "application/json": {
@@ -912,7 +1821,7 @@
         ],
         "summary": "Restore an archived unit",
         "description": "Requires an active parent.",
-        "operationId": "restore_1",
+        "operationId": "restore_3",
         "parameters": [
           {
             "name": "id",
@@ -993,7 +1902,7 @@
         ],
         "summary": "Create a position in a unit",
         "description": "Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.",
-        "operationId": "create_2",
+        "operationId": "create_4",
         "parameters": [
           {
             "name": "id",
@@ -1170,7 +2079,7 @@
         ],
         "summary": "Archive a unit (soft)",
         "description": "Refused with 409 while the unit has active children or an archive guard vetoes it. Archiving a working group disbands it.",
-        "operationId": "archive_2",
+        "operationId": "archive_4",
         "parameters": [
           {
             "name": "id",
@@ -1288,7 +2197,7 @@
         ],
         "summary": "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
         "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.",
-        "operationId": "list_1",
+        "operationId": "list_3",
         "parameters": [
           {
             "name": "page",
@@ -1393,7 +2302,7 @@
         ],
         "summary": "Create an account and profile",
         "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
-        "operationId": "create_3",
+        "operationId": "create_5",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1424,7 +2333,7 @@
           "Members"
         ],
         "summary": "Restore an archived member and re-enable sign-in",
-        "operationId": "restore_2",
+        "operationId": "restore_4",
         "parameters": [
           {
             "name": "id",
@@ -1490,7 +2399,7 @@
         ],
         "summary": "Archive a member (soft) and block sign-in",
         "description": "Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.",
-        "operationId": "archive_3",
+        "operationId": "archive_5",
         "parameters": [
           {
             "name": "id",
@@ -1593,7 +2502,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list_2",
+        "operationId": "list_4",
         "parameters": [
           {
             "name": "page",
@@ -1632,7 +2541,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_4",
+        "operationId": "create_6",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1664,7 +2573,7 @@
         ],
         "summary": "Restore an archived faculty",
         "description": "409 if its code or a name is now used by an active faculty.",
-        "operationId": "restore_3",
+        "operationId": "restore_5",
         "parameters": [
           {
             "name": "id",
@@ -1697,7 +2606,7 @@
         ],
         "summary": "Archive a faculty (soft)",
         "description": "Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.",
-        "operationId": "archive_4",
+        "operationId": "archive_6",
         "parameters": [
           {
             "name": "id",
@@ -1898,7 +2807,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_3",
+        "operationId": "list_5",
         "parameters": [
           {
             "name": "page",
@@ -1937,7 +2846,7 @@
         ],
         "summary": "Create a definition",
         "description": "Code is unique among active definitions (409 otherwise).",
-        "operationId": "create_5",
+        "operationId": "create_7",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1969,7 +2878,7 @@
         ],
         "summary": "Restore an archived definition",
         "description": "409 if its code is now used by an active one.",
-        "operationId": "restore_4",
+        "operationId": "restore_6",
         "parameters": [
           {
             "name": "id",
@@ -2002,7 +2911,7 @@
         ],
         "summary": "Archive a definition (soft)",
         "description": "Members keep the level and the history keeps the reference; it just stops being selectable.",
-        "operationId": "archive_5",
+        "operationId": "archive_7",
         "parameters": [
           {
             "name": "id",
@@ -2242,7 +3151,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_6",
+        "operationId": "get_8",
         "parameters": [
           {
             "name": "id",
@@ -2390,7 +3299,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_4",
+        "operationId": "list_6",
         "parameters": [
           {
             "name": "page",
@@ -2596,6 +3505,371 @@
   },
   "components": {
     "schemas": {
+      "UpdateTaskRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customFieldValues": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "relatedTaskIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AttachmentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TaskResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customFieldValues": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentResponse"
+            }
+          },
+          "relatedTaskIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateSpaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "general": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CustomFieldResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "DATE",
+              "SELECT",
+              "PERSON"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SpaceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "general": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpaceStatusResponse"
+            }
+          },
+          "customFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomFieldResponse"
+            }
+          }
+        }
+      },
+      "SpaceStatusResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "IN_PROGRESS",
+              "DONE",
+              "CANCELED"
+            ]
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StatusRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "IN_PROGRESS",
+              "DONE",
+              "CANCELED"
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "name"
+        ]
+      },
+      "ReorderStatusesRequest": {
+        "type": "object",
+        "properties": {
+          "statusIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "statusIds"
+        ]
+      },
+      "UpdateCustomFieldRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "RoleRequest": {
         "type": "object",
         "properties": {
@@ -3176,6 +4450,143 @@
           }
         }
       },
+      "CreateTaskRequest": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customFieldValues": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "relatedTaskIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "spaceId",
+          "title"
+        ]
+      },
+      "ChangeTaskStatusRequest": {
+        "type": "object",
+        "properties": {
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "statusId"
+        ]
+      },
+      "CreateSpaceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "general": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ArchiveStatusRequest": {
+        "type": "object",
+        "properties": {
+          "replacementStatusId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateCustomFieldRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "NUMBER",
+              "DATE",
+              "SELECT",
+              "PERSON"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
       "AppointRequest": {
         "type": "object",
         "properties": {
@@ -3645,6 +5056,172 @@
           },
           "sort": {
             "type": "string"
+          }
+        }
+      },
+      "PageResponseTaskSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "relatedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageResponseSpaceSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpaceSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SpaceSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "general": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
