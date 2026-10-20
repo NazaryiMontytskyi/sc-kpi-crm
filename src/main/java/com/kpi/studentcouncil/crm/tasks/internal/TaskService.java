@@ -48,9 +48,17 @@ class TaskService {
 	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone) {
 	}
 
-	/** Filters of the task list. */
+	/**
+	 * Filters of the task list. The resolution filters ({@code executorId} incl. co-executors, {@code authorId},
+	 * {@code resolutionState}, {@code view}) are combined on one and the same non-archived resolution of the task.
+	 */
 	record TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate dueFrom, LocalDate dueTo,
-			boolean includeArchived) {
+			boolean includeArchived, UUID executorId, UUID authorId, ResolutionState resolutionState, TaskQuickView view) {
+
+		TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate dueFrom, LocalDate dueTo,
+				boolean includeArchived) {
+			this(spaceId, statusId, labels, dueFrom, dueTo, includeArchived, null, null, null, null);
+		}
 	}
 
 	private final TaskRepository tasks;
@@ -242,6 +250,7 @@ class TaskService {
 			spec = spec.and((root, query, cb) -> cb.or(labels.stream()
 					.map(label -> cb.isMember(label, root.<Set<String>>get("labels"))).toArray(jakarta.persistence.criteria.Predicate[]::new)));
 		}
+		spec = spec.and(TaskResolutionSpecs.of(filter, actors.currentActorId(), clock));
 		Page<Task> page = tasks.findAll(spec, pageable);
 		Map<UUID, Set<UUID>> related = relatedOfAll(page.getContent().stream().map(Task::getId).toList());
 		Map<UUID, Boolean> suggestions = suggestDoneOfAll(page.getContent());

@@ -176,13 +176,111 @@
         }
       }
     },
+    "/api/v1/task-filters/{id}": {
+      "get": {
+        "tags": [
+          "Saved task filters"
+        ],
+        "summary": "Get one of my saved task filters",
+        "description": "404 for a filter of another user.",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Saved task filters"
+        ],
+        "summary": "Replace one of my saved task filters",
+        "description": "404 for a filter of another user.",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveFilterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Saved task filters"
+        ],
+        "summary": "Remove one of my saved task filters (archives it)",
+        "description": "404 for a filter of another user.",
+        "operationId": "remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/spaces/{id}": {
       "get": {
         "tags": [
           "Task spaces"
         ],
         "summary": "Get a space with its ordered statuses and custom fields",
-        "operationId": "get_1",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -213,7 +311,7 @@
         ],
         "summary": "Update name, unit binding and general flag of a space",
         "description": "409 when archived.",
-        "operationId": "update_1",
+        "operationId": "update_2",
         "parameters": [
           {
             "name": "id",
@@ -404,7 +502,7 @@
           "Roles"
         ],
         "summary": "Get one role, including an archived one, or the built-in Admin role",
-        "operationId": "get_2",
+        "operationId": "get_3",
         "parameters": [
           {
             "name": "id",
@@ -435,7 +533,7 @@
         ],
         "summary": "Rename a role and replace its permission set",
         "description": "Takes effect for all holders immediately. 403 for the Admin role.",
-        "operationId": "update_2",
+        "operationId": "update_3",
         "parameters": [
           {
             "name": "id",
@@ -477,7 +575,7 @@
           "Org positions"
         ],
         "summary": "Get one position, including archived ones",
-        "operationId": "get_3",
+        "operationId": "get_4",
         "parameters": [
           {
             "name": "id",
@@ -508,7 +606,7 @@
         ],
         "summary": "Update title, capacity and bound roles of a position",
         "description": "A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.",
-        "operationId": "update_3",
+        "operationId": "update_4",
         "parameters": [
           {
             "name": "id",
@@ -550,7 +648,7 @@
           "Org structure"
         ],
         "summary": "Get one unit, including archived ones, with its ancestor ids and active child ids",
-        "operationId": "get_4",
+        "operationId": "get_5",
         "parameters": [
           {
             "name": "id",
@@ -580,7 +678,7 @@
           "Org structure"
         ],
         "summary": "Rename a unit / change its description",
-        "operationId": "update_4",
+        "operationId": "update_5",
         "parameters": [
           {
             "name": "id",
@@ -622,7 +720,7 @@
           "Members"
         ],
         "summary": "Get one member profile, including an archived one",
-        "operationId": "get_5",
+        "operationId": "get_6",
         "parameters": [
           {
             "name": "id",
@@ -653,7 +751,7 @@
         ],
         "summary": "Edit a member profile",
         "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
-        "operationId": "update_5",
+        "operationId": "update_6",
         "parameters": [
           {
             "name": "id",
@@ -770,7 +868,7 @@
           "Faculties"
         ],
         "summary": "Get one faculty, including an archived one (existing profiles may reference it)",
-        "operationId": "get_6",
+        "operationId": "get_7",
         "parameters": [
           {
             "name": "id",
@@ -800,7 +898,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_6",
+        "operationId": "update_7",
         "parameters": [
           {
             "name": "id",
@@ -885,7 +983,7 @@
           "Activity levels"
         ],
         "summary": "Get one definition, including an archived one",
-        "operationId": "get_7",
+        "operationId": "get_8",
         "parameters": [
           {
             "name": "id",
@@ -915,7 +1013,7 @@
           "Activity levels"
         ],
         "summary": "Edit an active definition",
-        "operationId": "update_7",
+        "operationId": "update_8",
         "parameters": [
           {
             "name": "id",
@@ -957,7 +1055,7 @@
           "Tasks"
         ],
         "summary": "Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)",
-        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates).",
+        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.",
         "operationId": "list",
         "parameters": [
           {
@@ -1022,6 +1120,54 @@
             "schema": {
               "type": "boolean",
               "default": false
+            }
+          },
+          {
+            "name": "executorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "authorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "resolutionState",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEW",
+                "IN_PROGRESS",
+                "SUBMITTED",
+                "REWORK",
+                "ACCEPTED",
+                "REDIRECTED",
+                "CANCELED"
+              ]
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MY_RESOLUTIONS",
+                "ISSUED_BY_ME",
+                "OVERDUE"
+              ]
             }
           }
         ],
@@ -1258,6 +1404,67 @@
         }
       }
     },
+    "/api/v1/task-filters": {
+      "get": {
+        "tags": [
+          "Saved task filters"
+        ],
+        "summary": "My saved task filters (paginated, sortable by name, createdAt; default name)",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseSavedFilterResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Saved task filters"
+        ],
+        "summary": "Save a task filter for myself",
+        "description": "The name must be unique among my filters (409 SAVED_FILTER_NAME_TAKEN); at most 50 filters (422 SAVED_FILTER_LIMIT).",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveFilterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFilterResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/spaces": {
       "get": {
         "tags": [
@@ -1265,7 +1472,7 @@
         ],
         "summary": "Spaces (paginated, sortable by name, createdAt; default name)",
         "description": "Archived spaces only with includeArchived=true. Optional filter by orgUnitId.",
-        "operationId": "list_1",
+        "operationId": "list_2",
         "parameters": [
           {
             "name": "page",
@@ -1313,7 +1520,7 @@
         ],
         "summary": "Create a space",
         "description": "The new space gets the default statuses (To do, In progress, Done, Canceled). A general space has no orgUnitId (422); the unit must exist and not be archived.",
-        "operationId": "create_1",
+        "operationId": "create_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1653,7 +1860,7 @@
         ],
         "summary": "List roles (paginated, by name; the built-in Admin role first)",
         "description": "includeArchived=true is honoured only for holders of roles.manage.",
-        "operationId": "list_2",
+        "operationId": "list_3",
         "parameters": [
           {
             "name": "page",
@@ -1692,7 +1899,7 @@
         ],
         "summary": "Create a role",
         "description": "The name is unique among active roles (409); Admin is reserved.",
-        "operationId": "create_2",
+        "operationId": "create_3",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2182,7 +2389,7 @@
         ],
         "summary": "Create a unit",
         "description": "Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).",
-        "operationId": "create_3",
+        "operationId": "create_4",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2295,7 +2502,7 @@
         ],
         "summary": "Create a position in a unit",
         "description": "Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.",
-        "operationId": "create_4",
+        "operationId": "create_5",
         "parameters": [
           {
             "name": "id",
@@ -2590,7 +2797,7 @@
         ],
         "summary": "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
         "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.",
-        "operationId": "list_3",
+        "operationId": "list_4",
         "parameters": [
           {
             "name": "page",
@@ -2695,7 +2902,7 @@
         ],
         "summary": "Create an account and profile",
         "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
-        "operationId": "create_5",
+        "operationId": "create_6",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2895,7 +3102,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list_4",
+        "operationId": "list_5",
         "parameters": [
           {
             "name": "page",
@@ -2934,7 +3141,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_6",
+        "operationId": "create_7",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3032,7 +3239,7 @@
         ],
         "summary": "Comments of a record (paginated, oldest first)",
         "description": "Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.",
-        "operationId": "list_5",
+        "operationId": "list_6",
         "parameters": [
           {
             "name": "page",
@@ -3083,7 +3290,7 @@
         ],
         "summary": "Add a comment",
         "description": "Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.",
-        "operationId": "create_7",
+        "operationId": "create_8",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3316,7 +3523,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_6",
+        "operationId": "list_7",
         "parameters": [
           {
             "name": "page",
@@ -3355,7 +3562,7 @@
         ],
         "summary": "Create a definition",
         "description": "Code is unique among active definitions (409 otherwise).",
-        "operationId": "create_8",
+        "operationId": "create_9",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3551,7 +3758,7 @@
         ],
         "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
         "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
-        "operationId": "list_7",
+        "operationId": "list_8",
         "parameters": [
           {
             "name": "page",
@@ -3635,7 +3842,7 @@
           "Resolutions"
         ],
         "summary": "Get a resolution with its full history",
-        "operationId": "get_8",
+        "operationId": "get_9",
         "parameters": [
           {
             "name": "id",
@@ -3810,7 +4017,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_9",
+        "operationId": "get_10",
         "parameters": [
           {
             "name": "id",
@@ -3958,7 +4165,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_8",
+        "operationId": "list_9",
         "parameters": [
           {
             "name": "page",
@@ -4308,6 +4515,101 @@
           },
           "suggestDone": {
             "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SaveFilterRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/SavedFilterCriteria"
+          }
+        },
+        "required": [
+          "criteria",
+          "name"
+        ]
+      },
+      "SavedFilterCriteria": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resolutionState": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "MY_RESOLUTIONS",
+              "ISSUED_BY_ME",
+              "OVERDUE"
+            ]
+          },
+          "dueFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueTo": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "SavedFilterResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/SavedFilterCriteria"
           },
           "createdAt": {
             "type": "string",
@@ -6264,6 +6566,39 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "PageResponseSavedFilterResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavedFilterResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
           }
         }
       },

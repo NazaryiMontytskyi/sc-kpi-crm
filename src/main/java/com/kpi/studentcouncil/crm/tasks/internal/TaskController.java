@@ -55,13 +55,20 @@ class TaskController {
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)",
 			description = "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat "
-					+ "the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates).")
+					+ "the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). "
+						+ "Resolution filters executorId (executor or co-executor), authorId, resolutionState and view "
+						+ "(MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a "
+						+ "non-archived resolution that satisfies all of them at once.")
 	PageResponse<TaskSummaryResponse> list(@Valid PageParams page, @RequestParam(required = false) UUID spaceId,
 			@RequestParam(required = false) UUID statusId, @RequestParam(required = false) List<String> labels,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,
-			@RequestParam(defaultValue = "false") boolean includeArchived) {
-		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, dueFrom, dueTo, includeArchived);
+			@RequestParam(defaultValue = "false") boolean includeArchived,
+				@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
+				@RequestParam(required = false) ResolutionState resolutionState,
+				@RequestParam(required = false) TaskQuickView view) {
+		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, dueFrom, dueTo, includeArchived, executorId,
+				authorId, resolutionState, view);
 		return PageResponse.of(service.list(filter, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				TaskController::summary);
 	}

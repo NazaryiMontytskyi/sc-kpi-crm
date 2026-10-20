@@ -49,6 +49,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/task-filters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one of my saved task filters
+         * @description 404 for a filter of another user.
+         */
+        get: operations["get_1"];
+        /**
+         * Replace one of my saved task filters
+         * @description 404 for a filter of another user.
+         */
+        put: operations["update_1"];
+        post?: never;
+        /**
+         * Remove one of my saved task filters (archives it)
+         * @description 404 for a filter of another user.
+         */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/spaces/{id}": {
         parameters: {
             query?: never;
@@ -57,12 +85,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get a space with its ordered statuses and custom fields */
-        get: operations["get_1"];
+        get: operations["get_2"];
         /**
          * Update name, unit binding and general flag of a space
          * @description 409 when archived.
          */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         delete?: never;
         options?: never;
@@ -135,12 +163,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one role, including an archived one, or the built-in Admin role */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /**
          * Rename a role and replace its permission set
          * @description Takes effect for all holders immediately. 403 for the Admin role.
          */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -156,12 +184,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one position, including archived ones */
-        get: operations["get_3"];
+        get: operations["get_4"];
         /**
          * Update title, capacity and bound roles of a position
          * @description A role change is applied to the current holders (added roles granted, removed roles revoked). Capacity cannot drop below the number of holders (409). isHead is fixed.
          */
-        put: operations["update_3"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -177,9 +205,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one unit, including archived ones, with its ancestor ids and active child ids */
-        get: operations["get_4"];
+        get: operations["get_5"];
         /** Rename a unit / change its description */
-        put: operations["update_4"];
+        put: operations["update_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -195,12 +223,12 @@ export interface paths {
             cookie?: never;
         };
         /** Get one member profile, including an archived one */
-        get: operations["get_5"];
+        get: operations["get_6"];
         /**
          * Edit a member profile
          * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
          */
-        put: operations["update_5"];
+        put: operations["update_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -256,9 +284,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one faculty, including an archived one (existing profiles may reference it) */
-        get: operations["get_6"];
+        get: operations["get_7"];
         /** Edit an active faculty */
-        put: operations["update_6"];
+        put: operations["update_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -294,9 +322,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one definition, including an archived one */
-        get: operations["get_7"];
+        get: operations["get_8"];
         /** Edit an active definition */
-        put: operations["update_7"];
+        put: operations["update_8"];
         post?: never;
         delete?: never;
         options?: never;
@@ -313,7 +341,7 @@ export interface paths {
         };
         /**
          * Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)
-         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates).
+         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.
          */
         get: operations["list"];
         put?: never;
@@ -406,6 +434,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/task-filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My saved task filters (paginated, sortable by name, createdAt; default name) */
+        get: operations["list_1"];
+        put?: never;
+        /**
+         * Save a task filter for myself
+         * @description The name must be unique among my filters (409 SAVED_FILTER_NAME_TAKEN); at most 50 filters (422 SAVED_FILTER_LIMIT).
+         */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/spaces": {
         parameters: {
             query?: never;
@@ -417,13 +466,13 @@ export interface paths {
          * Spaces (paginated, sortable by name, createdAt; default name)
          * @description Archived spaces only with includeArchived=true. Optional filter by orgUnitId.
          */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /**
          * Create a space
          * @description The new space gets the default statuses (To do, In progress, Done, Canceled). A general space has no orgUnitId (422); the unit must exist and not be archived.
          */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -554,13 +603,13 @@ export interface paths {
          * List roles (paginated, by name; the built-in Admin role first)
          * @description includeArchived=true is honoured only for holders of roles.manage.
          */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /**
          * Create a role
          * @description The name is unique among active roles (409); Admin is reserved.
          */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -798,7 +847,7 @@ export interface paths {
          * Create a unit
          * @description Type/parent rules: LEADERSHIP has no parent and is unique; DEPARTMENT sits under LEADERSHIP or at top level; DIVISION requires a DEPARTMENT parent; WORKING_GROUP is outside the hierarchy (no parent or any active unit).
          */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -842,7 +891,7 @@ export interface paths {
          * Create a position in a unit
          * @description Bound roles must exist and cannot be Admin (403). A unit has at most one active head position (409); a head position has capacity 1. Capacity defaults to 1.
          */
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -964,13 +1013,13 @@ export interface paths {
          * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
          * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /**
          * Create an account and profile
          * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
          */
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1065,13 +1114,13 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /**
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1129,13 +1178,13 @@ export interface paths {
          * Comments of a record (paginated, oldest first)
          * @description Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /**
          * Add a comment
          * @description Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.
          */
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1244,13 +1293,13 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         /**
          * Create a definition
          * @description Code is unique among active definitions (409 otherwise).
          */
-        post: operations["create_8"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1359,7 +1408,7 @@ export interface paths {
          * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
          * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1376,7 +1425,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get a resolution with its full history */
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1470,7 +1519,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1544,7 +1593,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1662,6 +1711,39 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
             suggestDone?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SaveFilterRequest: {
+            name: string;
+            criteria: components["schemas"]["SavedFilterCriteria"];
+        };
+        SavedFilterCriteria: {
+            /** Format: uuid */
+            spaceId?: string;
+            /** Format: uuid */
+            statusId?: string;
+            labels?: string[];
+            /** Format: uuid */
+            executorId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** @enum {string} */
+            resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            /** @enum {string} */
+            view?: "MY_RESOLUTIONS" | "ISSUED_BY_ME" | "OVERDUE";
+            /** Format: date */
+            dueFrom?: string;
+            /** Format: date */
+            dueTo?: string;
+        };
+        SavedFilterResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            criteria?: components["schemas"]["SavedFilterCriteria"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2321,6 +2403,19 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        PageResponseSavedFilterResponse: {
+            content?: components["schemas"]["SavedFilterResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
         PageResponseSpaceSummaryResponse: {
             content?: components["schemas"]["SpaceSummaryResponse"][];
             /** Format: int32 */
@@ -2675,12 +2770,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SpaceResponse"];
+                    "*/*": components["schemas"]["SavedFilterResponse"];
                 };
             };
         };
     };
     update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveFilterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedFilterResponse"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpaceResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2786,7 +2949,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2808,7 +2971,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2834,7 +2997,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2856,7 +3019,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2882,7 +3045,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2904,7 +3067,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -2930,7 +3093,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2952,7 +3115,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -3028,7 +3191,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -3050,7 +3213,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -3102,7 +3265,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -3124,7 +3287,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -3160,6 +3323,10 @@ export interface operations {
                 dueFrom?: string;
                 dueTo?: string;
                 includeArchived?: boolean;
+                executorId?: string;
+                authorId?: string;
+                resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+                view?: "MY_RESOLUTIONS" | "ISSUED_BY_ME" | "OVERDUE";
             };
             header?: never;
             path?: never;
@@ -3326,6 +3493,52 @@ export interface operations {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseSavedFilterResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveFilterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedFilterResponse"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
                 includeArchived?: boolean;
                 orgUnitId?: string;
             };
@@ -3346,7 +3559,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3560,7 +3773,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -3583,7 +3796,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -3894,7 +4107,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3965,7 +4178,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4142,7 +4355,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4172,7 +4385,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -4316,7 +4529,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4339,7 +4552,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -4407,7 +4620,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4431,7 +4644,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -4614,7 +4827,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4637,7 +4850,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -4773,7 +4986,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4800,7 +5013,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -4910,7 +5123,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -5016,7 +5229,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];

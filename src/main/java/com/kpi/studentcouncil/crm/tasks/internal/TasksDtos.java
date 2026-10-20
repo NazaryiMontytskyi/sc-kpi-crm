@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -105,6 +106,21 @@ final class TasksDtos {
 			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
 			List<AttachmentResponse> attachments, List<UUID> relatedTaskIds, UUID authorId, boolean archived,
 			Instant archivedAt, boolean suggestDone, Instant createdAt, Instant updatedAt) {
+	}
+
+	// ---- saved filters ----
+
+	/** Task list criteria; every part is optional. {@code view} is one of the built-in quick views. */
+	record SavedFilterCriteria(UUID spaceId, UUID statusId, List<String> labels, UUID executorId, UUID authorId,
+			ResolutionState resolutionState, TaskQuickView view, LocalDate dueFrom, LocalDate dueTo) {
+	}
+
+	/** Create or replace a saved filter of the caller. */
+	record SaveFilterRequest(@NotBlank @Size(max = 100) String name, @NotNull @Valid SavedFilterCriteria criteria) {
+	}
+
+	record SavedFilterResponse(UUID id, String name, SavedFilterCriteria criteria, Instant createdAt,
+			Instant updatedAt) {
 	}
 
 	// ---- comments ----
