@@ -484,7 +484,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** cascade rule is implemented in INC-032 domain logic; this increment exposes it via API and events.
 
 #### INC-035 — Resolutions frontend: issue, view, act
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `resolutions` (within tasks area)
 - **Depends on:** INC-033, INC-027
 - **Scope:** on task detail: "Task X — resolution to Y" list (author, date, due, state badge); issue-resolution dialog (executor picker, co-executors, instruction, due date); executor actions (accept, submit with completion note, redirect), author actions (accept, rework with comment, cancel); mobile-first sheet dialogs; overdue highlighting; resolution history timeline.
