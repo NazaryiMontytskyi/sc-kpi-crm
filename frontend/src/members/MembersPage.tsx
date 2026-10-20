@@ -19,6 +19,7 @@ import {
 import { MemberFiltersPanel } from './MemberFiltersPanel';
 import { memberErrorKey } from './memberProblems';
 import { MemberFormModal } from './MemberFormModal';
+import { ONBOARDING_DEPARTMENTS_PERMISSION, ONBOARDING_ROLE_PERMISSION, OnboardingModal } from './OnboardingModal';
 import { TemporaryPasswordModal } from './TemporaryPasswordModal';
 import { useMemberDirectory } from './useMembers';
 
@@ -81,6 +82,9 @@ export function MembersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<CreatedInfo | null>(null);
+  const [onboarding, setOnboarding] = useState<{ id: string; name: string } | null>(null);
+  const canAddToUnits = usePermission(ONBOARDING_DEPARTMENTS_PERMISSION);
+  const canAssignRole = usePermission(ONBOARDING_ROLE_PERMISSION);
   // Non-holders never see archived members: drop a status that was typed into the URL by hand.
   const effective: MemberFilters = canSeeArchived ? filters : { ...filters, status: 'ACTIVE' };
   const query = useMemberDirectory(effective);
@@ -268,8 +272,23 @@ export function MembersPage() {
           password={created.password}
           memberName={created.name}
           onClose={() => {
-            const { id } = created;
+            const { id, name } = created;
             setCreated(null);
+            // Admission steps 3-4: offer the checklist only to someone who may perform at least one of its steps.
+            if (canAddToUnits || canAssignRole) setOnboarding({ id, name });
+            else void navigate(`/members/${id}`);
+          }}
+        />
+      )}
+      {onboarding && (
+        <OnboardingModal
+          memberId={onboarding.id}
+          memberName={onboarding.name}
+          canDepartments={canAddToUnits}
+          canRole={canAssignRole}
+          onFinish={() => {
+            const { id } = onboarding;
+            setOnboarding(null);
             void navigate(`/members/${id}`);
           }}
         />

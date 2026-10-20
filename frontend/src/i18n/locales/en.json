@@ -306,6 +306,29 @@
     "history": "Change history",
     "languageSetting": "Interface language",
     "languageHint": "Saved to your account and used the next time you sign in.",
+    "onboarding": {
+      "title": "Onboarding a new member",
+      "intro": "The profile of {{name}} is saved. Add the member to units and assign a role; each step needs its own permission.",
+      "stepProfile": "Profile created",
+      "departments": "Units",
+      "departmentsPlaceholder": "Select units",
+      "role": "Role",
+      "rolePlaceholder": "Select a role",
+      "nothingFound": "Nothing found",
+      "noPermission": "Step unavailable: requires the {{key}} permission.",
+      "skip": "Skip",
+      "apply": "Apply",
+      "retry": "Retry the rest",
+      "toProfile": "To profile",
+      "finish": "Done",
+      "allDone": "All steps completed.",
+      "remaining": "Steps not completed: {{count}}. Completed steps are kept; retry the rest or finish later from the profile or the structure page.",
+      "status": { "todo": "Pending", "done": "Done", "failed": "Failed" },
+      "task": {
+        "department": "Add to unit \"{{name}}\"",
+        "role": "Assign role \"{{name}}\""
+      }
+    },
     "password": {
       "title": "Temporary password",
       "intro": "Temporary password for {{name}}. Pass it on securely: the member must change it at first sign-in.",
