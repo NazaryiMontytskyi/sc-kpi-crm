@@ -22,4 +22,10 @@ class UserDirectoryImpl implements UserDirectory {
 		return users.findById(userId).isPresent();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public boolean isActive(UUID userId) {
+		return users.findById(userId).map(User::canSignIn).orElse(false);
+	}
+
 }
