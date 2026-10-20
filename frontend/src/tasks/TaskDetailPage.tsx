@@ -9,6 +9,7 @@ import { fullName } from '../members/memberFormat';
 import { useMembers } from '../members/useMembers';
 import { RichTextView } from '../shared/RichTextField';
 import { CommentsPanel } from './CommentsPanel';
+import { ResolutionsPanel } from './ResolutionsPanel';
 import { TaskFormModal } from './TaskFormModal';
 import { canEditTask, TASKS_ARCHIVE, taskErrorKey } from './taskLogic';
 import type { CustomField, Task } from './tasksApi';
@@ -157,11 +158,12 @@ function TaskBody({ task }: { task: Task }) {
         <Tabs.Panel value="comments" pt="sm">
           <CommentsPanel targetType="TASK" targetId={task.id} readOnly={task.archived} />
         </Tabs.Panel>
-        {(['resolutions', 'history'] as const).map((tab) => (
-          <Tabs.Panel key={tab} value={tab} pt="sm">
-            <Text c="dimmed">{t('tasks.tabs.soon')}</Text>
-          </Tabs.Panel>
-        ))}
+        <Tabs.Panel value="resolutions" pt="sm">
+          <ResolutionsPanel taskId={task.id} taskArchived={task.archived} />
+        </Tabs.Panel>
+        <Tabs.Panel value="history" pt="sm">
+          <Text c="dimmed">{t('tasks.tabs.soon')}</Text>
+        </Tabs.Panel>
       </Tabs>
 
       {editing && (

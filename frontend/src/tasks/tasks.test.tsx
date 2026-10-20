@@ -285,7 +285,7 @@ describe('TaskDetailPage', () => {
     await screen.findByText('Фейкова задача');
     expect(screen.queryByRole('button', { name: 'В архів' })).toBeNull();
     expect(screen.getByRole('tab', { name: 'Коментарі' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Рішення' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Резолюції' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Історія' })).toBeInTheDocument();
   });
 });

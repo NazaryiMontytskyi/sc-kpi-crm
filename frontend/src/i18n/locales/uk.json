@@ -170,7 +170,21 @@
     "TASK_STATUS_NOT_IN_SPACE": "Цей статус не належить простору задачі.",
     "TASK_TOO_MANY_ATTACHMENTS": "Забагато вкладень.",
     "TASK_TOO_MANY_LABELS": "Забагато міток.",
-    "TASK_TOO_MANY_RELATED": "Забагато пов'язаних задач."
+    "TASK_TOO_MANY_RELATED": "Забагато пов'язаних задач.",
+    "RESOLUTION_TRANSITION_NOT_ALLOWED": "Ця дія недоступна для резолюції в поточному стані.",
+    "RESOLUTION_NOT_EXECUTOR": "Цю дію може виконати лише виконавець резолюції.",
+    "RESOLUTION_NOT_AUTHOR": "Цю дію може виконати лише автор резолюції.",
+    "RESOLUTION_COMPLETION_NOTE_REQUIRED": "Коротко опишіть, як було виконано резолюцію.",
+    "RESOLUTION_REWORK_COMMENT_REQUIRED": "Поясніть, що потрібно доопрацювати.",
+    "RESOLUTION_INSTRUCTION_REQUIRED": "Текст доручення в резолюції не може бути порожнім.",
+    "RESOLUTION_DUE_DATE_REQUIRED": "Для резолюції потрібно вказати термін виконання.",
+    "RESOLUTION_EXECUTOR_INVALID": "Виконавець має бути активним користувачем.",
+    "RESOLUTION_CO_EXECUTOR_INVALID": "Кожен співвиконавець має бути активним користувачем.",
+    "RESOLUTION_DUE_DATE_IN_PAST": "Термін виконання не може бути раніше за сьогодні.",
+    "RESOLUTION_ARCHIVED": "Архівовану резолюцію не можна змінювати.",
+    "RESOLUTION_REDIRECT_TO_SELF": "Оберіть іншого виконавця для переадресації резолюції.",
+    "RESOLUTION_REDIRECT_CYCLE": "Ця особа вже є автором або виконавцем раніше в ланцюжку цієї резолюції.",
+    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "Термін нової резолюції пізніший за термін початкової."
   },
   "faculties": {
     "title": "Факультети та інститути",
@@ -721,7 +735,7 @@
     },
     "tabs": {
       "comments": "Коментарі",
-      "resolutions": "Рішення",
+      "resolutions": "Резолюції",
       "history": "Історія",
       "soon": "Цей розділ з'явиться згодом."
     },
@@ -807,6 +821,76 @@
       "requiredBadge": "Обов'язкове",
       "editAria": "Редагувати поле «{{name}}»",
       "archiveAria": "Архівувати поле «{{name}}»"
+    },
+    "resolutions": {
+      "issue": "Видати резолюцію",
+      "empty": "Резолюцій ще немає.",
+      "loadFailed": "Не вдалося завантажити резолюції.",
+      "overdue": "Прострочено",
+      "noMembers": "Учасників не знайдено.",
+      "showHistory": "Історія",
+      "hideHistory": "Сховати історію",
+      "history": "Історія резолюції",
+      "completionNote": "Коментар про виконання",
+      "fields": {
+        "author": "Автор",
+        "executor": "Виконавець",
+        "coExecutors": "Співвиконавці",
+        "instruction": "Доручення",
+        "dueDate": "Термін"
+      },
+      "state": {
+        "NEW": "Нова",
+        "IN_PROGRESS": "Виконується",
+        "SUBMITTED": "На перевірці",
+        "REWORK": "На доопрацюванні",
+        "ACCEPTED": "Прийнята",
+        "REDIRECTED": "Переадресована",
+        "CANCELED": "Скасована"
+      },
+      "action": {
+        "start": "Взяти в роботу",
+        "resume": "Продовжити роботу",
+        "submit": "Здати результат",
+        "redirect": "Переадресувати",
+        "accept": "Прийняти результат",
+        "rework": "На доопрацювання",
+        "cancel": "Скасувати резолюцію"
+      },
+      "validation": {
+        "executorRequired": "Оберіть виконавця.",
+        "instructionRequired": "Вкажіть доручення.",
+        "dueRequired": "Вкажіть термін виконання.",
+        "dueInvalid": "Вкажіть коректну дату.",
+        "dueInPast": "Термін не може бути раніше за сьогодні.",
+        "noteRequired": "Це поле обов'язкове."
+      },
+      "dialog": {
+        "issue": {
+          "title": "Нова резолюція",
+          "confirm": "Видати"
+        },
+        "redirect": {
+          "title": "Переадресація резолюції",
+          "confirm": "Переадресувати"
+        },
+        "submit": {
+          "title": "Здати результат",
+          "label": "Коментар про виконання",
+          "confirm": "Здати"
+        },
+        "rework": {
+          "title": "Відправити на доопрацювання",
+          "label": "Що потрібно доопрацювати",
+          "confirm": "Відправити"
+        },
+        "cancel": {
+          "title": "Скасувати резолюцію",
+          "label": "Коментар (необов'язково)",
+          "hint": "Резолюцію буде скасовано разом з усіма незавершеними переадресаціями від неї.",
+          "confirm": "Скасувати резолюцію"
+        }
+      }
     }
   }
 }

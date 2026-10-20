@@ -170,7 +170,21 @@
     "TASK_STATUS_NOT_IN_SPACE": "This status does not belong to the task's space.",
     "TASK_TOO_MANY_ATTACHMENTS": "Too many attachments.",
     "TASK_TOO_MANY_LABELS": "Too many labels.",
-    "TASK_TOO_MANY_RELATED": "Too many related tasks."
+    "TASK_TOO_MANY_RELATED": "Too many related tasks.",
+    "RESOLUTION_TRANSITION_NOT_ALLOWED": "This action is not available for the resolution in its current state.",
+    "RESOLUTION_NOT_EXECUTOR": "Only the executor of the resolution can do this.",
+    "RESOLUTION_NOT_AUTHOR": "Only the author of the resolution can do this.",
+    "RESOLUTION_COMPLETION_NOTE_REQUIRED": "Briefly describe how the resolution was completed.",
+    "RESOLUTION_REWORK_COMMENT_REQUIRED": "Explain what needs to be reworked.",
+    "RESOLUTION_INSTRUCTION_REQUIRED": "The instruction of a resolution cannot be empty.",
+    "RESOLUTION_DUE_DATE_REQUIRED": "A resolution needs a due date.",
+    "RESOLUTION_EXECUTOR_INVALID": "The executor must be an active user.",
+    "RESOLUTION_CO_EXECUTOR_INVALID": "Every co-executor must be an active user.",
+    "RESOLUTION_DUE_DATE_IN_PAST": "The due date cannot be earlier than today.",
+    "RESOLUTION_ARCHIVED": "An archived resolution cannot be changed.",
+    "RESOLUTION_REDIRECT_TO_SELF": "Choose a different executor to redirect the resolution to.",
+    "RESOLUTION_REDIRECT_CYCLE": "This person is already an author or executor earlier in the chain of this resolution.",
+    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "The new resolution is due later than the original one."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -807,6 +821,76 @@
       "requiredBadge": "Required",
       "editAria": "Edit field \"{{name}}\"",
       "archiveAria": "Archive field \"{{name}}\""
+    },
+    "resolutions": {
+      "issue": "Issue resolution",
+      "empty": "No resolutions yet.",
+      "loadFailed": "Failed to load resolutions.",
+      "overdue": "Overdue",
+      "noMembers": "No members found.",
+      "showHistory": "History",
+      "hideHistory": "Hide history",
+      "history": "Resolution history",
+      "completionNote": "Completion note",
+      "fields": {
+        "author": "Author",
+        "executor": "Executor",
+        "coExecutors": "Co-executors",
+        "instruction": "Instruction",
+        "dueDate": "Due date"
+      },
+      "state": {
+        "NEW": "New",
+        "IN_PROGRESS": "In progress",
+        "SUBMITTED": "Submitted",
+        "REWORK": "Rework",
+        "ACCEPTED": "Accepted",
+        "REDIRECTED": "Redirected",
+        "CANCELED": "Canceled"
+      },
+      "action": {
+        "start": "Start",
+        "resume": "Resume",
+        "submit": "Submit result",
+        "redirect": "Redirect",
+        "accept": "Accept result",
+        "rework": "Send for rework",
+        "cancel": "Cancel resolution"
+      },
+      "validation": {
+        "executorRequired": "Choose an executor.",
+        "instructionRequired": "Enter the instruction.",
+        "dueRequired": "Enter a due date.",
+        "dueInvalid": "Enter a valid date.",
+        "dueInPast": "The due date cannot be earlier than today.",
+        "noteRequired": "This field is required."
+      },
+      "dialog": {
+        "issue": {
+          "title": "New resolution",
+          "confirm": "Issue"
+        },
+        "redirect": {
+          "title": "Redirect resolution",
+          "confirm": "Redirect"
+        },
+        "submit": {
+          "title": "Submit result",
+          "label": "Completion note",
+          "confirm": "Submit"
+        },
+        "rework": {
+          "title": "Send for rework",
+          "label": "What needs rework",
+          "confirm": "Send"
+        },
+        "cancel": {
+          "title": "Cancel resolution",
+          "label": "Comment (optional)",
+          "hint": "The resolution will be canceled together with all unfinished redirects made from it.",
+          "confirm": "Cancel resolution"
+        }
+      }
     }
   }
 }
