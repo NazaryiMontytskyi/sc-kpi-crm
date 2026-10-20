@@ -41,6 +41,10 @@ vi.mock('./tasksApi', async (orig) => ({
   reorderStatuses: vi.fn(),
   archiveTask: vi.fn(),
 }));
+vi.mock('./commentsApi', async (orig) => ({
+  ...(await orig<typeof import('./commentsApi')>()),
+  listComments: vi.fn().mockResolvedValue({ items: [], page: 0, totalPages: 0, totalElements: 0 }),
+}));
 vi.mock('../members/memberApi', async (orig) => ({ ...(await orig<typeof memberApi>()), listMembers: vi.fn() }));
 vi.mock('../org/orgApi', async (orig) => ({ ...(await orig<typeof orgApi>()), getOrgTree: vi.fn() }));
 

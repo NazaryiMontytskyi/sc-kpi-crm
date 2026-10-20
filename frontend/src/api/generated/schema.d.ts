@@ -266,6 +266,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit a comment (replaces body, mentions and attachments)
+         * @description Only the comment author or an Admin (403 otherwise). 409 when the comment is archived. The previous version is kept in the audit history.
+         */
+        put: operations["edit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/activity-levels/{id}": {
         parameters: {
             query?: never;
@@ -940,6 +960,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comments of a record (paginated, oldest first)
+         * @description Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.
+         */
+        get: operations["list_5"];
+        put?: never;
+        /**
+         * Add a comment
+         * @description Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.
+         */
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a comment (soft delete)
+         * @description Only the comment author or an Admin (403 otherwise). Comments are never deleted.
+         */
+        post: operations["archive_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -1022,13 +1086,13 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /**
          * Create a definition
          * @description Code is unique among active definitions (409 otherwise).
          */
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1068,7 +1132,7 @@ export interface paths {
          * Archive a definition (soft)
          * @description Members keep the level and the history keeps the reference; it just stops being selectable.
          */
-        post: operations["archive_7"];
+        post: operations["archive_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1265,7 +1329,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1626,6 +1690,38 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        EditCommentRequest: {
+            body: {
+                [key: string]: unknown;
+            };
+            mentionUserIds?: string[];
+            attachmentIds?: string[];
+        };
+        CommentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            targetType?: "TASK" | "RESOLUTION";
+            /** Format: uuid */
+            targetId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            body?: {
+                [key: string]: unknown;
+            };
+            mentionUserIds?: string[];
+            attachments?: components["schemas"]["AttachmentResponse"][];
+            edited?: boolean;
+            /** Format: date-time */
+            editedAt?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         DefinitionRequest: {
             code: string;
             labelUk: string;
@@ -1818,6 +1914,17 @@ export interface components {
              * @description Upload time (UTC)
              */
             createdAt: string;
+        };
+        CreateCommentRequest: {
+            /** @enum {string} */
+            targetType: "TASK" | "RESOLUTION";
+            /** Format: uuid */
+            targetId: string;
+            body: {
+                [key: string]: unknown;
+            };
+            mentionUserIds?: string[];
+            attachmentIds?: string[];
         };
         LoginRequest: {
             login: string;
@@ -2038,6 +2145,19 @@ export interface components {
         };
         PageResponseFacultyResponse: {
             content?: components["schemas"]["FacultyResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        PageResponseCommentResponse: {
+            content?: components["schemas"]["CommentResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -2608,6 +2728,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FacultyResponse"];
+                };
+            };
+        };
+    };
+    edit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditCommentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommentResponse"];
                 };
             };
         };
@@ -3697,6 +3843,76 @@ export interface operations {
             };
         };
     };
+    list_5: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                targetType: "TASK" | "RESOLUTION";
+                targetId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseCommentResponse"];
+                };
+            };
+        };
+    };
+    create_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommentResponse"];
+                };
+            };
+        };
+    };
+    archive_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommentResponse"];
+                };
+            };
+        };
+    };
     logout: {
         parameters: {
             query?: never;
@@ -3834,7 +4050,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -3857,7 +4073,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -3903,7 +4119,7 @@ export interface operations {
             };
         };
     };
-    archive_7: {
+    archive_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -4165,7 +4381,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];

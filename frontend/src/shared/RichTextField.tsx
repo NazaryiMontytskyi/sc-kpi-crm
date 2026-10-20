@@ -1,6 +1,9 @@
 import { ActionIcon, Group, Input, Paper } from '@mantine/core';
+import type { Editor } from '@tiptap/core';
+import Mention from '@tiptap/extension-mention';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export type RichDoc = Record<string, unknown>;
@@ -13,9 +16,19 @@ interface Props {
   onChange: (doc: RichDoc | undefined) => void;
   disabled?: boolean;
   id?: string;
+  /** Registers the `mention` node so stored @mentions stay valid while editing (comments); inserted by a picker. */
+  mentions?: boolean;
+  /** Hands the editor to the parent (e.g. to insert a mention or clear the field); called with null on unmount. */
+  onEditor?: (editor: Editor | null) => void;
+  minHeight?: number;
 }
 
 const TOUCH = 44;
+
+/** The @mention node (id = user id, label = display name). Colours come from the Mantine anchor token. */
+const MentionNode = Mention.configure({
+  HTMLAttributes: { 'data-mention': 'true', style: 'color: var(--mantine-color-anchor); font-weight: 500;' },
+});
 
 /** True when the document has no visible content (only empty paragraphs). */
 export function isDocEmpty(doc: RichDoc | null | undefined): boolean {
@@ -34,10 +47,13 @@ export function isDocEmpty(doc: RichDoc | null | undefined): boolean {
  * Minimal shared rich-text field (TipTap): bold, italic, bullet and numbered lists. Stores ProseMirror JSON.
  * The full editor (INC-038) will extend or replace this component; the value contract (JSON doc) stays.
  */
-export function RichTextField({ label, value, onChange, disabled, id }: Props) {
+export function RichTextField({ label, value, onChange, disabled, id, mentions, onEditor, minHeight = 120 }: Props) {
   const { t } = useTranslation();
   const editor = useEditor({
-    extensions: [StarterKit.configure({ heading: false, codeBlock: false, blockquote: false, horizontalRule: false })],
+    extensions: [
+      StarterKit.configure({ heading: false, codeBlock: false, blockquote: false, horizontalRule: false }),
+      ...(mentions ? [MentionNode] : []),
+    ],
     content: value ?? undefined,
     editable: !disabled,
     immediatelyRender: false,
@@ -47,6 +63,11 @@ export function RichTextField({ label, value, onChange, disabled, id }: Props) {
       onChange(isDocEmpty(doc) ? undefined : doc);
     },
   });
+
+  useEffect(() => {
+    onEditor?.(editor);
+    return () => onEditor?.(null);
+  }, [editor, onEditor]);
 
   const tools = editor
     ? [
@@ -76,7 +97,7 @@ export function RichTextField({ label, value, onChange, disabled, id }: Props) {
             </ActionIcon>
           ))}
         </Group>
-        <div style={{ padding: 'var(--mantine-spacing-xs)', minHeight: 120 }}>
+        <div style={{ padding: 'var(--mantine-spacing-xs)', minHeight }}>
           <EditorContent editor={editor} />
         </div>
       </Paper>
@@ -87,7 +108,7 @@ export function RichTextField({ label, value, onChange, disabled, id }: Props) {
 /** Read-only rendering of a stored document. */
 export function RichTextView({ value }: { value: RichDoc | null | undefined }) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, MentionNode],
     content: value ?? undefined,
     editable: false,
     immediatelyRender: false,

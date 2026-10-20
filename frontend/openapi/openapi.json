@@ -836,6 +836,49 @@
         }
       }
     },
+    "/api/v1/comments/{id}": {
+      "put": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Edit a comment (replaces body, mentions and attachments)",
+        "description": "Only the comment author or an Admin (403 otherwise). 409 when the comment is archived. The previous version is kept in the audit history.",
+        "operationId": "edit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/activity-levels/{id}": {
       "get": {
         "tags": [
@@ -2632,6 +2675,122 @@
         }
       }
     },
+    "/api/v1/comments": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Comments of a record (paginated, oldest first)",
+        "description": "Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.",
+        "operationId": "list_5",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TASK",
+                "RESOLUTION"
+              ]
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseCommentResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Add a comment",
+        "description": "Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.",
+        "operationId": "create_7",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{id}/archive": {
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Archive a comment (soft delete)",
+        "description": "Only the comment author or an Admin (403 otherwise). Comments are never deleted.",
+        "operationId": "archive_7",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "tags": [
@@ -2807,7 +2966,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_5",
+        "operationId": "list_6",
         "parameters": [
           {
             "name": "page",
@@ -2846,7 +3005,7 @@
         ],
         "summary": "Create a definition",
         "description": "Code is unique among active definitions (409 otherwise).",
-        "operationId": "create_7",
+        "operationId": "create_8",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2911,7 +3070,7 @@
         ],
         "summary": "Archive a definition (soft)",
         "description": "Members keep the level and the history keeps the reference; it just stops being selectable.",
-        "operationId": "archive_7",
+        "operationId": "archive_8",
         "parameters": [
           {
             "name": "id",
@@ -3299,7 +3458,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_6",
+        "operationId": "list_7",
         "parameters": [
           {
             "name": "page",
@@ -4388,6 +4547,95 @@
           }
         }
       },
+      "EditCommentRequest": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "mentionUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "CommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "TASK",
+              "RESOLUTION"
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "mentionUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentResponse"
+            }
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "DefinitionRequest": {
         "type": "object",
         "properties": {
@@ -4939,6 +5187,45 @@
           "mimeType",
           "size",
           "uploadedBy"
+        ]
+      },
+      "CreateCommentRequest": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "TASK",
+              "RESOLUTION"
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "mentionUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "body",
+          "targetId",
+          "targetType"
         ]
       },
       "LoginRequest": {
@@ -5533,6 +5820,39 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FacultyResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageResponseCommentResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentResponse"
             }
           },
           "page": {

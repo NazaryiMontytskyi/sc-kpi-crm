@@ -8,6 +8,7 @@ import { formatDate } from '../members/memberFormat';
 import { fullName } from '../members/memberFormat';
 import { useMembers } from '../members/useMembers';
 import { RichTextView } from '../shared/RichTextField';
+import { CommentsPanel } from './CommentsPanel';
 import { TaskFormModal } from './TaskFormModal';
 import { canEditTask, TASKS_ARCHIVE, taskErrorKey } from './taskLogic';
 import type { CustomField, Task } from './tasksApi';
@@ -153,7 +154,10 @@ function TaskBody({ task }: { task: Task }) {
             {t('tasks.tabs.history')}
           </Tabs.Tab>
         </Tabs.List>
-        {(['comments', 'resolutions', 'history'] as const).map((tab) => (
+        <Tabs.Panel value="comments" pt="sm">
+          <CommentsPanel targetType="TASK" targetId={task.id} readOnly={task.archived} />
+        </Tabs.Panel>
+        {(['resolutions', 'history'] as const).map((tab) => (
           <Tabs.Panel key={tab} value={tab} pt="sm">
             <Text c="dimmed">{t('tasks.tabs.soon')}</Text>
           </Tabs.Panel>
