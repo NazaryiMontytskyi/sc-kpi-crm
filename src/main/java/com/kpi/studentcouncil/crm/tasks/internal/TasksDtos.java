@@ -196,4 +196,14 @@ final class TasksDtos {
 			String completionNote, List<ResolutionHistoryResponse> history, Instant createdAt, Instant updatedAt) {
 	}
 
+	/** A resolution of a member's list with the title of its task. */
+	record MemberResolutionResponse(UUID id, UUID taskId, String taskTitle, UUID authorId, UUID executorId,
+			List<UUID> coExecutorIds, String instruction, LocalDate dueDate, ResolutionState state, boolean overdue,
+			Instant createdAt, Instant updatedAt) {
+	}
+
+	/** Counters of the resolutions a member executes (archived excluded). */
+	record MemberResolutionCountsResponse(long active, long overdue, long accepted) {
+	}
+
 }

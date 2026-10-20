@@ -1528,6 +1528,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{id}/resolutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
+         * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
+         */
+        get: operations["list_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/resolutions/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Counters of the resolutions a member executes
+         * @description active (NEW, IN_PROGRESS, SUBMITTED, REWORK), overdue (due date passed in Europe/Kyiv, state not ACCEPTED/CANCELED) and accepted; archived resolutions are not counted.
+         */
+        get: operations["counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{id}/activity-level-history": {
         parameters: {
             query?: never;
@@ -1593,7 +1633,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2568,6 +2608,49 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+        };
+        MemberResolutionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            taskTitle?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** Format: uuid */
+            executorId?: string;
+            coExecutorIds?: string[];
+            instruction?: string;
+            /** Format: date */
+            dueDate?: string;
+            /** @enum {string} */
+            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            overdue?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PageResponseMemberResolutionResponse: {
+            content?: components["schemas"]["MemberResolutionResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        MemberResolutionCountsResponse: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            overdue?: number;
+            /** Format: int64 */
+            accepted?: number;
         };
         PageResponseChangeResponse: {
             content?: components["schemas"]["ChangeResponse"][];
@@ -5145,6 +5228,55 @@ export interface operations {
             };
         };
     };
+    list_9: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                role?: "EXECUTOR" | "AUTHOR";
+                active?: boolean;
+                state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseMemberResolutionResponse"];
+                };
+            };
+        };
+    };
+    counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberResolutionCountsResponse"];
+                };
+            };
+        };
+    };
     history_1: {
         parameters: {
             query: {
@@ -5229,7 +5361,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];

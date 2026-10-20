@@ -39,4 +39,15 @@ interface ResolutionRepository extends ArchivableRepository<Resolution, UUID> {
 			+ " r.parentResolutionId, r.state) from Resolution r where r.taskId in :taskIds and r.archivedAt is null")
 	List<TaskResolutionState> findActiveStatesByTaskIdIn(@Param("taskIds") Collection<UUID> taskIds);
 
+	/** Non-archived resolutions the user executes (executor or co-executor) in the given states. */
+	@Query("select count(r) from Resolution r where r.archivedAt is null and r.state in :states"
+			+ " and (r.executorId = :userId or :userId member of r.coExecutorIds)")
+	long countExecuting(@Param("userId") UUID userId, @Param("states") Collection<ResolutionState> states);
+
+	/** Non-archived resolutions the user executes that are due before {@code today} and not in an excluded state. */
+	@Query("select count(r) from Resolution r where r.archivedAt is null and r.state not in :excluded"
+			+ " and r.dueDate < :today and (r.executorId = :userId or :userId member of r.coExecutorIds)")
+	long countExecutingOverdue(@Param("userId") UUID userId, @Param("excluded") Collection<ResolutionState> excluded,
+			@Param("today") java.time.LocalDate today);
+
 }
