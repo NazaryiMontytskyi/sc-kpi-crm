@@ -1069,6 +1069,87 @@
         }
       }
     },
+    "/api/v1/tasks/{taskId}/resolutions": {
+      "get": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Resolutions of a task (paginated, sortable by createdAt, updatedAt, dueDate, state)",
+        "operationId": "listByTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseResolutionSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Issue a resolution on a task",
+        "description": "The caller becomes the author; any executor is allowed (top-down, horizontal or bottom-up). Executor and co-executors must be ACTIVE users (422), the due date must not be in the past (422), 409 when the task is archived. A task may have several resolutions. Starts in NEW.",
+        "operationId": "issue",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tasks/{id}/status": {
       "post": {
         "tags": [
@@ -1669,6 +1750,232 @@
         }
       }
     },
+    "/api/v1/resolutions/{id}/submit": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Executor submits the result (IN_PROGRESS to SUBMITTED)",
+        "description": "The completion note is mandatory (422). 403 RESOLUTION_NOT_EXECUTOR for anybody else.",
+        "operationId": "submit",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/start": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Executor accepts the resolution into work (NEW to IN_PROGRESS)",
+        "description": "403 RESOLUTION_NOT_EXECUTOR for anybody else, 422 RESOLUTION_TRANSITION_NOT_ALLOWED.",
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/rework": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Author returns the result for rework (SUBMITTED to REWORK)",
+        "description": "The comment is mandatory (422). 403 RESOLUTION_NOT_AUTHOR for anybody else.",
+        "operationId": "rework",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReworkResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/resume": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Executor resumes work after rework (REWORK to IN_PROGRESS)",
+        "operationId": "resume",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Author cancels the resolution (any non-final state to CANCELED)",
+        "description": "Non-final resolutions redirected from it are canceled with it, atomically. 403 RESOLUTION_NOT_AUTHOR for anybody else.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelResolutionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}/accept": {
+      "post": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Author accepts the result (SUBMITTED to ACCEPTED)",
+        "description": "403 RESOLUTION_NOT_AUTHOR for anybody else.",
+        "operationId": "accept",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/positions/{id}/restore": {
       "post": {
         "tags": [
@@ -2079,7 +2386,7 @@
         ],
         "summary": "Add a person to a unit",
         "description": "409 when the person already has an active membership in the unit or the unit is archived.",
-        "operationId": "start",
+        "operationId": "start_1",
         "parameters": [
           {
             "name": "id",
@@ -3194,6 +3501,123 @@
         }
       }
     },
+    "/api/v1/resolutions": {
+      "get": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
+        "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
+        "operationId": "list_7",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "executorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "authorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEW",
+                "IN_PROGRESS",
+                "SUBMITTED",
+                "REWORK",
+                "ACCEPTED",
+                "REDIRECTED",
+                "CANCELED"
+              ]
+            }
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseResolutionSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resolutions/{id}": {
+      "get": {
+        "tags": [
+          "Resolutions"
+        ],
+        "summary": "Get a resolution with its full history",
+        "operationId": "get_8",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/permissions": {
       "get": {
         "tags": [
@@ -3310,7 +3734,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_8",
+        "operationId": "get_9",
         "parameters": [
           {
             "name": "id",
@@ -3458,7 +3882,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_7",
+        "operationId": "list_8",
         "parameters": [
           {
             "name": "page",
@@ -4761,6 +5185,151 @@
           "title"
         ]
       },
+      "IssueResolutionRequest": {
+        "type": "object",
+        "properties": {
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "coExecutorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "dueDate",
+          "executorId",
+          "instruction"
+        ]
+      },
+      "ResolutionHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "causedByResolutionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ResolutionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "coExecutorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "parentResolutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "completionNote": {
+            "type": "string"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolutionHistoryResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ChangeTaskStatusRequest": {
         "type": "object",
         "properties": {
@@ -4834,6 +5403,42 @@
           "name",
           "type"
         ]
+      },
+      "SubmitResolutionRequest": {
+        "type": "object",
+        "properties": {
+          "completionNote": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "completionNote"
+        ]
+      },
+      "ReworkResolutionRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "comment"
+        ]
+      },
+      "CancelResolutionRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        }
       },
       "AppointRequest": {
         "type": "object",
@@ -5434,6 +6039,101 @@
           "archivedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageResponseResolutionSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolutionSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResolutionSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "executorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "coExecutorIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "parentResolutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REWORK",
+              "ACCEPTED",
+              "REDIRECTED",
+              "CANCELED"
+            ]
+          },
+          "overdue": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",

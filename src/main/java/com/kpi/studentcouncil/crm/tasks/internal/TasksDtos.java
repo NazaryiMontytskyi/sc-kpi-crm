@@ -124,4 +124,38 @@ final class TasksDtos {
 			Instant updatedAt) {
 	}
 
+	// ---- resolutions ----
+
+	/** The caller becomes the author. Executor and co-executors must be ACTIVE users; the due date must not be in the past. */
+	record IssueResolutionRequest(@NotNull UUID executorId, List<@NotNull UUID> coExecutorIds,
+			@NotBlank @Size(max = 5000) String instruction, @NotNull LocalDate dueDate) {
+	}
+
+	/** Completion note, mandatory when submitting. */
+	record SubmitResolutionRequest(@NotBlank @Size(max = 5000) String completionNote) {
+	}
+
+	/** Comment, mandatory when returning a result for rework. */
+	record ReworkResolutionRequest(@NotBlank @Size(max = 5000) String comment) {
+	}
+
+	/** Optional reason of a cancel; recorded in the history of the resolution and of every canceled descendant. */
+	record CancelResolutionRequest(@Size(max = 5000) String comment) {
+	}
+
+	record ResolutionHistoryResponse(UUID actorId, ResolutionState from, ResolutionState to, String comment,
+			Instant at, UUID causedByResolutionId) {
+	}
+
+	/** List item: no completion note and no history. */
+	record ResolutionSummaryResponse(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
+			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
+			Instant createdAt, Instant updatedAt) {
+	}
+
+	record ResolutionResponse(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
+			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
+			String completionNote, List<ResolutionHistoryResponse> history, Instant createdAt, Instant updatedAt) {
+	}
+
 }

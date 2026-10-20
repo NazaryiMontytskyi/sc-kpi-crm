@@ -22,6 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.springframework.context.ApplicationEventPublisher;
+
 import com.kpi.studentcouncil.crm.audit.ActorProvider;
 import com.kpi.studentcouncil.crm.audit.AuditAction;
 import com.kpi.studentcouncil.crm.audit.AuditPublisher;
@@ -38,6 +40,7 @@ class ResolutionServiceTest {
 	private final UserDirectory users = mock(UserDirectory.class);
 	private final AuditPublisher audit = mock(AuditPublisher.class);
 	private final ActorProvider actors = mock(ActorProvider.class);
+	private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 	private final Clock clock = Clock.fixed(Instant.parse("2026-03-10T10:00:00Z"), ZoneOffset.UTC);
 
 	private final UUID author = UUID.randomUUID();
@@ -48,7 +51,7 @@ class ResolutionServiceTest {
 	@BeforeEach
 	void setUp() {
 		when(actors.currentActorId()).thenReturn(author);
-		when(users.exists(any())).thenReturn(true);
+		when(users.isActive(any())).thenReturn(true);
 		when(resolutions.save(any(Resolution.class))).thenAnswer(inv -> {
 			Resolution r = inv.getArgument(0);
 			if (r.getId() == null) {
@@ -56,7 +59,7 @@ class ResolutionServiceTest {
 			}
 			return r;
 		});
-		service = new ResolutionService(resolutions, tasks, users, audit, actors, clock);
+		service = new ResolutionService(resolutions, tasks, users, audit, actors, events, clock);
 	}
 
 	private Task activeTask() {
@@ -103,7 +106,7 @@ class ResolutionServiceTest {
 
 		activeTask();
 		UUID unknown = UUID.randomUUID();
-		when(users.exists(unknown)).thenReturn(false);
+		when(users.isActive(unknown)).thenReturn(false);
 		assertThatThrownBy(() -> service.create(taskId, unknown, List.of(), "x", LocalDate.of(2026, 4, 1)))
 				.isInstanceOf(BusinessRuleException.class)
 				.extracting(e -> ((DomainException) e).getCode()).isEqualTo("RESOLUTION_EXECUTOR_INVALID");
@@ -188,6 +191,59 @@ class ResolutionServiceTest {
 
 		verify(resolutions, never()).save(any());
 		assertThat(root.getState()).isEqualTo(ResolutionState.NEW);
+	}
+
+
+	@Test
+	void dueDateInThePastIsRejectedButTodayIsAccepted() {
+		activeTask();
+		assertThatThrownBy(() -> service.create(taskId, executor, List.of(), "x", LocalDate.of(2026, 3, 9)))
+				.isInstanceOf(BusinessRuleException.class)
+				.extracting(e -> ((DomainException) e).getCode()).isEqualTo("RESOLUTION_DUE_DATE_IN_PAST");
+		verify(resolutions, never()).save(any());
+		Resolution created = service.create(taskId, executor, List.of(), "x", LocalDate.of(2026, 3, 10));
+		assertThat(created.getState()).isEqualTo(ResolutionState.NEW);
+	}
+
+	@Test
+	void inactiveExecutorIsRejected() {
+		activeTask();
+		UUID blocked = UUID.randomUUID();
+		when(users.isActive(blocked)).thenReturn(false);
+		when(users.exists(blocked)).thenReturn(true);
+		assertThatThrownBy(() -> service.create(taskId, blocked, List.of(), "x", LocalDate.of(2026, 4, 1)))
+				.isInstanceOf(BusinessRuleException.class)
+				.extracting(e -> ((DomainException) e).getCode()).isEqualTo("RESOLUTION_EXECUTOR_INVALID");
+	}
+
+	@Test
+	void everyTransitionPublishesAnEventWithAllParticipants() {
+		activeTask();
+		UUID co = UUID.randomUUID();
+		Resolution r = service.create(taskId, executor, List.of(co), "x", LocalDate.of(2026, 4, 1));
+		org.mockito.ArgumentCaptor<com.kpi.studentcouncil.crm.tasks.ResolutionEvent> captor = org.mockito.ArgumentCaptor
+				.forClass(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.class);
+		verify(events).publishEvent(captor.capture());
+		var issued = captor.getValue();
+		assertThat(issued.kind()).isEqualTo(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.ISSUED);
+		assertThat(issued.authorId()).isEqualTo(author);
+		assertThat(issued.executorId()).isEqualTo(executor);
+		assertThat(issued.coExecutorIds()).containsExactly(co);
+
+		when(resolutions.lockById(r.getId())).thenReturn(Optional.of(r));
+		when(actors.currentActorId()).thenReturn(executor);
+		service.start(r.getId());
+		service.submit(r.getId(), "done");
+		when(actors.currentActorId()).thenReturn(author);
+		service.accept(r.getId());
+		org.mockito.ArgumentCaptor<com.kpi.studentcouncil.crm.tasks.ResolutionEvent> all = org.mockito.ArgumentCaptor
+				.forClass(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.class);
+		verify(events, org.mockito.Mockito.times(4)).publishEvent(all.capture());
+		assertThat(all.getAllValues()).extracting(com.kpi.studentcouncil.crm.tasks.ResolutionEvent::kind)
+				.containsExactly(com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.ISSUED,
+						com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.ACCEPTED,
+						com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.SUBMITTED,
+						com.kpi.studentcouncil.crm.tasks.ResolutionEvent.Kind.CLOSED);
 	}
 
 }

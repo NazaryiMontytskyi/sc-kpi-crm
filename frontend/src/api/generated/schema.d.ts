@@ -328,6 +328,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{taskId}/resolutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolutions of a task (paginated, sortable by createdAt, updatedAt, dueDate, state) */
+        get: operations["listByTask"];
+        put?: never;
+        /**
+         * Issue a resolution on a task
+         * @description The caller becomes the author; any executor is allowed (top-down, horizontal or bottom-up). Executor and co-executors must be ACTIVE users (422), the due date must not be in the past (422), 409 when the task is archived. A task may have several resolutions. Starts in NEW.
+         */
+        post: operations["issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{id}/status": {
         parameters: {
             query?: never;
@@ -566,6 +587,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resolutions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Executor submits the result (IN_PROGRESS to SUBMITTED)
+         * @description The completion note is mandatory (422). 403 RESOLUTION_NOT_EXECUTOR for anybody else.
+         */
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Executor accepts the resolution into work (NEW to IN_PROGRESS)
+         * @description 403 RESOLUTION_NOT_EXECUTOR for anybody else, 422 RESOLUTION_TRANSITION_NOT_ALLOWED.
+         */
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}/rework": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Author returns the result for rework (SUBMITTED to REWORK)
+         * @description The comment is mandatory (422). 403 RESOLUTION_NOT_AUTHOR for anybody else.
+         */
+        post: operations["rework"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Executor resumes work after rework (REWORK to IN_PROGRESS) */
+        post: operations["resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Author cancels the resolution (any non-final state to CANCELED)
+         * @description Non-final resolutions redirected from it are canceled with it, atomically. 403 RESOLUTION_NOT_AUTHOR for anybody else.
+         */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Author accepts the result (SUBMITTED to ACCEPTED)
+         * @description 403 RESOLUTION_NOT_AUTHOR for anybody else.
+         */
+        post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/positions/{id}/restore": {
         parameters: {
             query?: never;
@@ -728,7 +866,7 @@ export interface paths {
          * Add a person to a unit
          * @description 409 when the person already has an active membership in the unit or the unit is archived.
          */
-        post: operations["start"];
+        post: operations["start_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1190,6 +1328,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resolutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
+         * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
+         */
+        get: operations["list_7"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resolutions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a resolution with its full history */
+        get: operations["get_8"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permissions": {
         parameters: {
             query?: never;
@@ -1255,7 +1430,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1329,7 +1504,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1761,6 +1936,52 @@ export interface components {
             attachmentIds?: string[];
             relatedTaskIds?: string[];
         };
+        IssueResolutionRequest: {
+            /** Format: uuid */
+            executorId: string;
+            coExecutorIds?: string[];
+            instruction: string;
+            /** Format: date */
+            dueDate: string;
+        };
+        ResolutionHistoryResponse: {
+            /** Format: uuid */
+            actorId?: string;
+            /** @enum {string} */
+            from?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            /** @enum {string} */
+            to?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            comment?: string;
+            /** Format: date-time */
+            at?: string;
+            /** Format: uuid */
+            causedByResolutionId?: string;
+        };
+        ResolutionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** Format: uuid */
+            executorId?: string;
+            coExecutorIds?: string[];
+            instruction?: string;
+            /** Format: date */
+            dueDate?: string;
+            /** Format: uuid */
+            parentResolutionId?: string;
+            /** @enum {string} */
+            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            overdue?: boolean;
+            completionNote?: string;
+            history?: components["schemas"]["ResolutionHistoryResponse"][];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         ChangeTaskStatusRequest: {
             /** Format: uuid */
             statusId: string;
@@ -1781,6 +2002,15 @@ export interface components {
             type: "TEXT" | "NUMBER" | "DATE" | "SELECT" | "PERSON";
             required?: boolean;
             options?: string[];
+        };
+        SubmitResolutionRequest: {
+            completionNote: string;
+        };
+        ReworkResolutionRequest: {
+            comment: string;
+        };
+        CancelResolutionRequest: {
+            comment?: string;
         };
         AppointRequest: {
             /** Format: uuid */
@@ -1996,6 +2226,42 @@ export interface components {
             archived?: boolean;
             /** Format: date-time */
             archivedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PageResponseResolutionSummaryResponse: {
+            content?: components["schemas"]["ResolutionSummaryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        ResolutionSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** Format: uuid */
+            executorId?: string;
+            coExecutorIds?: string[];
+            instruction?: string;
+            /** Format: date */
+            dueDate?: string;
+            /** Format: uuid */
+            parentResolutionId?: string;
+            /** @enum {string} */
+            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+            overdue?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2858,6 +3124,56 @@ export interface operations {
             };
         };
     };
+    listByTask: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+            };
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseResolutionSummaryResponse"];
+                };
+            };
+        };
+    };
+    issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
     changeStatus: {
         parameters: {
             query?: never;
@@ -3235,6 +3551,150 @@ export interface operations {
             };
         };
     };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    rework: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReworkResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
     restore_2: {
         parameters: {
             query?: never;
@@ -3478,7 +3938,7 @@ export interface operations {
             };
         };
     };
-    start: {
+    start_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4209,6 +4669,55 @@ export interface operations {
             };
         };
     };
+    list_7: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                taskId?: string;
+                executorId?: string;
+                authorId?: string;
+                state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+                mine?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseResolutionSummaryResponse"];
+                };
+            };
+        };
+    };
+    get_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
     catalog: {
         parameters: {
             query?: never;
@@ -4275,7 +4784,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -4381,7 +4890,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
