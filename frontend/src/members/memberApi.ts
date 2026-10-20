@@ -1,6 +1,7 @@
 import { api, type components } from '../api/client';
 import { env } from '../config/env';
 import { toProblemError } from '../api/problem';
+import { PAGE_SIZE as PAGE_SIZE_DIRECTORY, type MemberFilters } from './memberFilters';
 
 type MemberResponse = components['schemas']['MemberResponse'];
 type MemberSummaryResponse = components['schemas']['MemberSummary'];
@@ -77,8 +78,8 @@ export function toMember(m: MemberResponse): Member {
 }
 
 /**
- * Whole directory (all pages). The backend has no text search yet, so the UI filters this list client-side;
- * a council team is small enough for that (CONTEXT.md §5.1).
+ * Whole directory (all pages) for pickers and name lookups that need every member (org unit member pickers,
+ * name labels). The directory page itself uses {@link searchMembers} (server-side filters and pagination).
  */
 export async function listMembers(includeArchived: boolean): Promise<MemberSummary[]> {
   const all: MemberSummary[] = [];
@@ -91,6 +92,41 @@ export async function listMembers(includeArchived: boolean): Promise<MemberSumma
     if (data.last !== false) break;
   }
   return all;
+}
+
+export interface MemberPage {
+  content: MemberSummary[];
+  /** Zero-based page index. */
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+/** Server-side directory search: filters are ANDed by the backend; paging and sort are stable (id tiebreaker). */
+export async function searchMembers(f: MemberFilters): Promise<MemberPage> {
+  const { data, error, response } = await api.GET('/api/v1/members', {
+    params: {
+      query: {
+        page: { page: f.page, size: PAGE_SIZE_DIRECTORY, sort: f.sort },
+        q: f.q.trim() || undefined,
+        facultyId: f.facultyId ?? undefined,
+        departmentId: f.departmentId ?? undefined,
+        divisionId: f.divisionId ?? undefined,
+        positionId: f.positionId ?? undefined,
+        activityLevelId: f.activityLevelId ?? undefined,
+        status: f.status,
+      },
+    },
+  });
+  if (!data) throw toProblemError(response, error);
+  return {
+    content: (data.content ?? []).map(toSummary),
+    page: data.page ?? 0,
+    size: data.size ?? PAGE_SIZE_DIRECTORY,
+    totalElements: data.totalElements ?? 0,
+    totalPages: data.totalPages ?? 0,
+  };
 }
 
 export async function getMember(id: string): Promise<Member> {

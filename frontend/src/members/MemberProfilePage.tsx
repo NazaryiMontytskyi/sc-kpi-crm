@@ -10,6 +10,7 @@ import { usePageTitle } from '../layout/pageTitle';
 import { MemberActionModal, type MemberAction } from './MemberActionModal';
 import { MemberAvatar } from './MemberAvatar';
 import { MemberFormModal } from './MemberFormModal';
+import { MemberOrgSections } from './MemberOrgSections';
 import type { Member } from './memberApi';
 import { formatDate, fullName, memberFacultyName, telegramLink } from './memberFormat';
 import { memberErrorKey } from './memberProblems';
@@ -204,6 +205,7 @@ export function MemberProfilePage() {
 
       <Detail member={member} />
       {isSelf && <LanguageSetting />}
+      <MemberOrgSections userId={member.id} />
 
       <Accordion variant="contained" multiple={false}>
         <Accordion.Item value="history">

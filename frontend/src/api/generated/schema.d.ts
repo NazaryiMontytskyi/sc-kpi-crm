@@ -428,8 +428,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List members (paginated, sortable by lastName, firstName, joinedAt; default lastName)
-         * @description Active members only. includeArchived=true is honoured only for holders of members.archive. Directory filters are added in a later increment.
+         * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
+         * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: reference filled by INC-022. Ties are broken by id, so paging is stable.
          */
         get: operations["list_1"];
         put?: never;
@@ -2085,6 +2085,13 @@ export interface operations {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
+                q?: string;
+                facultyId?: string;
+                departmentId?: string;
+                divisionId?: string;
+                positionId?: string;
+                activityLevelId?: string;
+                status?: "ACTIVE" | "ARCHIVED" | "ALL";
                 includeArchived?: boolean;
             };
             header?: never;

@@ -1,17 +1,26 @@
-import { Alert, Anchor, Badge, Button, Card, Group, Loader, Stack, Switch, Table, Text, TextInput, Title } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import { useState } from 'react';
+import { Alert, Anchor, Badge, Button, Card, Drawer, Group, Loader, Pagination, Stack, Table, Text, TextInput, Title } from '@mantine/core';
+import { useDebouncedValue, useMediaQuery } from '@mantine/hooks';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePermission } from '../auth/CurrentUser';
 import { usePageTitle } from '../layout/pageTitle';
 import { MemberAvatar } from './MemberAvatar';
 import type { MemberSummary } from './memberApi';
-import { formatDate, fullName, matchesSearch, memberFacultyName, telegramLink } from './memberFormat';
+import { formatDate, fullName, memberFacultyName, telegramLink } from './memberFormat';
+import {
+  EMPTY_FILTERS,
+  activeFilterCount,
+  parseFilters,
+  toSearchParams,
+  withFilter,
+  type MemberFilters,
+} from './memberFilters';
+import { MemberFiltersPanel } from './MemberFiltersPanel';
 import { memberErrorKey } from './memberProblems';
 import { MemberFormModal } from './MemberFormModal';
 import { TemporaryPasswordModal } from './TemporaryPasswordModal';
-import { useMembers } from './useMembers';
+import { useMemberDirectory } from './useMembers';
 
 const TOUCH = 44;
 export const MEMBERS_CREATE = 'members.create';
@@ -45,8 +54,10 @@ interface CreatedInfo {
 }
 
 /**
- * Member directory: text search (client-side, the backend has no search yet), table on desktop (>= 48em),
- * cards on mobile. Create needs `members.create`; archived members are listed for `members.archive` holders.
+ * Member directory (INC-021): server-side search, filters and pagination; the state lives in the URL query string
+ * so a view can be shared. Filters are an inline panel on desktop (>= 48em) and a drawer on mobile; the list is a
+ * table on desktop and cards on mobile. Create needs `members.create`; archived members are offered to
+ * `members.archive` holders only (the backend enforces it).
  */
 export function MembersPage() {
   const { t, i18n } = useTranslation();
@@ -55,14 +66,43 @@ export function MembersPage() {
   const canCreate = usePermission(MEMBERS_CREATE);
   const canSeeArchived = usePermission(MEMBERS_ARCHIVE);
   const isDesktop = useMediaQuery('(min-width: 48em)');
-  const [search, setSearch] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const filters = useMemo(() => parseFilters(params), [params]);
+  // The input shows what the user is typing (draft) or, when there is no draft, the URL value.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [seenQ, setSeenQ] = useState(filters.q);
+  if (seenQ !== filters.q) {
+    // URL -> text (shared link opened, reset pressed, history navigation): drop a draft that disagrees.
+    setSeenQ(filters.q);
+    if (draft !== null && draft.trim() !== filters.q.trim()) setDraft(null);
+  }
+  const searchText = draft ?? filters.q;
+  const [debouncedText] = useDebouncedValue(searchText, 300);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<CreatedInfo | null>(null);
-  const query = useMembers(canSeeArchived && showArchived);
-  const all = query.data ?? [];
-  const members = all.filter((m) => matchesSearch(m, search));
+  // Non-holders never see archived members: drop a status that was typed into the URL by hand.
+  const effective: MemberFilters = canSeeArchived ? filters : { ...filters, status: 'ACTIVE' };
+  const query = useMemberDirectory(effective);
+  const members = query.data?.content ?? [];
+  const total = query.data?.totalElements ?? 0;
+  const totalPages = query.data?.totalPages ?? 0;
   const loadError = query.isError ? memberErrorKey(query.error) : null;
+  const filterCount = activeFilterCount(effective);
+
+  const apply = (next: MemberFilters) => setParams(toSearchParams(next), { replace: true });
+
+  // Debounced text -> URL (only when it really differs, so back/forward navigation does not loop).
+  useEffect(() => {
+    if (debouncedText.trim() !== filters.q.trim()) apply(withFilter(filters, { q: debouncedText }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedText]);
+
+  const hasCriteria = filterCount > 0 || filters.q.trim() !== '';
+  const reset = () => {
+    setDraft(null);
+    apply({ ...EMPTY_FILTERS, sort: filters.sort });
+  };
 
   return (
     <Stack gap="md">
@@ -74,33 +114,63 @@ export function MembersPage() {
           type="search"
           label={t('members.search')}
           placeholder={t('members.searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
+          value={searchText}
+          onChange={(e) => setDraft(e.currentTarget.value)}
           style={{ flex: '1 1 16rem', maxWidth: '28rem' }}
           styles={{ input: { minHeight: TOUCH } }}
         />
+        {!isDesktop && (
+          <Button mih={TOUCH} variant="default" onClick={() => setDrawerOpen(true)}>
+            {t('members.directory.filtersOpen')}
+            {filterCount > 0 ? ` (${filterCount})` : ''}
+          </Button>
+        )}
         {canCreate && (
           <Button mih={TOUCH} onClick={() => setCreating(true)}>
             {t('members.add')}
           </Button>
         )}
       </Group>
-      {canSeeArchived && (
-        <Switch
-          label={t('members.showArchived')}
-          checked={showArchived}
-          onChange={(e) => setShowArchived(e.currentTarget.checked)}
-          styles={{ root: { minHeight: TOUCH, display: 'flex', alignItems: 'center' } }}
-        />
+
+      {isDesktop && (
+        <Card withBorder padding="md">
+          <MemberFiltersPanel filters={effective} onChange={apply} canSeeArchived={canSeeArchived} />
+        </Card>
       )}
+      <Drawer
+        opened={!isDesktop && drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        position="bottom"
+        size="90%"
+        title={t('members.directory.filtersTitle')}
+      >
+        <Stack gap="md">
+          <MemberFiltersPanel filters={effective} onChange={apply} canSeeArchived={canSeeArchived} />
+          <Group grow>
+            <Button mih={TOUCH} variant="default" onClick={reset}>
+              {t('members.directory.reset')}
+            </Button>
+            <Button mih={TOUCH} onClick={() => setDrawerOpen(false)}>
+              {t('members.directory.done')}
+            </Button>
+          </Group>
+        </Stack>
+      </Drawer>
 
       {query.isLoading && <Loader size="sm" />}
       {loadError && <Alert color="red">{t(loadError === 'problems.UNKNOWN' ? 'members.loadFailed' : loadError)}</Alert>}
-      {query.data && all.length === 0 && <Text c="dimmed">{t('members.empty')}</Text>}
-      {query.data && all.length > 0 && members.length === 0 && <Text c="dimmed">{t('members.nothingFound')}</Text>}
-      {members.length > 0 && (
+      {query.data && total === 0 && !hasCriteria && <Text c="dimmed">{t('members.empty')}</Text>}
+      {query.data && total === 0 && hasCriteria && (
+        <Group gap="sm">
+          <Text c="dimmed">{t('members.nothingFound')}</Text>
+          <Button variant="subtle" mih={TOUCH} onClick={reset}>
+            {t('members.directory.reset')}
+          </Button>
+        </Group>
+      )}
+      {total > 0 && (
         <Text size="sm" c="dimmed">
-          {t('members.count', { count: members.length })}
+          {t('members.count', { count: total })}
         </Text>
       )}
 
@@ -169,6 +239,17 @@ export function MembersPage() {
             </Card>
           ))}
         </Stack>
+      )}
+
+      {totalPages > 1 && (
+        <Pagination
+          total={totalPages}
+          value={filters.page + 1}
+          onChange={(p) => apply({ ...filters, page: p - 1 })}
+          siblings={isDesktop ? 1 : 0}
+          aria-label={t('members.directory.pagination')}
+          styles={{ control: { minHeight: TOUCH, minWidth: TOUCH } }}
+        />
       )}
 
       {canCreate && creating && (

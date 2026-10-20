@@ -19,6 +19,7 @@ import { validateMember, type MemberFormValues } from './memberValidation';
 vi.mock('./memberApi', async (orig) => ({
   ...(await orig<typeof api>()),
   listMembers: vi.fn(),
+  searchMembers: vi.fn(),
   getMember: vi.fn(),
   createMember: vi.fn(),
   updateMember: vi.fn(),
@@ -27,6 +28,16 @@ vi.mock('./memberApi', async (orig) => ({
   restoreMember: vi.fn(),
   resetMemberPassword: vi.fn(),
   uploadAvatar: vi.fn(),
+}));
+vi.mock('./memberOrgApi', () => ({
+  listMembershipsOfUser: vi.fn().mockResolvedValue([]),
+  listAppointmentsOfUser: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('../org/orgApi', async (orig) => ({
+  ...(await orig<typeof import('../org/orgApi')>()),
+  getOrgTree: vi.fn().mockResolvedValue([]),
+  listPositions: vi.fn().mockResolvedValue([]),
+  getPosition: vi.fn(),
 }));
 vi.mock('./facultyApi', async (orig) => ({ ...(await orig<typeof facultyApi>()), listFaculties: vi.fn() }));
 vi.mock('../audit', () => ({ EntityHistory: () => <div data-testid="history" /> }));
@@ -90,9 +101,15 @@ function renderProfile(id: string, permissions: string[], userId = 'someone') {
 beforeEach(async () => {
   vi.clearAllMocks();
   await changeLanguage('uk');
-  vi.mocked(api.listMembers).mockImplementation(async (includeArchived) =>
-    includeArchived ? [ANNA, BOHDAN, ARCHIVED] : [ANNA, BOHDAN],
-  );
+  vi.mocked(api.listMembers).mockResolvedValue([ANNA, BOHDAN]);
+  // Emulates the server: status and text search are applied by the backend.
+  vi.mocked(api.searchMembers).mockImplementation(async (f) => {
+    const all = [ANNA, BOHDAN, ARCHIVED].filter((m) =>
+      f.status === 'ALL' ? true : f.status === 'ARCHIVED' ? m.archived : !m.archived,
+    );
+    const content = all.filter((m) => matchesSearch(m, f.q));
+    return { content, page: 0, size: 20, totalElements: content.length, totalPages: 1 };
+  });
   vi.mocked(api.getMember).mockResolvedValue(member(ANNA));
   vi.mocked(facultyApi.listFaculties).mockResolvedValue([
     { id: 'f1', code: 'FAKE', nameUk: 'Фейковий факультет', nameEn: 'Fake Faculty', archived: false },
@@ -191,7 +208,8 @@ describe('MembersPage', () => {
     expect(await screen.findByText('Тестенко Анна Фейківна')).toBeInTheDocument();
     expect(screen.getByText('Прикладний Богдан')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Пошук'), 'богдан');
-    expect(screen.queryByText('Тестенко Анна Фейківна')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Тестенко Анна Фейківна')).not.toBeInTheDocument());
+    expect(api.searchMembers).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'богдан' }));
     expect(screen.getByText('Прикладний Богдан')).toBeInTheDocument();
     await userEvent.clear(screen.getByLabelText('Пошук'));
     await userEvent.type(screen.getByLabelText('Пошук'), 'немає такого');
@@ -210,16 +228,20 @@ describe('MembersPage', () => {
     renderIn(<MembersPage />, ['members.view']);
     await screen.findByText('Тестенко Анна Фейківна');
     expect(screen.queryByRole('button', { name: 'Додати учасника' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Показати архівованих')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Фільтри/ }));
+    expect(await screen.findByTestId('member-filters')).toBeInTheDocument();
+    expect(screen.queryByText('Архівовані')).not.toBeInTheDocument();
   });
 
   it('shows archived members only to members.archive holders who ask for them', async () => {
     renderIn(<MembersPage />, ['members.archive']);
     await screen.findByText('Тестенко Анна Фейківна');
     expect(screen.queryByText('Архівний Кузьма Фейківна')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('Показати архівованих'));
+    await userEvent.click(screen.getByRole('button', { name: /Фільтри/ }));
+    await userEvent.click(await screen.findByText('Архівовані'));
     expect(await screen.findByText('Архівний Кузьма Фейківна')).toBeInTheDocument();
     expect(screen.getAllByText('Архівований').length).toBeGreaterThan(0);
+    expect(api.searchMembers).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'ARCHIVED' }));
   });
 
   async function fillCreateForm() {

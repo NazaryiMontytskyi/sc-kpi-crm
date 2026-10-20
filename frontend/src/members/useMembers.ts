@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   archiveMember,
   createMember,
   getMember,
   listMembers,
   resetMemberPassword,
+  searchMembers,
   restoreMember,
   updateMember,
   updateSelf,
@@ -12,11 +13,21 @@ import {
   type MemberRequest,
   type SelfEditRequest,
 } from './memberApi';
+import type { MemberFilters } from './memberFilters';
 
 export const MEMBERS_KEY = ['members'] as const;
 
 export function useMembers(includeArchived: boolean) {
   return useQuery({ queryKey: [...MEMBERS_KEY, 'list', { includeArchived }], queryFn: () => listMembers(includeArchived) });
+}
+
+/** One page of the filtered directory; the previous page stays visible while the next one loads. */
+export function useMemberDirectory(filters: MemberFilters) {
+  return useQuery({
+    queryKey: [...MEMBERS_KEY, 'directory', filters],
+    queryFn: () => searchMembers(filters),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useMember(id: string) {
