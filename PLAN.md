@@ -510,7 +510,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-037 — Resolutions: profile and personal lists integration
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks` + frontend `members`
 - **Depends on:** INC-033, INC-021
 - **Scope:** `GET /members/{id}/resolutions?active=true` served by `tasks` public API; member profile shows active tasks/resolutions and simple counts (active, overdue, accepted); "My resolutions" and "Issued by me" pages with state filters.
