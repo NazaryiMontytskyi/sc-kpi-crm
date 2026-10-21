@@ -43,6 +43,7 @@ import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 class ArticleService {
 
 	static final String ARTICLE = "Article";
+	static final String ARTICLE_VERSION = "ArticleVersion";
 
 	/** An article with the data that lives outside its row. */
 	record ArticleView(Article article, List<FileInfo> attachments, List<Ancestor> ancestors) {
@@ -59,6 +60,7 @@ class ArticleService {
 	}
 
 	private final ArticleRepository articles;
+	private final ArticleVersionRepository versions;
 	private final ArticleViewer viewer;
 	private final FileService files;
 	private final AuditPublisher audit;
@@ -66,9 +68,10 @@ class ArticleService {
 	private final ApplicationEventPublisher events;
 	private final Clock clock;
 
-	ArticleService(ArticleRepository articles, ArticleViewer viewer, FileService files, AuditPublisher audit,
+	ArticleService(ArticleRepository articles, ArticleVersionRepository versions, ArticleViewer viewer, FileService files, AuditPublisher audit,
 			ActorProvider actors, ApplicationEventPublisher events, Clock clock) {
 		this.articles = articles;
+		this.versions = versions;
 		this.viewer = viewer;
 		this.files = files;
 		this.audit = audit;
@@ -91,16 +94,21 @@ class ArticleService {
 		attachments.forEach(this::assertFileUsable);
 		Article saved = articles.save(new Article(title.strip(), doc, parentArticleId, restricted,
 				ArticleRules.normalizeTags(tags), attachments, ArticleRules.extractReferences(doc)));
+		snapshot(saved);
 		audit.publish(AuditAction.CREATE, ARTICLE, saved.getId(), null, saved.auditSnapshot());
 		publish(ArticleEvent.Kind.CREATED, saved);
 		return view(saved);
 	}
 
-	/** Replaces title, content, tags, attachments and the restricted flag; counts a new save. */
+	/**
+	 * Replaces title, content, tags, attachments and the restricted flag; counts a new save and snapshots it.
+	 * {@code expectedVersion} is the version the caller edited; a different current version is a conflict (409).
+	 */
 	@Transactional
-	ArticleView update(UUID id, String title, Map<String, Object> content, boolean restricted,
+	ArticleView update(UUID id, int expectedVersion, String title, Map<String, Object> content, boolean restricted,
 			Collection<String> tags, Collection<UUID> attachmentIds) {
 		Article article = lockActive(id);
+		assertVersion(article, expectedVersion);
 		if (restricted != article.isRestricted()) {
 			assertMayMark(restricted);
 		}
@@ -112,6 +120,29 @@ class ArticleService {
 		article.edit(title.strip(), doc, restricted, ArticleRules.normalizeTags(tags), attachments,
 				ArticleRules.extractReferences(doc));
 		Article saved = articles.save(article);
+		snapshot(saved);
+		audit.publish(AuditAction.UPDATE, ARTICLE, id, before, saved.auditSnapshot());
+		publish(ArticleEvent.Kind.UPDATED, saved);
+		return view(saved);
+	}
+
+	/**
+	 * Restores an old version: the article takes that version's title and content (tags, attachments and the
+	 * restricted flag stay) and a NEW version is appended; no existing version changes.
+	 */
+	@Transactional
+	ArticleView restoreVersion(UUID id, int versionNumber, Integer expectedVersion) {
+		Article article = lockActive(id);
+		if (expectedVersion != null) {
+			assertVersion(article, expectedVersion);
+		}
+		ArticleVersion old = versions.findByArticleIdAndVersionNumber(id, versionNumber)
+				.orElseThrow(() -> new NotFoundException(ARTICLE_VERSION, versionNumber));
+		Map<String, Object> before = article.auditSnapshot();
+		article.edit(old.getTitle(), old.getContent(), article.isRestricted(), article.getTags(),
+				article.getAttachmentIds(), ArticleRules.extractReferences(old.getContent()));
+		Article saved = articles.save(article);
+		snapshot(saved);
 		audit.publish(AuditAction.UPDATE, ARTICLE, id, before, saved.auditSnapshot());
 		publish(ArticleEvent.Kind.UPDATED, saved);
 		return view(saved);
@@ -185,6 +216,20 @@ class ArticleService {
 		return view(getVisible(id));
 	}
 
+	/** Versions of a visible article (archived ones too). */
+	@Transactional(readOnly = true)
+	Page<ArticleVersion> listVersions(UUID id, Pageable pageable) {
+		getVisible(id);
+		return versions.findByArticleId(id, pageable);
+	}
+
+	@Transactional(readOnly = true)
+	ArticleVersion getVersion(UUID id, int versionNumber) {
+		getVisible(id);
+		return versions.findByArticleIdAndVersionNumber(id, versionNumber)
+				.orElseThrow(() -> new NotFoundException(ARTICLE_VERSION, versionNumber));
+	}
+
 	/** Flat list; archived articles only with {@code includeArchived}. Optional filters: tag, parent. */
 	@Transactional(readOnly = true)
 	Page<Article> list(String tag, UUID parentArticleId, boolean includeArchived, Pageable pageable) {
@@ -239,6 +284,16 @@ class ArticleService {
 	}
 
 	// ---- helpers ----
+
+	private void snapshot(Article saved) {
+		versions.save(new ArticleVersion(saved.getId(), saved.getVersion(), saved.getTitle(), saved.getContent()));
+	}
+
+	private static void assertVersion(Article article, int expectedVersion) {
+		if (article.getVersion() != expectedVersion) {
+			throw new ConflictException("ARTICLE_VERSION_CONFLICT", article.getVersion());
+		}
+	}
 
 	private List<TreeNode> build(UUID parentId, Map<UUID, List<ArticleRepository.TreeRow>> byParent) {
 		List<TreeNode> nodes = new ArrayList<>();

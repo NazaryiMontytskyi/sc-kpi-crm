@@ -26,7 +26,7 @@ class ArticleTextTest {
 
 	private final ArticleRepository repository = mock(ArticleRepository.class);
 	private final ArticleViewer viewer = mock(ArticleViewer.class);
-	private final ArticleService service = new ArticleService(repository, viewer, mock(FileService.class),
+	private final ArticleService service = new ArticleService(repository, mock(ArticleVersionRepository.class), viewer, mock(FileService.class),
 			mock(AuditPublisher.class), mock(ActorProvider.class), mock(ApplicationEventPublisher.class),
 			Clock.systemUTC());
 

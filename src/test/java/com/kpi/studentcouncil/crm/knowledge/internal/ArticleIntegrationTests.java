@@ -29,18 +29,22 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crm.access.AccessService;
+import com.kpi.studentcouncil.crm.knowledge.ArticleEvent;
 import com.kpi.studentcouncil.crmtest.SharedAdmin;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
+@RecordApplicationEvents
 class ArticleIntegrationTests {
 
 	private static final String PASSWORD = "Sup3r-secret-pw";
@@ -57,6 +61,9 @@ class ArticleIntegrationTests {
 
 	@Autowired
 	AccessService access;
+
+	@Autowired
+	ApplicationEvents events;
 
 	MockHttpSession admin;
 
@@ -75,6 +82,7 @@ class ArticleIntegrationTests {
 	@AfterEach
 	void cleanUp() {
 		for (UUID id : articles) {
+			jdbc.update("delete from kb_article_version where article_id = ?", id);
 			jdbc.update("delete from kb_article_reference where article_id = ?", id);
 			jdbc.update("delete from kb_article_tag where article_id = ?", id);
 			jdbc.update("delete from kb_article_attachment where article_id = ?", id);
@@ -138,7 +146,13 @@ class ArticleIntegrationTests {
 				.contentType(MediaType.APPLICATION_JSON).content(json));
 	}
 
+	/** Sends an edit; unless the body names {@code expectedVersion}, the article's current version is filled in. */
 	private ResultActions putJson(MockHttpSession s, String path, String json) throws Exception {
+		if (!json.contains("expectedVersion")) {
+			UUID article = UUID.fromString(path.substring(path.lastIndexOf('/') + 1));
+			int current = jdbc.queryForObject("select version from kb_article where id = ?", Integer.class, article);
+			json = "{\"expectedVersion\":" + current + "," + json.substring(1);
+		}
 		return mvc.perform(put("/api/v1" + path).with(csrf()).session(s).header(HttpHeaders.ACCEPT_LANGUAGE, "en")
 				.contentType(MediaType.APPLICATION_JSON).content(json));
 	}
@@ -403,6 +417,117 @@ class ArticleIntegrationTests {
 		String snapshot = jdbc.queryForObject("select after_state::text from audit_log where entity_type = 'Article'"
 				+ " and entity_id = ? and action = 'CREATE'", String.class, secret);
 		assertThat(snapshot).doesNotContain("Secret").contains("\"restricted\": true");
+	}
+
+	private static String doc(String text) {
+		return "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\""
+				+ text + "\"}]}]}";
+	}
+
+	private long versionRows(UUID id) {
+		return jdbc.queryForObject("select count(*) from kb_article_version where article_id = ?", Long.class, id);
+	}
+
+	private long events(UUID id, ArticleEvent.Kind kind) {
+		return events.stream(ArticleEvent.class).filter(e -> e.id().equals(id) && e.kind() == kind).count();
+	}
+
+	@Test
+	void everySaveCreatesExactlyOneVersionAndPublishesAnEvent() throws Exception {
+		UUID id = id(send(admin, "/articles", "{\"title\":\"Versioned " + RUN + "\",\"content\":" + doc("one") + "}")
+				.andExpect(status().isCreated()));
+		articles.add(id);
+		assertThat(versionRows(id)).isEqualTo(1);
+		assertThat(events(id, ArticleEvent.Kind.CREATED)).isEqualTo(1);
+
+		putJson(admin, "/articles/" + id, "{\"title\":\"Versioned 2 " + RUN + "\",\"content\":" + doc("two") + "}")
+				.andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
+		putJson(admin, "/articles/" + id, "{\"title\":\"Versioned 3 " + RUN + "\",\"content\":" + doc("three") + "}")
+				.andExpect(status().isOk()).andExpect(jsonPath("$.version").value(3));
+		assertThat(versionRows(id)).isEqualTo(3);
+		assertThat(events(id, ArticleEvent.Kind.UPDATED)).isEqualTo(2);
+
+		read(admin, "/articles/" + id + "/versions").andExpect(status().isOk())
+				.andExpect(jsonPath("$.content", hasSize(3))).andExpect(jsonPath("$.content[0].versionNumber").value(3))
+				.andExpect(jsonPath("$.content[2].versionNumber").value(1))
+				.andExpect(jsonPath("$.content[0].editedBy").exists()).andExpect(jsonPath("$.content[0].editedAt").exists())
+				.andExpect(jsonPath("$.content[0].content").doesNotExist());
+		read(admin, "/articles/" + id + "/versions/2").andExpect(status().isOk())
+				.andExpect(jsonPath("$.title").value("Versioned 2 " + RUN))
+				.andExpect(jsonPath("$.content.content[0].content[0].text").value("two"));
+		read(admin, "/articles/" + id + "/versions/9").andExpect(status().isNotFound());
+
+		// a move is not a save
+		UUID other = article("Other", null);
+		send(admin, "/articles/" + id + "/move", "{\"parentArticleId\":\"" + other + "\"}").andExpect(status().isOk());
+		assertThat(versionRows(id)).isEqualTo(3);
+	}
+
+	@Test
+	void staleSaveIsRejectedWithConflict() throws Exception {
+		UUID id = article("Concurrent", null);
+		putJson(admin, "/articles/" + id, "{\"expectedVersion\":1,\"title\":\"First " + RUN + "\"}")
+				.andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
+		putJson(admin, "/articles/" + id, "{\"expectedVersion\":1,\"title\":\"Stale " + RUN + "\"}")
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ARTICLE_VERSION_CONFLICT"));
+		send(admin, "/articles/" + id + "/versions/1/restore", "{\"expectedVersion\":1}")
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ARTICLE_VERSION_CONFLICT"));
+		assertThat(versionRows(id)).isEqualTo(2);
+		mvc.perform(put("/api/v1/articles/" + id).with(csrf()).session(admin).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"title\":\"No version " + RUN + "\"}")).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void restoreAppendsANewVersionAndKeepsHistory() throws Exception {
+		UUID id = id(send(admin, "/articles", "{\"title\":\"Restore " + RUN + "\",\"content\":" + doc("original")
+				+ ",\"tags\":[\"keep\"]}").andExpect(status().isCreated()));
+		articles.add(id);
+		putJson(admin, "/articles/" + id, "{\"title\":\"Changed " + RUN + "\",\"content\":" + doc("changed")
+				+ ",\"tags\":[\"keep\",\"more\"]}").andExpect(status().isOk());
+
+		send(admin, "/articles/" + id + "/versions/1/restore", "").andExpect(status().isOk())
+				.andExpect(jsonPath("$.version").value(3)).andExpect(jsonPath("$.title").value("Restore " + RUN))
+				.andExpect(jsonPath("$.content.content[0].content[0].text").value("original"))
+				.andExpect(jsonPath("$.tags", hasSize(2)));
+		assertThat(versionRows(id)).isEqualTo(3);
+		assertThat(jdbc.queryForObject("select title from kb_article_version where article_id = ? and version_number = 2",
+				String.class, id)).isEqualTo("Changed " + RUN);
+		assertThat(jdbc.queryForObject(
+				"select content::text from kb_article_version where article_id = ? and version_number = 3", String.class,
+				id)).isEqualTo(jdbc.queryForObject(
+						"select content::text from kb_article_version where article_id = ? and version_number = 1",
+						String.class, id));
+		assertThat(audit(id, "UPDATE")).isEqualTo(2);
+		assertThat(events(id, ArticleEvent.Kind.UPDATED)).isEqualTo(2);
+		send(admin, "/articles/" + id + "/versions/42/restore", "").andExpect(status().isNotFound());
+
+		send(admin, "/articles/" + id + "/archive", "").andExpect(status().isOk());
+		send(admin, "/articles/" + id + "/versions/1/restore", "").andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("ARTICLE_ARCHIVED"));
+		read(admin, "/articles/" + id + "/versions").andExpect(status().isOk()).andExpect(jsonPath("$.content", hasSize(3)));
+	}
+
+	@Test
+	void versionPermissionsAndRestrictedVisibility() throws Exception {
+		UUID open = article("Open versions", null);
+		UUID secret = article("Secret versions", null, true, "");
+		MockHttpSession plain = sessionWith();
+		MockHttpSession viewer = sessionWith("kb.view");
+		MockHttpSession editor = sessionWith("kb.view", "kb.edit");
+		MockHttpSession privileged = sessionWith("kb.view", "kb.edit", "kb.restricted.view");
+
+		read(plain, "/articles/" + open + "/versions").andExpect(status().isForbidden());
+		read(viewer, "/articles/" + open + "/versions").andExpect(status().isOk());
+		read(viewer, "/articles/" + open + "/versions/1").andExpect(status().isOk());
+		send(viewer, "/articles/" + open + "/versions/1/restore", "").andExpect(status().isForbidden());
+		send(editor, "/articles/" + open + "/versions/1/restore", "").andExpect(status().isOk());
+
+		read(editor, "/articles/" + secret + "/versions").andExpect(status().isNotFound());
+		read(editor, "/articles/" + secret + "/versions/1").andExpect(status().isNotFound());
+		send(editor, "/articles/" + secret + "/versions/1/restore", "").andExpect(status().isNotFound());
+		read(privileged, "/articles/" + secret + "/versions").andExpect(status().isOk())
+				.andExpect(jsonPath("$.content", hasSize(1)));
+		send(privileged, "/articles/" + secret + "/versions/1/restore", "").andExpect(status().isOk());
 	}
 
 }

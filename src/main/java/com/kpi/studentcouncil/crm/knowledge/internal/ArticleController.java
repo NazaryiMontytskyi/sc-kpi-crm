@@ -26,10 +26,13 @@ import com.kpi.studentcouncil.crm.knowledge.internal.ArticleService.TreeNode;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.AncestorResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.ArticleResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.ArticleSummaryResponse;
+import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.ArticleVersionResponse;
+import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.ArticleVersionSummaryResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.AttachmentResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.CreateArticleRequest;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.MoveArticleRequest;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.ReferenceResponse;
+import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.RestoreVersionRequest;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.TagResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.TreeNodeResponse;
 import com.kpi.studentcouncil.crm.knowledge.internal.KnowledgeDtos.UpdateArticleRequest;
@@ -46,6 +49,8 @@ import com.kpi.studentcouncil.crm.shared.web.ApiV1;
 class ArticleController {
 
 	private static final Set<String> SORTABLE = Set.of("title", "createdAt", "updatedAt");
+	private static final Set<String> VERSION_SORTABLE = Set.of("versionNumber");
+	private static final Sort VERSION_SORT = Sort.by(Sort.Direction.DESC, "versionNumber");
 	private static final Sort DEFAULT_SORT = Sort.by("title").and(Sort.by("id"));
 
 	private final ArticleService service;
@@ -116,10 +121,42 @@ class ArticleController {
 	@PutMapping("/articles/{id}")
 	@PreAuthorize("hasAuthority('kb.edit')")
 	@Operation(summary = "Edit an article (replaces title, content, tags, attachments, restricted flag)",
-			description = "Every edit raises the version counter by one. 409 when archived.")
+			description = "expectedVersion must equal the current version, otherwise 409 ARTICLE_VERSION_CONFLICT. "
+					+ "Every edit raises the version counter by one and stores exactly one version snapshot. "
+					+ "409 ARTICLE_ARCHIVED when archived.")
 	ArticleResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateArticleRequest request) {
-		return detail(service.update(id, request.title(), request.content(), Boolean.TRUE.equals(request.restricted()),
+		return detail(service.update(id, request.expectedVersion(), request.title(), request.content(), Boolean.TRUE.equals(request.restricted()),
 				request.tags(), request.attachmentIds()));
+	}
+
+	@GetMapping("/articles/{id}/versions")
+	@PreAuthorize("hasAuthority('kb.view')")
+	@Operation(summary = "Version history of an article (paginated, newest first; sortable by versionNumber)",
+			description = "404 for a restricted article without kb.restricted.view.")
+	PageResponse<ArticleVersionSummaryResponse> versions(@PathVariable UUID id, @Valid PageParams page) {
+		return PageResponse.of(service.listVersions(id, page.toPageable(VERSION_SORTABLE, VERSION_SORT)),
+				v -> new ArticleVersionSummaryResponse(v.getVersionNumber(), v.getTitle(), v.getCreatedBy(),
+						v.getCreatedAt()));
+	}
+
+	@GetMapping("/articles/{id}/versions/{versionNumber}")
+	@PreAuthorize("hasAuthority('kb.view')")
+	@Operation(summary = "Read one version (title and content snapshot)")
+	ArticleVersionResponse version(@PathVariable UUID id, @PathVariable int versionNumber) {
+		ArticleVersion v = service.getVersion(id, versionNumber);
+		return new ArticleVersionResponse(v.getVersionNumber(), v.getTitle(), v.getContent(), v.getCreatedBy(),
+				v.getCreatedAt());
+	}
+
+	@PostMapping("/articles/{id}/versions/{versionNumber}/restore")
+	@PreAuthorize("hasAuthority('kb.edit')")
+	@Operation(summary = "Restore an old version as a NEW latest version",
+			description = "The article takes the title and content of that version; tags, attachments and the "
+					+ "restricted flag stay. Old versions are kept. Optional expectedVersion: 409 "
+					+ "ARTICLE_VERSION_CONFLICT when the article changed meanwhile; 409 ARTICLE_ARCHIVED when archived.")
+	ArticleResponse restoreVersion(@PathVariable UUID id, @PathVariable int versionNumber,
+			@Valid @RequestBody(required = false) RestoreVersionRequest request) {
+		return detail(service.restoreVersion(id, versionNumber, request == null ? null : request.expectedVersion()));
 	}
 
 	@PostMapping("/articles/{id}/move")
