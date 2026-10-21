@@ -628,7 +628,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-046 — Search: index and API
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `search`
 - **Depends on:** INC-021, INC-025, INC-033, INC-038, INC-017
 - **Scope:** ADR-0002 (search module owns a denormalized `search_document` table fed by domain events from members, org, tasks, resolutions, knowledge; PostgreSQL FTS with `simple`/configured dictionaries plus `pg_trgm`; Flyway enabling extension); `GET /api/v1/search?q=` returning results grouped by type (tasks, resolutions, articles incl. body text, people, org units); partial-match tolerance; Ukrainian and English; respects visibility (restricted articles excluded without `kb.restricted.view`; archived excluded); initial reindex command/admin endpoint.
