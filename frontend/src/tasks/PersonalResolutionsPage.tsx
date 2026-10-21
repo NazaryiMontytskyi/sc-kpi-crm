@@ -1,6 +1,7 @@
 import { Chip, Group, ScrollArea, Stack, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/CurrentUser';
 import { usePageTitle } from '../layout/pageTitle';
 import { isStateFilter, STATE_FILTERS, stateFilterLabelKey, toMemberResolutionQuery, type StateFilter } from './memberResolutionLogic';
@@ -14,7 +15,9 @@ function PersonalResolutionsPage({ role, titleKey }: { role: MemberResolutionRol
   const { t } = useTranslation();
   usePageTitle(titleKey);
   const { user } = useAuth();
-  const [filter, setFilter] = useState<StateFilter>('ACTIVE');
+  const [params] = useSearchParams();
+  const initial = params.get('filter');
+  const [filter, setFilter] = useState<StateFilter>(isStateFilter(initial) ? initial : 'ACTIVE');
   const list = useMemberResolutions(user?.id ?? '', toMemberResolutionQuery(role, filter));
 
   return (

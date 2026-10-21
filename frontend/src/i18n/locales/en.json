@@ -75,6 +75,18 @@
     "welcome": "Welcome",
     "description": "Sections will appear in the menu as they are launched."
   },
+  "dashboard": {
+    "myResolutions": {
+      "title": "My resolutions",
+      "openAll": "Open the list",
+      "active": "Active",
+      "overdue": "Overdue",
+      "awaitingAcceptance": "Awaiting my acceptance",
+      "upcoming": "Nearest deadlines",
+      "empty": "No active resolutions.",
+      "loadFailed": "Failed to load your resolutions."
+    }
+  },
   "auth": {
     "subtitle": "Information system of the KPI Student Council",
     "signIn": "Sign in",

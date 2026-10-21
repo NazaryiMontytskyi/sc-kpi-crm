@@ -1,5 +1,6 @@
 import { Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { MyResolutionsWidget } from '../dashboard/MyResolutionsWidget';
 import { OnboardingPrompt } from '../knowledge/OnboardingPrompt';
 import { usePageTitle } from '../layout/pageTitle';
 
@@ -12,6 +13,7 @@ export function HomePage() {
         {t('home.welcome')}
       </Title>
       <OnboardingPrompt />
+      <MyResolutionsWidget />
       <Text c="dimmed">{t('home.description')}</Text>
     </Stack>
   );
