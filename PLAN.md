@@ -563,7 +563,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** the lightweight editor from INC-026 should be replaced by this component; orchestrator may split editor core into a separate increment.
 
 #### INC-041 — Knowledge frontend: version history and restore
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `knowledge`
 - **Depends on:** INC-040
 - **Scope:** version list drawer, preview of a version, restore with confirmation.
