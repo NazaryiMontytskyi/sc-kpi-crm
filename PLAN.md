@@ -549,7 +549,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-040 — Knowledge frontend: TipTap editor and article pages
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `knowledge`
 - **Depends on:** INC-039, INC-009
 - **Scope:** TipTap editor with blocks required by §5.4: headings, text size, bold/italic/underline/strike, text and background color, bullet/numbered/checklist, quote, table, link, image, file attachment, embedded PDF, divider, code block, callout; slash menu; @mentions (people, articles, tasks); autosave-safe save with version conflict handling; page tree sidebar, breadcrumbs, tags; read mode and edit mode; mobile toolbar.
