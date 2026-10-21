@@ -44,6 +44,11 @@ interface ResolutionRepository extends ArchivableRepository<Resolution, UUID> {
 			+ " and (r.executorId = :userId or :userId member of r.coExecutorIds)")
 	long countExecuting(@Param("userId") UUID userId, @Param("states") Collection<ResolutionState> states);
 
+	/** Non-archived resolutions issued by the user in the given states. */
+	@Query("select count(r) from Resolution r where r.archivedAt is null and r.state in :states"
+			+ " and r.authorId = :userId")
+	long countAuthored(@Param("userId") UUID userId, @Param("states") Collection<ResolutionState> states);
+
 	/** Non-archived resolutions the user executes that are due before {@code today} and not in an excluded state. */
 	@Query("select count(r) from Resolution r where r.archivedAt is null and r.state not in :excluded"
 			+ " and r.dueDate < :today and (r.executorId = :userId or :userId member of r.coExecutorIds)")

@@ -5504,6 +5504,28 @@
           }
         }
       }
+    },
+    "/api/v1/dashboard/me": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "My resolutions mini-dashboard",
+        "description": "Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.",
+        "operationId": "myDashboard",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyDashboardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9182,6 +9204,63 @@
             "type": "boolean"
           },
           "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MyDashboardResponse": {
+        "type": "object",
+        "properties": {
+          "resolutions": {
+            "$ref": "#/components/schemas/MyResolutions"
+          }
+        }
+      },
+      "MyResolutions": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "overdue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "awaitingAcceptance": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpcomingResolution"
+            }
+          }
+        }
+      },
+      "UpcomingResolution": {
+        "type": "object",
+        "properties": {
+          "resolutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskTitle": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "state": {
+            "type": "string"
+          },
+          "overdue": {
             "type": "boolean"
           }
         }

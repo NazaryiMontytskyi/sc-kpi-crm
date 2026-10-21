@@ -9,7 +9,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kpi.studentcouncil.crm.identity.UserDirectory;
 import com.kpi.studentcouncil.crm.shared.error.NotFoundException;
 import com.kpi.studentcouncil.crm.tasks.MemberResolutionCounts;
+import com.kpi.studentcouncil.crm.tasks.PersonalResolutionSummary;
 
 /** Resolutions of one member (executor view or author view) and their counters. Member id equals user id. */
 @Service
-class MemberResolutionService implements MemberResolutionCounts {
+class MemberResolutionService implements MemberResolutionCounts, PersonalResolutionSummary {
 
 	/** Which side of a resolution the member is on. */
 	enum Role {
@@ -78,6 +81,24 @@ class MemberResolutionService implements MemberResolutionCounts {
 		return new Counts(resolutions.countExecuting(userId, TaskResolutionSpecs.LIVE),
 				resolutions.countExecutingOverdue(userId, NOT_OVERDUE_STATES, today),
 				resolutions.countExecuting(userId, ACCEPTED));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Summary summaryFor(UUID userId, int upcomingLimit) {
+		requireMember(userId);
+		LocalDate today = LocalDate.now(clock.withZone(ResolutionStateMachine.DISPLAY_ZONE));
+		long active = resolutions.countExecuting(userId, TaskResolutionSpecs.LIVE);
+		long overdue = resolutions.countExecutingOverdue(userId, NOT_OVERDUE_STATES, today);
+		long awaiting = resolutions.countAuthored(userId, Set.of(ResolutionState.SUBMITTED));
+		java.util.List<UpcomingItem> upcoming = upcomingLimit <= 0 ? java.util.List.of()
+				: list(userId, Role.EXECUTOR, true, null,
+						PageRequest.of(0, upcomingLimit, Sort.by("dueDate").and(Sort.by("id")))).getContent().stream()
+						.map(i -> new UpcomingItem(i.resolution().getId(), i.resolution().getTaskId(), i.taskTitle(),
+								i.resolution().getDueDate(), i.resolution().getState().name(),
+								i.resolution().isOverdue(clock)))
+						.toList();
+		return new Summary(active, overdue, awaiting, upcoming);
 	}
 
 	private void requireMember(UUID id) {

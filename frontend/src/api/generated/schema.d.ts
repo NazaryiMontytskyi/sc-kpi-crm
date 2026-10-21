@@ -2205,6 +2205,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My resolutions mini-dashboard
+         * @description Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.
+         */
+        get: operations["myDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3503,6 +3523,29 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+        };
+        MyDashboardResponse: {
+            resolutions?: components["schemas"]["MyResolutions"];
+        };
+        MyResolutions: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            overdue?: number;
+            /** Format: int64 */
+            awaitingAcceptance?: number;
+            upcoming?: components["schemas"]["UpcomingResolution"][];
+        };
+        UpcomingResolution: {
+            /** Format: uuid */
+            resolutionId?: string;
+            /** Format: uuid */
+            taskId?: string;
+            taskTitle?: string;
+            /** Format: date */
+            dueDate?: string;
+            state?: string;
+            overdue?: boolean;
         };
     };
     responses: never;
@@ -6897,6 +6940,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    myDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyDashboardResponse"];
                 };
             };
         };
