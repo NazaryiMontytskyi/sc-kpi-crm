@@ -654,7 +654,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-048 — "My resolutions" mini-dashboard widget
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `analytics` (thin) + frontend `dashboard`
 - **Depends on:** INC-037, INC-045
 - **Scope:** home page widget: my active, overdue, awaiting my acceptance counts and top upcoming items; backend `GET /api/v1/dashboard/me` (permission `dashboard.view` for the widget `[ASSUMPTION: base roles get it in seed]`) built on `tasks` public API; extension point for the v2 shared dashboard.
