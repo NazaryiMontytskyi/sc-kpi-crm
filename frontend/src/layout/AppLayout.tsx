@@ -17,6 +17,7 @@ import { BrandLogo } from '../brand/BrandLogo';
 import { hasPermission, useAuth, type CurrentUser } from '../auth/CurrentUser';
 import { isLanguage } from '../i18n';
 import { NotificationBell } from '../notifications/NotificationBell';
+import { SearchBar } from '../search/SearchBar';
 import { OfflinePage } from '../pages/ErrorPages';
 import { appRoutes, type AppRoute } from './routes';
 import { useOnlineStatus } from './useOnlineStatus';
@@ -106,6 +107,7 @@ export function AppLayout({ routes = appRoutes }: { routes?: AppRoute[] }) {
             </Link>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <SearchBar />
             <NotificationBell />
             <UserMenu profileAvailable={profileAvailable} />
           </Group>

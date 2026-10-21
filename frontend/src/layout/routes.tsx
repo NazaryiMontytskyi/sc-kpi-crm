@@ -19,6 +19,7 @@ import { SpaceSettingsPage } from '../tasks/SpaceSettingsPage';
 import { SpacesPage } from '../tasks/SpacesPage';
 import { TaskDetailPage } from '../tasks/TaskDetailPage';
 import { TasksPage } from '../tasks/TasksPage';
+import { SearchPage } from '../search/SearchPage';
 import { HomePage } from '../pages/HomePage';
 import { RoleAssignmentsPage } from '../roles/RoleAssignmentsPage';
 import { RolesPage } from '../roles/RolesPage';
@@ -47,6 +48,7 @@ export const appRoutes: AppRoute[] = [
   { path: '/resolutions/mine', element: <MyResolutionsPage />, nav: { labelKey: 'nav.myResolutions', permission: 'tasks.view' } },
   { path: '/resolutions/issued', element: <IssuedByMePage />, nav: { labelKey: 'nav.issuedByMe', permission: 'tasks.view' } },
   { path: '/resolutions/:id', element: <ResolutionRedirectPage /> },
+  { path: '/search', element: <SearchPage /> },
   { path: '/notifications', element: <NotificationsPage />, nav: { labelKey: 'nav.notifications' } },
   { path: '/tasks/:id', element: <TaskDetailPage /> },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },
