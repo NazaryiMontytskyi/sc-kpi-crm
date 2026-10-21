@@ -222,7 +222,11 @@
     "ARTICLE_TOO_MANY_TAGS": "An article can have at most 20 tags.",
     "ARTICLE_ATTACHMENT_INVALID": "Attachments must be existing, non-archived files.",
     "ARTICLE_TOO_MANY_ATTACHMENTS": "An article can have at most 20 attachments.",
-    "ARTICLE_VERSION_CONFLICT": "The article was changed by someone else. Reload it and apply your changes again."
+    "ARTICLE_VERSION_CONFLICT": "The article was changed by someone else. Reload it and apply your changes again.",
+    "ONBOARDING_LIST_EXISTS": "This scope already has an active newcomer list. Edit it or archive it first.",
+    "ONBOARDING_LIST_ARCHIVED": "An archived newcomer list cannot be changed. Restore it first.",
+    "ONBOARDING_ARTICLE_INVALID": "Pages must be distinct, active, visible to you, and at most 100 in a list.",
+    "ONBOARDING_UNIT_INVALID": "The department must exist and be active."
   },
   "faculties": {
     "title": "Faculties and institutes",
@@ -987,6 +991,38 @@
     "notFound": "The page does not exist or you cannot see it.",
     "breadcrumbs": "Breadcrumbs",
     "updatedAt": "Updated {{date}}",
+    "onboarding": {
+      "title": "For newcomers",
+      "manage": "Manage newcomer lists",
+      "general": "General",
+      "empty": "No newcomer lists yet.",
+      "listEmpty": "This list has no pages yet.",
+      "privacy": "Your read marks are private: only you can see them.",
+      "progress": "{{read}} of {{total}} read",
+      "markRead": "Mark \"{{title}}\" as read",
+      "readThis": "I have read this",
+      "readThisHint": "Only you can see this mark.",
+      "newList": "New list",
+      "scope": "Who it is for",
+      "listTitle": "List title",
+      "titleRequired": "Enter a title (up to 200 characters).",
+      "addArticle": "Add a page",
+      "pickArticle": "Choose a page",
+      "noArticles": "No pages found",
+      "add": "Add",
+      "remove": "Remove from list",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "save": "Save",
+      "create": "Create list",
+      "noAccess": "You do not have permission to manage newcomer lists.",
+      "prompt": {
+        "title": "Welcome to the Student Council",
+        "text": "There is a reading list prepared for newcomers. Open it to get started.",
+        "open": "Open the list",
+        "later": "Not now"
+      }
+    },
     "tree": {
       "title": "Pages",
       "open": "Pages",

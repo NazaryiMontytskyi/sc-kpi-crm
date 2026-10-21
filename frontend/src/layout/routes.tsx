@@ -3,6 +3,8 @@ import { AuditPage } from '../audit/AuditPage';
 import { ArticleEditPage } from '../knowledge/ArticleEditPage';
 import { ArticlePage } from '../knowledge/ArticlePage';
 import { KnowledgeHomePage } from '../knowledge/KnowledgeHomePage';
+import { OnboardingManagePage } from '../knowledge/OnboardingManagePage';
+import { OnboardingPage } from '../knowledge/OnboardingPage';
 import { FacultiesPage } from '../members/FacultiesPage';
 import { MemberProfilePage, MyProfileRedirect } from '../members/MemberProfilePage';
 import { MembersPage } from '../members/MembersPage';
@@ -47,6 +49,8 @@ export const appRoutes: AppRoute[] = [
   { path: '/spaces/:id', element: <SpaceSettingsPage /> },
   { path: '/knowledge', element: <KnowledgeHomePage />, nav: { labelKey: 'nav.knowledge', permission: 'kb.view' } },
   { path: '/knowledge/new', element: <ArticleEditPage /> },
+  { path: '/knowledge/onboarding', element: <OnboardingPage /> },
+  { path: '/knowledge/onboarding/manage', element: <OnboardingManagePage /> },
   { path: '/knowledge/:id', element: <ArticlePage /> },
   { path: '/knowledge/:id/edit', element: <ArticleEditPage /> },
   {

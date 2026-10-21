@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -10,9 +11,11 @@ describe('App shell', () => {
   it('renders home in uk, shell chrome, title, and switches language to en', async () => {
     await changeLanguage('uk');
     renderWithProviders(
+      <QueryClientProvider client={new QueryClient()}>
       <CurrentUserProvider value={STUB_AUTH_STATE}>
         <App />
-      </CurrentUserProvider>,
+      </CurrentUserProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByText('Ласкаво просимо')).toBeInTheDocument();
     expect(screen.getByTestId('brand-text')).toHaveTextContent('SC KPI TMS');

@@ -215,6 +215,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding/manage/lists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit title and the ordered articles of a list (replaces the whole order)
+         * @description 409 ONBOARDING_LIST_ARCHIVED when archived.
+         */
+        put: operations["update_6"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{id}": {
         parameters: {
             query?: never;
@@ -228,7 +248,7 @@ export interface paths {
          * Edit a member profile
          * @description The faculty must be active unless it is the one already stored. 409 for an archived member.
          */
-        put: operations["update_6"];
+        put: operations["update_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -286,7 +306,7 @@ export interface paths {
         /** Get one faculty, including an archived one (existing profiles may reference it) */
         get: operations["get_7"];
         /** Edit an active faculty */
-        put: operations["update_7"];
+        put: operations["update_8"];
         post?: never;
         delete?: never;
         options?: never;
@@ -330,7 +350,25 @@ export interface paths {
          * Edit an article (replaces title, content, tags, attachments, restricted flag)
          * @description expectedVersion must equal the current version, otherwise 409 ARTICLE_VERSION_CONFLICT. Every edit raises the version counter by one and stores exactly one version snapshot. 409 ARTICLE_ARCHIVED when archived.
          */
-        put: operations["update_8"];
+        put: operations["update_9"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/read-mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the caller has marked the article as read (the caller's own mark only) */
+        get: operations["readMark"];
+        /** Mark the article as read by the caller (idempotent; private to the caller) */
+        put: operations["markRead"];
         post?: never;
         delete?: never;
         options?: never;
@@ -348,7 +386,7 @@ export interface paths {
         /** Get one definition, including an archived one */
         get: operations["get_9"];
         /** Edit an active definition */
-        put: operations["update_9"];
+        put: operations["update_10"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1026,6 +1064,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding/prompt/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss the newcomer prompt for the caller (idempotent) */
+        post: operations["dismissPrompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/manage/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All onboarding lists for management (general first)
+         * @description Archived lists only with includeArchived=true.
+         */
+        get: operations["manage"];
+        put?: never;
+        /**
+         * Create an onboarding list
+         * @description orgUnitId null creates the general list. 409 ONBOARDING_LIST_EXISTS when the scope already has an active list; 422 ONBOARDING_UNIT_INVALID / ONBOARDING_ARTICLE_INVALID for unknown, archived or invisible units or articles, or duplicates.
+         */
+        post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/manage/lists/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archived onboarding list
+         * @description 409 ONBOARDING_LIST_EXISTS when its scope has another active list.
+         */
+        post: operations["restore_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/manage/lists/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive an onboarding list (soft) */
+        post: operations["archive_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members": {
         parameters: {
             query?: never;
@@ -1043,7 +1159,7 @@ export interface paths {
          * Create an account and profile
          * @description Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.
          */
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1060,7 +1176,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Restore an archived member and re-enable sign-in */
-        post: operations["restore_4"];
+        post: operations["restore_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1100,7 +1216,7 @@ export interface paths {
          * Archive a member (soft) and block sign-in
          * @description Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.
          */
-        post: operations["archive_5"];
+        post: operations["archive_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1144,7 +1260,7 @@ export interface paths {
          * Create a faculty
          * @description Code and both names are unique among active faculties, case-insensitively (409 otherwise).
          */
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1164,7 +1280,7 @@ export interface paths {
          * Restore an archived faculty
          * @description 409 if its code or a name is now used by an active faculty.
          */
-        post: operations["restore_5"];
+        post: operations["restore_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1184,7 +1300,7 @@ export interface paths {
          * Archive a faculty (soft)
          * @description Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.
          */
-        post: operations["archive_6"];
+        post: operations["archive_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1208,7 +1324,7 @@ export interface paths {
          * Add a comment
          * @description Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.
          */
-        post: operations["create_8"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1228,7 +1344,7 @@ export interface paths {
          * Archive a comment (soft delete)
          * @description Only the comment author or an Admin (403 otherwise). Comments are never deleted.
          */
-        post: operations["archive_7"];
+        post: operations["archive_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1303,7 +1419,7 @@ export interface paths {
          * Create an article
          * @description The parent (optional) must exist, be active and visible (422). Marking an article restricted needs kb.restricted.view (403). References are extracted from the content.
          */
-        post: operations["create_9"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1343,7 +1459,24 @@ export interface paths {
          * Restore an archived article
          * @description 409 ARTICLE_PARENT_ARCHIVED when its parent is archived.
          */
-        post: operations["restore_6"];
+        post: operations["restore_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/read-mark/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw the caller's read mark on the article (idempotent) */
+        post: operations["unmarkRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1383,7 +1516,7 @@ export interface paths {
          * Archive an article (soft)
          * @description 409 ARTICLE_HAS_ACTIVE_CHILDREN while it still has active children: archive or move them first.
          */
-        post: operations["archive_8"];
+        post: operations["archive_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1427,7 +1560,7 @@ export interface paths {
          * Create a definition
          * @description Code is unique among active definitions (409 otherwise).
          */
-        post: operations["create_10"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1447,7 +1580,7 @@ export interface paths {
          * Restore an archived definition
          * @description 409 if its code is now used by an active one.
          */
-        post: operations["restore_7"];
+        post: operations["restore_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1467,7 +1600,7 @@ export interface paths {
          * Archive a definition (soft)
          * @description Members keep the level and the history keeps the reference; it just stops being selectable.
          */
-        post: operations["archive_9"];
+        post: operations["archive_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1648,6 +1781,46 @@ export interface paths {
         };
         /** Get one membership */
         get: operations["get_11"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the newcomer prompt should still be shown to the caller
+         * @description pending is true until the caller dismisses it once.
+         */
+        get: operations["prompt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's onboarding page: the general list plus the lists of the caller's departments
+         * @description Archived articles and restricted ones the caller may not see are left out; the order is kept. Each item carries the caller's own read mark.
+         */
+        get: operations["mine"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2150,6 +2323,29 @@ export interface components {
             ancestorIds?: string[];
             childIds?: string[];
         };
+        UpdateOnboardingListRequest: {
+            title: string;
+            articleIds: string[];
+        };
+        OnboardingItemResponse: {
+            /** Format: uuid */
+            articleId?: string;
+            title?: string;
+            restricted?: boolean;
+            read?: boolean;
+        };
+        OnboardingListResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            items?: components["schemas"]["OnboardingItemResponse"][];
+            archived?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         MemberRequest: {
             lastName: string;
             firstName: string;
@@ -2331,6 +2527,9 @@ export interface components {
             type?: "ARTICLE" | "TASK" | "PERSON";
             /** Format: uuid */
             id?: string;
+        };
+        ReadMarkResponse: {
+            read?: boolean;
         };
         DefinitionRequest: {
             code: string;
@@ -2533,6 +2732,15 @@ export interface components {
         EndMembershipRequest: {
             /** Format: date */
             until?: string;
+        };
+        OnboardingPromptResponse: {
+            pending?: boolean;
+        };
+        CreateOnboardingListRequest: {
+            title: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            articleIds: string[];
         };
         CreateMemberRequest: {
             login: string;
@@ -3548,6 +3756,32 @@ export interface operations {
             };
         };
     };
+    update_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOnboardingListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"];
+                };
+            };
+        };
+    };
     get_6: {
         parameters: {
             query?: never;
@@ -3570,7 +3804,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -3668,7 +3902,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -3742,7 +3976,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -3764,6 +3998,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    readMark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadMarkResponse"];
+                };
+            };
+        };
+    };
+    markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadMarkResponse"];
                 };
             };
         };
@@ -3790,7 +4068,7 @@ export interface operations {
             };
         };
     };
-    update_9: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -4858,6 +5136,116 @@ export interface operations {
             };
         };
     };
+    dismissPrompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingPromptResponse"];
+                };
+            };
+        };
+    };
+    manage: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"][];
+                };
+            };
+        };
+    };
+    create_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOnboardingListRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"];
+                };
+            };
+        };
+    };
+    restore_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"];
+                };
+            };
+        };
+    };
+    archive_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query: {
@@ -4888,7 +5276,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -4912,7 +5300,7 @@ export interface operations {
             };
         };
     };
-    restore_4: {
+    restore_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4956,7 +5344,7 @@ export interface operations {
             };
         };
     };
-    archive_5: {
+    archive_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5055,7 +5443,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -5079,7 +5467,7 @@ export interface operations {
             };
         };
     };
-    restore_5: {
+    restore_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5101,7 +5489,7 @@ export interface operations {
             };
         };
     };
-    archive_6: {
+    archive_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5147,7 +5535,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -5171,7 +5559,7 @@ export interface operations {
             };
         };
     };
-    archive_7: {
+    archive_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -5329,7 +5717,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -5380,7 +5768,7 @@ export interface operations {
             };
         };
     };
-    restore_6: {
+    restore_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5398,6 +5786,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    unmarkRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadMarkResponse"];
                 };
             };
         };
@@ -5428,7 +5838,7 @@ export interface operations {
             };
         };
     };
-    archive_8: {
+    archive_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -5499,7 +5909,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -5523,7 +5933,7 @@ export interface operations {
             };
         };
     };
-    restore_7: {
+    restore_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -5545,7 +5955,7 @@ export interface operations {
             };
         };
     };
-    archive_9: {
+    archive_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -5790,6 +6200,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MembershipResponse"];
+                };
+            };
+        };
+    };
+    prompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingPromptResponse"];
+                };
+            };
+        };
+    };
+    mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OnboardingListResponse"][];
                 };
             };
         };

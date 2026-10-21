@@ -714,6 +714,49 @@
         }
       }
     },
+    "/api/v1/onboarding/manage/lists/{id}": {
+      "put": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Edit title and the ordered articles of a list (replaces the whole order)",
+        "description": "409 ONBOARDING_LIST_ARCHIVED when archived.",
+        "operationId": "update_6",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOnboardingListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/members/{id}": {
       "get": {
         "tags": [
@@ -751,7 +794,7 @@
         ],
         "summary": "Edit a member profile",
         "description": "The faculty must be active unless it is the one already stored. 409 for an archived member.",
-        "operationId": "update_6",
+        "operationId": "update_7",
         "parameters": [
           {
             "name": "id",
@@ -898,7 +941,7 @@
           "Faculties"
         ],
         "summary": "Edit an active faculty",
-        "operationId": "update_7",
+        "operationId": "update_8",
         "parameters": [
           {
             "name": "id",
@@ -1015,7 +1058,7 @@
         ],
         "summary": "Edit an article (replaces title, content, tags, attachments, restricted flag)",
         "description": "expectedVersion must equal the current version, otherwise 409 ARTICLE_VERSION_CONFLICT. Every edit raises the version counter by one and stores exactly one version snapshot. 409 ARTICLE_ARCHIVED when archived.",
-        "operationId": "update_8",
+        "operationId": "update_9",
         "parameters": [
           {
             "name": "id",
@@ -1044,6 +1087,68 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/read-mark": {
+      "get": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Whether the caller has marked the article as read (the caller's own mark only)",
+        "operationId": "readMark",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadMarkResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Mark the article as read by the caller (idempotent; private to the caller)",
+        "operationId": "markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadMarkResponse"
                 }
               }
             }
@@ -1087,7 +1192,7 @@
           "Activity levels"
         ],
         "summary": "Edit an active definition",
-        "operationId": "update_9",
+        "operationId": "update_10",
         "parameters": [
           {
             "name": "id",
@@ -2864,6 +2969,158 @@
         }
       }
     },
+    "/api/v1/onboarding/prompt/dismiss": {
+      "post": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Dismiss the newcomer prompt for the caller (idempotent)",
+        "operationId": "dismissPrompt",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingPromptResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/manage/lists": {
+      "get": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "All onboarding lists for management (general first)",
+        "description": "Archived lists only with includeArchived=true.",
+        "operationId": "manage",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OnboardingListResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Create an onboarding list",
+        "description": "orgUnitId null creates the general list. 409 ONBOARDING_LIST_EXISTS when the scope already has an active list; 422 ONBOARDING_UNIT_INVALID / ONBOARDING_ARTICLE_INVALID for unknown, archived or invisible units or articles, or duplicates.",
+        "operationId": "create_6",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOnboardingListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/manage/lists/{id}/restore": {
+      "post": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Restore an archived onboarding list",
+        "description": "409 ONBOARDING_LIST_EXISTS when its scope has another active list.",
+        "operationId": "restore_4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/manage/lists/{id}/archive": {
+      "post": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Archive an onboarding list (soft)",
+        "operationId": "archive_5",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/members": {
       "get": {
         "tags": [
@@ -2976,7 +3233,7 @@
         ],
         "summary": "Create an account and profile",
         "description": "Generates a random temporary password (returned once, the account must change it on first sign-in). An initial roleId additionally requires roles.assign.",
-        "operationId": "create_6",
+        "operationId": "create_7",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3007,7 +3264,7 @@
           "Members"
         ],
         "summary": "Restore an archived member and re-enable sign-in",
-        "operationId": "restore_4",
+        "operationId": "restore_5",
         "parameters": [
           {
             "name": "id",
@@ -3073,7 +3330,7 @@
         ],
         "summary": "Archive a member (soft) and block sign-in",
         "description": "Open sessions stop working immediately. All attribution is kept. A member cannot archive themselves.",
-        "operationId": "archive_5",
+        "operationId": "archive_6",
         "parameters": [
           {
             "name": "id",
@@ -3215,7 +3472,7 @@
         ],
         "summary": "Create a faculty",
         "description": "Code and both names are unique among active faculties, case-insensitively (409 otherwise).",
-        "operationId": "create_7",
+        "operationId": "create_8",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3247,7 +3504,7 @@
         ],
         "summary": "Restore an archived faculty",
         "description": "409 if its code or a name is now used by an active faculty.",
-        "operationId": "restore_5",
+        "operationId": "restore_6",
         "parameters": [
           {
             "name": "id",
@@ -3280,7 +3537,7 @@
         ],
         "summary": "Archive a faculty (soft)",
         "description": "Allowed even when profiles use it: they keep the reference, the faculty just stops being selectable.",
-        "operationId": "archive_6",
+        "operationId": "archive_7",
         "parameters": [
           {
             "name": "id",
@@ -3364,7 +3621,7 @@
         ],
         "summary": "Add a comment",
         "description": "Any authenticated user. The target must exist and accept comments (404 / 409). mentionUserIds must equal the mention nodes of the body; every mentioned user must be active (422 COMMENT_MENTION_INVALID). Attachments are ids of uploaded files.",
-        "operationId": "create_8",
+        "operationId": "create_9",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3396,7 +3653,7 @@
         ],
         "summary": "Archive a comment (soft delete)",
         "description": "Only the comment author or an Admin (403 otherwise). Comments are never deleted.",
-        "operationId": "archive_7",
+        "operationId": "archive_8",
         "parameters": [
           {
             "name": "id",
@@ -3611,7 +3868,7 @@
         ],
         "summary": "Create an article",
         "description": "The parent (optional) must exist, be active and visible (422). Marking an article restricted needs kb.restricted.view (403). References are extracted from the content.",
-        "operationId": "create_9",
+        "operationId": "create_10",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3694,7 +3951,7 @@
         ],
         "summary": "Restore an archived article",
         "description": "409 ARTICLE_PARENT_ARCHIVED when its parent is archived.",
-        "operationId": "restore_6",
+        "operationId": "restore_7",
         "parameters": [
           {
             "name": "id",
@@ -3713,6 +3970,38 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/read-mark/withdraw": {
+      "post": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Withdraw the caller's read mark on the article (idempotent)",
+        "operationId": "unmarkRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadMarkResponse"
                 }
               }
             }
@@ -3770,7 +4059,7 @@
         ],
         "summary": "Archive an article (soft)",
         "description": "409 ARTICLE_HAS_ACTIVE_CHILDREN while it still has active children: archive or move them first.",
-        "operationId": "archive_8",
+        "operationId": "archive_9",
         "parameters": [
           {
             "name": "id",
@@ -3884,7 +4173,7 @@
         ],
         "summary": "Create a definition",
         "description": "Code is unique among active definitions (409 otherwise).",
-        "operationId": "create_10",
+        "operationId": "create_11",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3916,7 +4205,7 @@
         ],
         "summary": "Restore an archived definition",
         "description": "409 if its code is now used by an active one.",
-        "operationId": "restore_7",
+        "operationId": "restore_8",
         "parameters": [
           {
             "name": "id",
@@ -3949,7 +4238,7 @@
         ],
         "summary": "Archive a definition (soft)",
         "description": "Members keep the level and the history keeps the reference; it just stops being selectable.",
-        "operationId": "archive_9",
+        "operationId": "archive_10",
         "parameters": [
           {
             "name": "id",
@@ -4358,6 +4647,53 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/prompt": {
+      "get": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "Whether the newcomer prompt should still be shown to the caller",
+        "description": "pending is true until the caller dismisses it once.",
+        "operationId": "prompt",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingPromptResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/lists": {
+      "get": {
+        "tags": [
+          "Knowledge onboarding"
+        ],
+        "summary": "The caller's onboarding page: the general list plus the lists of the caller's departments",
+        "description": "Archived articles and restricted ones the caller may not see are left out; the order is kept. Each item carries the caller's own read mark.",
+        "operationId": "mine",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OnboardingListResponse"
+                  }
                 }
               }
             }
@@ -5663,6 +5999,79 @@
           }
         }
       },
+      "UpdateOnboardingListRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "articleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 100,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "articleIds",
+          "title"
+        ]
+      },
+      "OnboardingItemResponse": {
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "read": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OnboardingListResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orgUnitName": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OnboardingItemResponse"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "MemberRequest": {
         "type": "object",
         "properties": {
@@ -6182,6 +6591,14 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "ReadMarkResponse": {
+        "type": "object",
+        "properties": {
+          "read": {
+            "type": "boolean"
           }
         }
       },
@@ -6804,6 +7221,41 @@
             "format": "date"
           }
         }
+      },
+      "OnboardingPromptResponse": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateOnboardingListRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "orgUnitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "articleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 100,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "articleIds",
+          "title"
+        ]
       },
       "CreateMemberRequest": {
         "type": "object",

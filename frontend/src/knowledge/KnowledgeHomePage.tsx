@@ -40,11 +40,16 @@ export function KnowledgeHomePage() {
         <Title order={1} size="h2">
           {t('knowledge.title')}
         </Title>
-        {canEdit && (
-          <Button component={Link} to="/knowledge/new" mih={44}>
-            {t('knowledge.newPage')}
+        <Group gap="xs">
+          <Button component={Link} to="/knowledge/onboarding" variant="default" mih={44}>
+            {t('knowledge.onboarding.title')}
           </Button>
-        )}
+          {canEdit && (
+            <Button component={Link} to="/knowledge/new" mih={44}>
+              {t('knowledge.newPage')}
+            </Button>
+          )}
+        </Group>
       </Group>
 
       {tags.data && tags.data.length > 0 && (

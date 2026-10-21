@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Breadcrumbs, Button, Group, Loader, Modal, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Badge, Breadcrumbs, Button, Checkbox, Group, Loader, Modal, Select, Stack, Text, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { articleErrorKey } from './articleLogic';
 import { ArticleView } from './editor/ArticleView';
 import { KB_ARCHIVE, KB_EDIT } from './knowledgeApi';
 import { KnowledgeLayout } from './KnowledgeLayout';
+import { useReadMark, useSetReadMark } from './useOnboarding';
 import { VersionHistoryDrawer } from './VersionHistoryDrawer';
 import { parentOptions } from './treeLogic';
 import { useArticle, useArticleMutations, useArticleTree } from './useKnowledge';
@@ -48,6 +49,25 @@ function MoveModal({ id, parentId, onClose }: { id: string; parentId: string | n
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+/** The caller own private "I have read this" mark; nobody else can see it. */
+function ReadMarkToggle({ articleId }: { articleId: string }) {
+  const { t } = useTranslation();
+  const mark = useReadMark(articleId);
+  const setMark = useSetReadMark();
+  if (mark.data === undefined) return null;
+  return (
+    <Checkbox
+      size="md"
+      checked={mark.data}
+      disabled={setMark.isPending}
+      label={t('knowledge.onboarding.readThis')}
+      description={t('knowledge.onboarding.readThisHint')}
+      onChange={(e) => setMark.mutate({ articleId, read: e.currentTarget.checked })}
+      data-testid="read-mark"
+    />
   );
 }
 
@@ -149,6 +169,7 @@ export function ArticlePage() {
             </Text>
           </Group>
 
+          <ReadMarkToggle articleId={article.id} />
           <ArticleView content={article.content} />
           {historyOpen && (
             <VersionHistoryDrawer

@@ -184,6 +184,10 @@ const KNOWN_CODES = [
   'ARTICLE_ATTACHMENT_INVALID',
   'ARTICLE_TOO_MANY_ATTACHMENTS',
   'ARTICLE_VERSION_CONFLICT',
+  'ONBOARDING_LIST_EXISTS',
+  'ONBOARDING_LIST_ARCHIVED',
+  'ONBOARDING_ARTICLE_INVALID',
+  'ONBOARDING_UNIT_INVALID',
 ] as const;
 
 /** i18n key + params for an error; unknown codes and network failures fall back to a generic message. */
