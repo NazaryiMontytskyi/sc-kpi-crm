@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.org;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,5 +17,8 @@ public interface OrgService {
 
 	/** True when the unit exists and is not archived. */
 	boolean isActive(UUID id);
+
+	/** Every unit including archived ones (check {@link OrgUnitInfo#active()}), ordered by name; for reindexing. */
+	List<OrgUnitInfo> findAll();
 
 }

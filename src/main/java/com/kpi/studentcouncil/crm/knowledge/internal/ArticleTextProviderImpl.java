@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.knowledge.internal;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +21,16 @@ class ArticleTextProviderImpl implements ArticleTextProvider {
 	@Override
 	public Optional<ArticleText> findText(UUID articleId) {
 		return service.findText(articleId);
+	}
+
+	@Override
+	public Optional<ArticleText> findTextForIndexing(UUID articleId) {
+		return service.findTextForIndexing(articleId);
+	}
+
+	@Override
+	public List<UUID> findActiveIds() {
+		return service.findActiveIds();
 	}
 
 }

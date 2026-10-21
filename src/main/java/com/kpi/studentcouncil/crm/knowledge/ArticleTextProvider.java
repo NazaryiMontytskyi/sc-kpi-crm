@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.knowledge;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,5 +16,15 @@ public interface ArticleTextProvider {
 	 * {@code kb.restricted.view}. Archived articles are returned (flagged), so an index can drop them.
 	 */
 	Optional<ArticleText> findText(UUID articleId);
+
+	/**
+	 * The text of an article for the search index, independent of the current actor (an event may be handled
+	 * without a signed-in user, e.g. a seeder). The result carries the {@code restricted} flag; the index must
+	 * apply it when answering queries. Empty only when the article does not exist.
+	 */
+	Optional<ArticleText> findTextForIndexing(UUID articleId);
+
+	/** Ids of all non-archived articles (restricted ones included), for a full reindex. */
+	List<UUID> findActiveIds();
 
 }

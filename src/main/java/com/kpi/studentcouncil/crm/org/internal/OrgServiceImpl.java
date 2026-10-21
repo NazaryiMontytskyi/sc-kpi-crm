@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.org.internal;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +38,12 @@ class OrgServiceImpl implements OrgService {
 	@Transactional(readOnly = true)
 	public boolean isActive(UUID id) {
 		return units.findByIdAndArchivedAtIsNull(id).isPresent();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<OrgUnitInfo> findAll() {
+		return units.findAllByOrderByNameAsc().stream().map(service::info).toList();
 	}
 
 }

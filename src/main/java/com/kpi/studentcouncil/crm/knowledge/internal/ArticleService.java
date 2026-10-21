@@ -283,6 +283,19 @@ class ArticleService {
 				ArticleRules.extractPlainText(a.getContent()), a.getTags(), a.isRestricted(), a.isArchived()));
 	}
 
+	/** Text of an article for the search index; no visibility check (the index filters by the restricted flag). */
+	@Transactional(readOnly = true)
+	Optional<ArticleText> findTextForIndexing(UUID id) {
+		return articles.findById(id).map(a -> new ArticleText(a.getId(), a.getTitle(),
+				ArticleRules.extractPlainText(a.getContent()), a.getTags(), a.isRestricted(), a.isArchived()));
+	}
+
+	/** Ids of all non-archived articles, restricted ones included. */
+	@Transactional(readOnly = true)
+	List<UUID> findActiveIds() {
+		return articles.findByArchivedAtIsNull().stream().map(Article::getId).toList();
+	}
+
 	// ---- helpers ----
 
 	private void snapshot(Article saved) {
