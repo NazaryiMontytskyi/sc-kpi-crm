@@ -26,7 +26,8 @@
     "spaces": "Spaces",
     "myResolutions": "My resolutions",
     "issuedByMe": "Issued by me",
-    "knowledge": "Knowledge base"
+    "knowledge": "Knowledge base",
+    "notifications": "Notifications"
   },
   "memberResolutions": {
     "profileTitle": "Resolutions",
@@ -1155,6 +1156,39 @@
       "confirmBody": "The page will get the title and content of version {{n}} as a new version. Older versions are kept. Tags, attachments and the restricted flag stay as they are.",
       "confirm": "Restore",
       "loadError": "Could not load the version."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellLabel": "Notifications, unread: {{count}}",
+    "empty": "No notifications",
+    "emptyUnread": "No unread notifications",
+    "viewAll": "All notifications",
+    "markRead": "Mark as read",
+    "markAllRead": "Mark all as read",
+    "unreadOnly": "Unread only",
+    "loadMore": "Show more",
+    "loadFailed": "Could not load notifications",
+    "actionFailed": "Could not update notifications",
+    "unread": "New",
+    "resolver": {
+      "loading": "Opening the resolution…",
+      "failed": "Could not open the resolution"
+    },
+    "type": {
+      "RESOLUTION_ISSUED": "New resolution",
+      "RESOLUTION_REDIRECTED": "Resolution redirected",
+      "RESOLUTION_SUBMITTED": "Resolution submitted for acceptance",
+      "RESOLUTION_ACCEPTED": "Resolution accepted",
+      "RESOLUTION_REWORK": "Resolution returned for rework",
+      "RESOLUTION_CHILD_ACCEPTED": "Child resolution accepted",
+      "RESOLUTION_DUE_SOON": "Due date approaching",
+      "RESOLUTION_OVERDUE": "Overdue",
+      "MENTION": "Mentioned in a comment",
+      "POLL_OPENED": "Poll opened",
+      "POLL_CLOSED": "Poll closed",
+      "HANDOVER_STARTED": "Handover started",
+      "OTHER": "Notification"
     }
   }
 }

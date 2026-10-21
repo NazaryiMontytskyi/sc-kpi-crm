@@ -32,9 +32,11 @@ describe('App shell', () => {
   it('shows 404 with a link home for unknown paths', async () => {
     await changeLanguage('uk');
     renderWithProviders(
-      <CurrentUserProvider value={STUB_AUTH_STATE}>
-        <App />
-      </CurrentUserProvider>,
+      <QueryClientProvider client={new QueryClient()}>
+        <CurrentUserProvider value={STUB_AUTH_STATE}>
+          <App />
+        </CurrentUserProvider>
+      </QueryClientProvider>,
       '/nope',
     );
     expect(screen.getByText('Сторінку не знайдено')).toBeInTheDocument();

@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   AppShell,
   Burger,
   Group,
@@ -17,31 +16,13 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { BrandLogo } from '../brand/BrandLogo';
 import { hasPermission, useAuth, type CurrentUser } from '../auth/CurrentUser';
 import { isLanguage } from '../i18n';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { OfflinePage } from '../pages/ErrorPages';
 import { appRoutes, type AppRoute } from './routes';
 import { useOnlineStatus } from './useOnlineStatus';
 
 /** Minimum touch target in px (WCAG / mobile guidelines). */
 const TOUCH = 44;
-
-function BellIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-    </svg>
-  );
-}
-
-/** Slot for the notification bell; the notifications feature (later stage) replaces the content. */
-function NotificationBellSlot() {
-  const { t } = useTranslation();
-  return (
-    <ActionIcon variant="subtle" color="gray" size={TOUCH} aria-label={t('layout.notifications')} data-testid="bell-slot">
-      <BellIcon />
-    </ActionIcon>
-  );
-}
 
 function UserMenu({ profileAvailable }: { profileAvailable: boolean }) {
   const { t, i18n } = useTranslation();
@@ -125,7 +106,7 @@ export function AppLayout({ routes = appRoutes }: { routes?: AppRoute[] }) {
             </Link>
           </Group>
           <Group gap="xs" wrap="nowrap">
-            <NotificationBellSlot />
+            <NotificationBell />
             <UserMenu profileAvailable={profileAvailable} />
           </Group>
         </Group>

@@ -11,6 +11,8 @@ import { MembersPage } from '../members/MembersPage';
 import { OrgPage } from '../org/OrgPage';
 import { OrgUnitPage } from '../org/OrgUnitPage';
 import { PositionPage } from '../org/PositionPage';
+import { NotificationsPage } from '../notifications/NotificationsPage';
+import { ResolutionRedirectPage } from '../notifications/ResolutionRedirectPage';
 import { BoardPage } from '../tasks/BoardPage';
 import { IssuedByMePage, MyResolutionsPage } from '../tasks/PersonalResolutionsPage';
 import { SpaceSettingsPage } from '../tasks/SpaceSettingsPage';
@@ -44,6 +46,8 @@ export const appRoutes: AppRoute[] = [
   { path: '/tasks/board', element: <BoardPage /> },
   { path: '/resolutions/mine', element: <MyResolutionsPage />, nav: { labelKey: 'nav.myResolutions', permission: 'tasks.view' } },
   { path: '/resolutions/issued', element: <IssuedByMePage />, nav: { labelKey: 'nav.issuedByMe', permission: 'tasks.view' } },
+  { path: '/resolutions/:id', element: <ResolutionRedirectPage /> },
+  { path: '/notifications', element: <NotificationsPage />, nav: { labelKey: 'nav.notifications' } },
   { path: '/tasks/:id', element: <TaskDetailPage /> },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },
   { path: '/spaces/:id', element: <SpaceSettingsPage /> },

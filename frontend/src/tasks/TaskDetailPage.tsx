@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, Card, Group, Loader, Select, Stack, Tabs, Text, Title } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth, usePermission } from '../auth/CurrentUser';
 import { usePageTitle } from '../layout/pageTitle';
 import { formatDate } from '../members/memberFormat';
@@ -29,6 +29,10 @@ function FieldValue({ field, value }: { field: CustomField; value: unknown }) {
 }
 
 function TaskBody({ task }: { task: Task }) {
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  // Deep links from notifications open the matching tab.
+  const initialTab = tabParam === 'resolutions' || tabParam === 'history' ? tabParam : 'comments';
   const { t } = useTranslation();
   const { user } = useAuth();
   const canArchive = usePermission(TASKS_ARCHIVE);
@@ -145,7 +149,7 @@ function TaskBody({ task }: { task: Task }) {
         </Card>
       )}
 
-      <Tabs defaultValue="comments" keepMounted={false}>
+      <Tabs defaultValue={initialTab} keepMounted={false}>
         <Tabs.List>
           <Tabs.Tab value="comments" mih={44}>
             {t('tasks.tabs.comments')}
