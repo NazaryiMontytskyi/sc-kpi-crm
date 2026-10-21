@@ -206,7 +206,21 @@
     "RESOLUTION_REDIRECT_CYCLE": "This person is already an author or executor earlier in the chain of this resolution.",
     "RESOLUTION_CHILD_DUE_AFTER_PARENT": "The new resolution is due later than the original one.",
     "SAVED_FILTER_NAME_TAKEN": "You already have a saved filter with this name.",
-    "SAVED_FILTER_LIMIT": "You can save at most 50 filters. Remove the ones you no longer need."
+    "SAVED_FILTER_LIMIT": "You can save at most 50 filters. Remove the ones you no longer need.",
+    "ARTICLE_ARCHIVED": "An archived article cannot be changed. Restore it first.",
+    "ARTICLE_PARENT_INVALID": "The parent must be an existing, active article that you can see.",
+    "ARTICLE_PARENT_ARCHIVED": "The article cannot be restored while its parent is archived. Restore the parent first.",
+    "ARTICLE_HAS_ACTIVE_CHILDREN": "The article has active sub-pages. Archive or move them first.",
+    "ARTICLE_CYCLE": "An article cannot be moved under itself or under one of its sub-pages.",
+    "ARTICLE_RESTRICTED_FORBIDDEN": "You need permission to view restricted documents to mark an article as restricted.",
+    "ARTICLE_CONTENT_INVALID": "The content must be a rich-text document of reasonable depth.",
+    "ARTICLE_TOO_LONG": "The article text is too long.",
+    "ARTICLE_REFERENCE_INVALID": "A mention needs an id and an entity type of person, article or task.",
+    "ARTICLE_TOO_MANY_REFERENCES": "The article has too many distinct links and mentions.",
+    "ARTICLE_TAG_INVALID": "A tag must not be blank and can have at most 50 characters.",
+    "ARTICLE_TOO_MANY_TAGS": "An article can have at most 20 tags.",
+    "ARTICLE_ATTACHMENT_INVALID": "Attachments must be existing, non-archived files.",
+    "ARTICLE_TOO_MANY_ATTACHMENTS": "An article can have at most 20 attachments."
   },
   "faculties": {
     "title": "Faculties and institutes",

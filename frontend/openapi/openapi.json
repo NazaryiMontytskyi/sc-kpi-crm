@@ -977,13 +977,87 @@
         }
       }
     },
+    "/api/v1/articles/{id}": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Get an article with content, tags, attachments, references and ancestors",
+        "description": "404 for a restricted article without kb.restricted.view.",
+        "operationId": "get_8",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Edit an article (replaces title, content, tags, attachments, restricted flag)",
+        "description": "Every edit raises the version counter by one. 409 when archived.",
+        "operationId": "update_8",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateArticleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/activity-levels/{id}": {
       "get": {
         "tags": [
           "Activity levels"
         ],
         "summary": "Get one definition, including an archived one",
-        "operationId": "get_8",
+        "operationId": "get_9",
         "parameters": [
           {
             "name": "id",
@@ -1013,7 +1087,7 @@
           "Activity levels"
         ],
         "summary": "Edit an active definition",
-        "operationId": "update_8",
+        "operationId": "update_9",
         "parameters": [
           {
             "name": "id",
@@ -3474,6 +3548,203 @@
         }
       }
     },
+    "/api/v1/articles": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Articles (paginated, sortable by title, createdAt, updatedAt; default title)",
+        "description": "Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.",
+        "operationId": "list_7",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentArticleId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseArticleSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Create an article",
+        "description": "The parent (optional) must exist, be active and visible (422). Marking an article restricted needs kb.restricted.view (403). References are extracted from the content.",
+        "operationId": "create_9",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArticleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/restore": {
+      "post": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Restore an archived article",
+        "description": "409 ARTICLE_PARENT_ARCHIVED when its parent is archived.",
+        "operationId": "restore_6",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/move": {
+      "post": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Move an article under another parent (null = top level)",
+        "description": "422 ARTICLE_CYCLE when the new parent is the article itself or one of its descendants; 422 ARTICLE_PARENT_INVALID when the parent is missing, archived or not visible.",
+        "operationId": "move_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveArticleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/archive": {
+      "post": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Archive an article (soft)",
+        "description": "409 ARTICLE_HAS_ACTIVE_CHILDREN while it still has active children: archive or move them first.",
+        "operationId": "archive_8",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/appointments/{id}/end": {
       "post": {
         "tags": [
@@ -3523,7 +3794,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_7",
+        "operationId": "list_8",
         "parameters": [
           {
             "name": "page",
@@ -3562,7 +3833,7 @@
         ],
         "summary": "Create a definition",
         "description": "Code is unique among active definitions (409 otherwise).",
-        "operationId": "create_9",
+        "operationId": "create_10",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3594,7 +3865,7 @@
         ],
         "summary": "Restore an archived definition",
         "description": "409 if its code is now used by an active one.",
-        "operationId": "restore_6",
+        "operationId": "restore_7",
         "parameters": [
           {
             "name": "id",
@@ -3627,7 +3898,7 @@
         ],
         "summary": "Archive a definition (soft)",
         "description": "Members keep the level and the history keeps the reference; it just stops being selectable.",
-        "operationId": "archive_8",
+        "operationId": "archive_9",
         "parameters": [
           {
             "name": "id",
@@ -3758,7 +4029,7 @@
         ],
         "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
         "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
-        "operationId": "list_8",
+        "operationId": "list_9",
         "parameters": [
           {
             "name": "page",
@@ -3842,7 +4113,7 @@
           "Resolutions"
         ],
         "summary": "Get a resolution with its full history",
-        "operationId": "get_9",
+        "operationId": "get_10",
         "parameters": [
           {
             "name": "id",
@@ -4017,7 +4288,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_10",
+        "operationId": "get_11",
         "parameters": [
           {
             "name": "id",
@@ -4050,7 +4321,7 @@
         ],
         "summary": "Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)",
         "description": "role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.",
-        "operationId": "list_9",
+        "operationId": "list_10",
         "parameters": [
           {
             "name": "id",
@@ -4278,7 +4549,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_10",
+        "operationId": "list_11",
         "parameters": [
           {
             "name": "page",
@@ -4393,6 +4664,91 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/PageResponseAuditEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/children": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Active direct children of an article, ordered by title",
+        "operationId": "children",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/tree": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Page tree of all active articles",
+        "description": "Nested, siblings ordered by title. Restricted articles (and the branches below them) are omitted without kb.restricted.view.",
+        "operationId": "tree_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreeNodeResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/tags": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Tags in use with the number of active articles carrying them",
+        "description": "Only articles the caller may see are counted. Filter articles by tag with GET /articles?tag=.",
+        "operationId": "tags",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagResponse"
+                  }
                 }
               }
             }
@@ -5554,6 +5910,142 @@
           }
         }
       },
+      "UpdateArticleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AncestorResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ArticleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "parentArticleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentResponse"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceResponse"
+            }
+          },
+          "ancestors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AncestorResponse"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReferenceResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ARTICLE",
+              "TASK",
+              "PERSON"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "DefinitionRequest": {
         "type": "object",
         "properties": {
@@ -6428,6 +6920,52 @@
           "currentPassword",
           "newPassword"
         ]
+      },
+      "CreateArticleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "parentArticleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "MoveArticleRequest": {
+        "type": "object",
+        "properties": {
+          "parentArticleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       },
       "EndAppointmentRequest": {
         "type": "object",
@@ -7414,6 +7952,124 @@
           },
           "last": {
             "type": "boolean"
+          }
+        }
+      },
+      "ArticleSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "parentArticleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageResponseArticleSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TreeNodeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "restricted": {
+            "type": "boolean"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreeNodeResponse"
+            }
+          }
+        }
+      },
+      "TagResponse": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

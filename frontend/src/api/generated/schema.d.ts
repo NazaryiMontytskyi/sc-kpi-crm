@@ -314,6 +314,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an article with content, tags, attachments, references and ancestors
+         * @description 404 for a restricted article without kb.restricted.view.
+         */
+        get: operations["get_8"];
+        /**
+         * Edit an article (replaces title, content, tags, attachments, restricted flag)
+         * @description Every edit raises the version counter by one. 409 when archived.
+         */
+        put: operations["update_8"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/activity-levels/{id}": {
         parameters: {
             query?: never;
@@ -322,9 +346,9 @@ export interface paths {
             cookie?: never;
         };
         /** Get one definition, including an archived one */
-        get: operations["get_8"];
+        get: operations["get_9"];
         /** Edit an active definition */
-        put: operations["update_8"];
+        put: operations["update_9"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1262,6 +1286,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Articles (paginated, sortable by title, createdAt, updatedAt; default title)
+         * @description Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.
+         */
+        get: operations["list_7"];
+        put?: never;
+        /**
+         * Create an article
+         * @description The parent (optional) must exist, be active and visible (422). Marking an article restricted needs kb.restricted.view (403). References are extracted from the content.
+         */
+        post: operations["create_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archived article
+         * @description 409 ARTICLE_PARENT_ARCHIVED when its parent is archived.
+         */
+        post: operations["restore_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move an article under another parent (null = top level)
+         * @description 422 ARTICLE_CYCLE when the new parent is the article itself or one of its descendants; 422 ARTICLE_PARENT_INVALID when the parent is missing, archived or not visible.
+         */
+        post: operations["move_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive an article (soft)
+         * @description 409 ARTICLE_HAS_ACTIVE_CHILDREN while it still has active children: archive or move them first.
+         */
+        post: operations["archive_8"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/appointments/{id}/end": {
         parameters: {
             query?: never;
@@ -1293,13 +1401,13 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         /**
          * Create a definition
          * @description Code is unique among active definitions (409 otherwise).
          */
-        post: operations["create_9"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1319,7 +1427,7 @@ export interface paths {
          * Restore an archived definition
          * @description 409 if its code is now used by an active one.
          */
-        post: operations["restore_6"];
+        post: operations["restore_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1339,7 +1447,7 @@ export interface paths {
          * Archive a definition (soft)
          * @description Members keep the level and the history keeps the reference; it just stops being selectable.
          */
-        post: operations["archive_8"];
+        post: operations["archive_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1408,7 +1516,7 @@ export interface paths {
          * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
          * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1425,7 +1533,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get a resolution with its full history */
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1519,7 +1627,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_10"];
+        get: operations["get_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1539,7 +1647,7 @@ export interface paths {
          * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
          * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
          */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1633,7 +1741,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1654,6 +1762,63 @@ export interface paths {
          * @description 403 for entity types registered as restricted when the permission is missing.
          */
         get: operations["history_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active direct children of an article, ordered by title */
+        get: operations["children"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Page tree of all active articles
+         * @description Nested, siblings ordered by title. Restricted articles (and the branches below them) are omitted without kb.restricted.view.
+         */
+        get: operations["tree_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tags in use with the number of active articles carrying them
+         * @description Only articles the caller may see are counted. Filter articles by tag with GET /articles?tag=.
+         */
+        get: operations["tags"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2060,6 +2225,54 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        UpdateArticleRequest: {
+            title: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            restricted?: boolean;
+            tags?: string[];
+            attachmentIds?: string[];
+        };
+        AncestorResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+        };
+        ArticleResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            parentArticleId?: string;
+            restricted?: boolean;
+            /** Format: int32 */
+            version?: number;
+            tags?: string[];
+            attachments?: components["schemas"]["AttachmentResponse"][];
+            references?: components["schemas"]["ReferenceResponse"][];
+            ancestors?: components["schemas"]["AncestorResponse"][];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: uuid */
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            updatedBy?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ReferenceResponse: {
+            /** @enum {string} */
+            type?: "ARTICLE" | "TASK" | "PERSON";
+            /** Format: uuid */
+            id?: string;
+        };
         DefinitionRequest: {
             code: string;
             labelUk: string;
@@ -2346,6 +2559,21 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        CreateArticleRequest: {
+            title: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            parentArticleId?: string;
+            restricted?: boolean;
+            tags?: string[];
+            attachmentIds?: string[];
+        };
+        MoveArticleRequest: {
+            /** Format: uuid */
+            parentArticleId?: string;
         };
         EndAppointmentRequest: {
             /** Format: date */
@@ -2723,6 +2951,53 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+        };
+        ArticleSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            parentArticleId?: string;
+            restricted?: boolean;
+            /** Format: int32 */
+            version?: number;
+            tags?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: uuid */
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            updatedBy?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PageResponseArticleSummaryResponse: {
+            content?: components["schemas"]["ArticleSummaryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        TreeNodeResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            restricted?: boolean;
+            children?: components["schemas"]["TreeNodeResponse"][];
+        };
+        TagResponse: {
+            tag?: string;
+            /** Format: int64 */
+            count?: number;
         };
         PageResponseDefinitionResponse: {
             content?: components["schemas"]["DefinitionResponse"][];
@@ -3365,12 +3640,60 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["DefinitionResponse"];
+                    "*/*": components["schemas"]["ArticleResponse"];
                 };
             };
         };
     };
     update_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateArticleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    get_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DefinitionResponse"];
+                };
+            };
+        };
+    };
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -4884,6 +5207,125 @@ export interface operations {
             };
         };
     };
+    list_7: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                tag?: string;
+                parentArticleId?: string;
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseArticleSummaryResponse"];
+                };
+            };
+        };
+    };
+    create_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateArticleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    restore_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    move_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveArticleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
+    archive_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
     end_1: {
         parameters: {
             query?: never;
@@ -4910,7 +5352,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -4933,7 +5375,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -4957,7 +5399,7 @@ export interface operations {
             };
         };
     };
-    restore_6: {
+    restore_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -4979,7 +5421,7 @@ export interface operations {
             };
         };
     };
-    archive_8: {
+    archive_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -5069,7 +5511,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -5096,7 +5538,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -5206,7 +5648,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -5228,7 +5670,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -5361,7 +5803,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query: {
                 page: components["schemas"]["PageParams"];
@@ -5410,6 +5852,68 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseAuditEntryResponse"];
+                };
+            };
+        };
+    };
+    children: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleSummaryResponse"][];
+                };
+            };
+        };
+    };
+    tree_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TreeNodeResponse"][];
+                };
+            };
+        };
+    };
+    tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TagResponse"][];
                 };
             };
         };
