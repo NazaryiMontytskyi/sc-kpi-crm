@@ -1014,7 +1014,7 @@
           "Knowledge base"
         ],
         "summary": "Edit an article (replaces title, content, tags, attachments, restricted flag)",
-        "description": "Every edit raises the version counter by one. 409 when archived.",
+        "description": "expectedVersion must equal the current version, otherwise 409 ARTICLE_VERSION_CONFLICT. Every edit raises the version counter by one and stores exactly one version snapshot. 409 ARTICLE_ARCHIVED when archived.",
         "operationId": "update_8",
         "parameters": [
           {
@@ -3636,6 +3636,57 @@
         }
       }
     },
+    "/api/v1/articles/{id}/versions/{versionNumber}/restore": {
+      "post": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Restore an old version as a NEW latest version",
+        "description": "The article takes the title and content of that version; tags, attachments and the restricted flag stay. Old versions are kept. Optional expectedVersion: 409 ARTICLE_VERSION_CONFLICT when the article changed meanwhile; 409 ARTICLE_ARCHIVED when archived.",
+        "operationId": "restoreVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreVersionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/articles/{id}/restore": {
       "post": {
         "tags": [
@@ -4664,6 +4715,88 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/PageResponseAuditEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/versions": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Version history of an article (paginated, newest first; sortable by versionNumber)",
+        "description": "404 for a restricted article without kb.restricted.view.",
+        "operationId": "versions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PageParams"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseArticleVersionSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/versions/{versionNumber}": {
+      "get": {
+        "tags": [
+          "Knowledge base"
+        ],
+        "summary": "Read one version (title and content snapshot)",
+        "operationId": "version",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleVersionResponse"
                 }
               }
             }
@@ -5913,6 +6046,11 @@
       "UpdateArticleRequest": {
         "type": "object",
         "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
           "title": {
             "type": "string",
             "maxLength": 300,
@@ -5940,6 +6078,7 @@
           }
         },
         "required": [
+          "expectedVersion",
           "title"
         ]
       },
@@ -6957,6 +7096,16 @@
         "required": [
           "title"
         ]
+      },
+      "RestoreVersionRequest": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        }
       },
       "MoveArticleRequest": {
         "type": "object",
@@ -8037,6 +8186,83 @@
           },
           "last": {
             "type": "boolean"
+          }
+        }
+      },
+      "ArticleVersionSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "editedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageResponseArticleVersionSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleVersionSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArticleVersionResponse": {
+        "type": "object",
+        "properties": {
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "editedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

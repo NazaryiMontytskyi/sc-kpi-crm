@@ -183,6 +183,7 @@ const KNOWN_CODES = [
   'ARTICLE_TOO_MANY_TAGS',
   'ARTICLE_ATTACHMENT_INVALID',
   'ARTICLE_TOO_MANY_ATTACHMENTS',
+  'ARTICLE_VERSION_CONFLICT',
 ] as const;
 
 /** i18n key + params for an error; unknown codes and network failures fall back to a generic message. */

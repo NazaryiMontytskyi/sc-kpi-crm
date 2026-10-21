@@ -220,7 +220,8 @@
     "ARTICLE_TAG_INVALID": "A tag must not be blank and can have at most 50 characters.",
     "ARTICLE_TOO_MANY_TAGS": "An article can have at most 20 tags.",
     "ARTICLE_ATTACHMENT_INVALID": "Attachments must be existing, non-archived files.",
-    "ARTICLE_TOO_MANY_ATTACHMENTS": "An article can have at most 20 attachments."
+    "ARTICLE_TOO_MANY_ATTACHMENTS": "An article can have at most 20 attachments.",
+    "ARTICLE_VERSION_CONFLICT": "The article was changed by someone else. Reload it and apply your changes again."
   },
   "faculties": {
     "title": "Faculties and institutes",

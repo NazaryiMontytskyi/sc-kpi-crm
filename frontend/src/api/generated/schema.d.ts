@@ -328,7 +328,7 @@ export interface paths {
         get: operations["get_8"];
         /**
          * Edit an article (replaces title, content, tags, attachments, restricted flag)
-         * @description Every edit raises the version counter by one. 409 when archived.
+         * @description expectedVersion must equal the current version, otherwise 409 ARTICLE_VERSION_CONFLICT. Every edit raises the version counter by one and stores exactly one version snapshot. 409 ARTICLE_ARCHIVED when archived.
          */
         put: operations["update_8"];
         post?: never;
@@ -1310,6 +1310,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/articles/{id}/versions/{versionNumber}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an old version as a NEW latest version
+         * @description The article takes the title and content of that version; tags, attachments and the restricted flag stay. Old versions are kept. Optional expectedVersion: 409 ARTICLE_VERSION_CONFLICT when the article changed meanwhile; 409 ARTICLE_ARCHIVED when archived.
+         */
+        post: operations["restoreVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/articles/{id}/restore": {
         parameters: {
             query?: never;
@@ -1762,6 +1782,43 @@ export interface paths {
          * @description 403 for entity types registered as restricted when the permission is missing.
          */
         get: operations["history_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Version history of an article (paginated, newest first; sortable by versionNumber)
+         * @description 404 for a restricted article without kb.restricted.view.
+         */
+        get: operations["versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{id}/versions/{versionNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one version (title and content snapshot) */
+        get: operations["version"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2226,6 +2283,8 @@ export interface components {
             updatedAt?: string;
         };
         UpdateArticleRequest: {
+            /** Format: int32 */
+            expectedVersion: number;
             title: string;
             content?: {
                 [key: string]: unknown;
@@ -2570,6 +2629,10 @@ export interface components {
             restricted?: boolean;
             tags?: string[];
             attachmentIds?: string[];
+        };
+        RestoreVersionRequest: {
+            /** Format: int32 */
+            expectedVersion?: number;
         };
         MoveArticleRequest: {
             /** Format: uuid */
@@ -2986,6 +3049,40 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
+        };
+        ArticleVersionSummaryResponse: {
+            /** Format: int32 */
+            versionNumber?: number;
+            title?: string;
+            /** Format: uuid */
+            editedBy?: string;
+            /** Format: date-time */
+            editedAt?: string;
+        };
+        PageResponseArticleVersionSummaryResponse: {
+            content?: components["schemas"]["ArticleVersionSummaryResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        ArticleVersionResponse: {
+            /** Format: int32 */
+            versionNumber?: number;
+            title?: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            editedBy?: string;
+            /** Format: date-time */
+            editedAt?: string;
         };
         TreeNodeResponse: {
             /** Format: uuid */
@@ -5256,6 +5353,33 @@ export interface operations {
             };
         };
     };
+    restoreVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                versionNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RestoreVersionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleResponse"];
+                };
+            };
+        };
+    };
     restore_6: {
         parameters: {
             query?: never;
@@ -5852,6 +5976,53 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseAuditEntryResponse"];
+                };
+            };
+        };
+    };
+    versions: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseArticleVersionSummaryResponse"];
+                };
+            };
+        };
+    };
+    version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                versionNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ArticleVersionResponse"];
                 };
             };
         };
