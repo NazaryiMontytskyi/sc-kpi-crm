@@ -1,5 +1,8 @@
 import type { ReactElement } from 'react';
 import { AuditPage } from '../audit/AuditPage';
+import { ArticleEditPage } from '../knowledge/ArticleEditPage';
+import { ArticlePage } from '../knowledge/ArticlePage';
+import { KnowledgeHomePage } from '../knowledge/KnowledgeHomePage';
 import { FacultiesPage } from '../members/FacultiesPage';
 import { MemberProfilePage, MyProfileRedirect } from '../members/MemberProfilePage';
 import { MembersPage } from '../members/MembersPage';
@@ -42,6 +45,10 @@ export const appRoutes: AppRoute[] = [
   { path: '/tasks/:id', element: <TaskDetailPage /> },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },
   { path: '/spaces/:id', element: <SpaceSettingsPage /> },
+  { path: '/knowledge', element: <KnowledgeHomePage />, nav: { labelKey: 'nav.knowledge', permission: 'kb.view' } },
+  { path: '/knowledge/new', element: <ArticleEditPage /> },
+  { path: '/knowledge/:id', element: <ArticlePage /> },
+  { path: '/knowledge/:id/edit', element: <ArticleEditPage /> },
   {
     path: '/settings/faculties',
     element: <FacultiesPage />,

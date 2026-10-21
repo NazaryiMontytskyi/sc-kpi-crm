@@ -1,0 +1,174 @@
+/*
+ * Article editor and reader. Colors come from Mantine tokens only; the text/background palette used by the
+ * color pickers is defined here once, per theme, so documents store a variable name instead of a raw color.
+ */
+:root {
+  --sc-text-red: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-4));
+  --sc-text-orange: light-dark(var(--mantine-color-orange-8), var(--mantine-color-orange-4));
+  --sc-text-yellow: light-dark(var(--mantine-color-yellow-9), var(--mantine-color-yellow-4));
+  --sc-text-green: light-dark(var(--mantine-color-green-8), var(--mantine-color-green-4));
+  --sc-text-teal: light-dark(var(--mantine-color-teal-8), var(--mantine-color-teal-4));
+  --sc-text-blue: light-dark(var(--mantine-color-blue-8), var(--mantine-color-blue-4));
+  --sc-text-violet: light-dark(var(--mantine-color-violet-8), var(--mantine-color-violet-4));
+  --sc-text-gray: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-2));
+
+  --sc-bg-red: light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9));
+  --sc-bg-orange: light-dark(var(--mantine-color-orange-1), var(--mantine-color-orange-9));
+  --sc-bg-yellow: light-dark(var(--mantine-color-yellow-1), var(--mantine-color-yellow-9));
+  --sc-bg-green: light-dark(var(--mantine-color-green-1), var(--mantine-color-green-9));
+  --sc-bg-teal: light-dark(var(--mantine-color-teal-1), var(--mantine-color-teal-9));
+  --sc-bg-blue: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-9));
+  --sc-bg-violet: light-dark(var(--mantine-color-violet-1), var(--mantine-color-violet-9));
+  --sc-bg-gray: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.sc-editor {
+  overflow-wrap: anywhere;
+  font-size: var(--mantine-font-size-md);
+  line-height: 1.6;
+}
+
+.sc-editor .ProseMirror {
+  outline: none;
+  min-height: 240px;
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+}
+
+.sc-editor .ProseMirror:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.sc-editor-readonly .ProseMirror {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sc-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.sc-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--mantine-primary-color-filled);
+}
+
+.sc-editor a {
+  color: var(--mantine-color-anchor);
+}
+
+.sc-editor .sc-mention {
+  color: var(--mantine-color-anchor);
+  font-weight: 500;
+  background: var(--mantine-color-default-hover);
+  border-radius: var(--mantine-radius-sm);
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+/* Callouts: neutral surface with a colored left bar per variant (status colors keep their meaning). */
+.sc-callout {
+  margin: var(--mantine-spacing-sm) 0;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-left: 4px solid var(--callout-accent, var(--mantine-color-blue-6));
+  border-radius: var(--mantine-radius-sm);
+  background: var(--callout-bg, var(--sc-bg-blue));
+}
+.sc-callout > :first-child { margin-top: 0; }
+.sc-callout > :last-child { margin-bottom: 0; }
+.sc-callout[data-callout='success'] { --callout-accent: var(--mantine-color-green-6); --callout-bg: var(--sc-bg-green); }
+.sc-callout[data-callout='warning'] { --callout-accent: var(--mantine-color-yellow-6); --callout-bg: var(--sc-bg-yellow); }
+.sc-callout[data-callout='danger'] { --callout-accent: var(--mantine-color-red-6); --callout-bg: var(--sc-bg-red); }
+
+/* Task list (checklist). */
+.sc-editor ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.sc-editor ul[data-type='taskList'] li {
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  align-items: flex-start;
+}
+.sc-editor ul[data-type='taskList'] li > label {
+  flex: 0 0 auto;
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+.sc-editor ul[data-type='taskList'] li > div { flex: 1 1 auto; min-width: 0; }
+.sc-editor ul[data-type='taskList'] li[data-checked='true'] > div { text-decoration: line-through; color: var(--mantine-color-dimmed); }
+
+/* Tables scroll sideways on narrow screens instead of breaking the layout. */
+.sc-editor .tableWrapper { overflow-x: auto; margin: var(--mantine-spacing-sm) 0; }
+.sc-editor table { border-collapse: collapse; min-width: 100%; table-layout: fixed; }
+.sc-editor th,
+.sc-editor td {
+  border: 1px solid var(--mantine-color-default-border);
+  padding: var(--mantine-spacing-xs);
+  vertical-align: top;
+  min-width: 80px;
+  position: relative;
+}
+.sc-editor th { background: var(--mantine-color-default-hover); font-weight: 600; text-align: left; }
+.sc-editor .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--mantine-color-default-hover);
+  pointer-events: none;
+}
+.sc-editor .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--mantine-primary-color-filled);
+  pointer-events: none;
+}
+
+.sc-editor pre {
+  overflow-x: auto;
+  padding: var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-default-hover);
+}
+
+.sc-editor blockquote {
+  margin: var(--mantine-spacing-sm) 0;
+  padding-left: var(--mantine-spacing-sm);
+  border-left: 3px solid var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+}
+
+/* File cards and embedded PDF. */
+.sc-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-xs);
+  align-items: center;
+  margin: var(--mantine-spacing-xs) 0;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  min-height: 44px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-default-hover);
+}
+.sc-file-size { color: var(--mantine-color-dimmed); font-size: var(--mantine-font-size-sm); }
+.sc-pdf { margin: var(--mantine-spacing-sm) 0; }
+.sc-pdf object {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  min-height: 320px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}

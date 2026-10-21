@@ -25,7 +25,8 @@
     "tasks": "Tasks",
     "spaces": "Spaces",
     "myResolutions": "My resolutions",
-    "issuedByMe": "Issued by me"
+    "issuedByMe": "Issued by me",
+    "knowledge": "Knowledge base"
   },
   "memberResolutions": {
     "profileTitle": "Resolutions",
@@ -966,6 +967,144 @@
       "nameRequired": "Enter a name.",
       "nameTooLong": "The name is too long (max 100 characters).",
       "remove": "Remove filter {{name}}"
+    }
+  },
+  "knowledge": {
+    "title": "Knowledge base",
+    "newPage": "New page",
+    "newSubpage": "New sub-page",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archivedBadge": "Archived",
+    "restrictedBadge": "Restricted",
+    "archivedNotice": "This page is archived and cannot be edited. Restore it first.",
+    "tags": "Tags",
+    "allTags": "All",
+    "showArchived": "Show archived pages",
+    "empty": "No pages yet.",
+    "notFound": "The page does not exist or you cannot see it.",
+    "breadcrumbs": "Breadcrumbs",
+    "updatedAt": "Updated {{date}}",
+    "tree": {
+      "title": "Pages",
+      "open": "Pages",
+      "newRoot": "New page",
+      "empty": "No pages yet."
+    },
+    "move": {
+      "action": "Move",
+      "title": "Move page",
+      "parent": "New parent page",
+      "root": "Top level",
+      "apply": "Move"
+    },
+    "form": {
+      "newTitle": "New page",
+      "editTitle": "Edit page",
+      "title": "Title",
+      "titleRequired": "Enter a title (up to 300 characters).",
+      "content": "Page content",
+      "tags": "Tags",
+      "tagsHint": "Up to {{max}} tags; press Enter or comma to add.",
+      "restricted": "Restricted page",
+      "restrictedHint": "Visible only to people who may view restricted documents.",
+      "save": "Save"
+    },
+    "draft": {
+      "restored": "An unsaved draft of this page was restored.",
+      "discard": "Discard draft"
+    },
+    "conflict": {
+      "title": "The page was changed by someone else",
+      "body": "Someone saved a newer version while you were editing. Your changes are kept here.",
+      "reload": "Load the latest version (discard mine)",
+      "overwrite": "Save mine over the latest version",
+      "keepEditing": "Keep editing"
+    },
+    "toolbar": {
+      "label": "Formatting",
+      "undo": "Undo",
+      "redo": "Redo",
+      "heading": "Heading",
+      "paragraph": "Paragraph",
+      "size": "Text size",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "textColor": "Text color",
+      "backgroundColor": "Background color",
+      "clearColor": "No color",
+      "bulletList": "Bullet list",
+      "orderedList": "Numbered list",
+      "taskList": "Checklist",
+      "quote": "Quote",
+      "link": "Link",
+      "insert": "Insert block",
+      "tableTools": "Table tools",
+      "addRow": "Add row",
+      "addColumn": "Add column",
+      "deleteRow": "Delete row",
+      "deleteColumn": "Delete column",
+      "deleteTable": "Delete table"
+    },
+    "size": {
+      "small": "Small",
+      "normal": "Normal",
+      "large": "Large",
+      "huge": "Huge"
+    },
+    "colors": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "teal": "Teal",
+      "blue": "Blue",
+      "violet": "Violet",
+      "gray": "Gray"
+    },
+    "blocks": {
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bulletList": "Bullet list",
+      "orderedList": "Numbered list",
+      "taskList": "Checklist",
+      "quote": "Quote",
+      "codeBlock": "Code block",
+      "divider": "Divider",
+      "callout": "Callout",
+      "table": "Table",
+      "link": "Link",
+      "image": "Image",
+      "file": "File attachment",
+      "pdf": "Embedded PDF",
+      "mention": "Mention (person, page, task)"
+    },
+    "slash": {
+      "label": "Insert block",
+      "empty": "No matching blocks"
+    },
+    "mention": {
+      "label": "Mention",
+      "empty": "Nothing found",
+      "person": "Person",
+      "article": "Page",
+      "task": "Task"
+    },
+    "link": {
+      "title": "Link",
+      "url": "Address",
+      "apply": "Apply",
+      "invalid": "Enter a web address (https://...), an e-mail (mailto:) or a site path."
+    },
+    "upload": {
+      "uploading": "Uploading file...",
+      "notImage": "Choose an image file.",
+      "notPdf": "Choose a PDF file."
     }
   }
 }
