@@ -575,7 +575,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-042 — Knowledge: onboarding lists and "I've read this"
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `knowledge` + frontend `knowledge`
 - **Depends on:** INC-040
 - **Scope:** `OnboardingList` (ordered articleIds, optional orgUnitId) managed with `onboarding.manage`; "For newcomers" page showing general list plus lists for the user's departments (via `org` public API); personal read mark per user per article (private, no supervision, `[ASSUMPTION]`); newcomer prompt to open onboarding on first login after account creation.
