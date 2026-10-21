@@ -25,6 +25,8 @@ interface ArticleRepository extends ArchivableRepository<Article, UUID> {
 
 	long countByParentArticleIdAndArchivedAtIsNull(UUID parentArticleId);
 
+	List<Article> findByIdIn(java.util.Collection<UUID> ids);
+
 	/** Light projection of the active articles for the page tree. */
 	@Query("select a.id as id, a.title as title, a.parentArticleId as parentArticleId, a.restricted as restricted "
 			+ "from Article a where a.archivedAt is null and (:includeRestricted = true or a.restricted = false) "

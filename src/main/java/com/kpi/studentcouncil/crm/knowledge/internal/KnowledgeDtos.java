@@ -77,4 +77,29 @@ final class KnowledgeDtos {
 	record TagResponse(String tag, long count) {
 	}
 
+	/** {@code orgUnitId} null makes the general list; {@code articleIds} is the display order. */
+	record CreateOnboardingListRequest(@NotBlank @Size(max = 200) String title, UUID orgUnitId,
+			@NotNull @Size(max = 100) List<UUID> articleIds) {
+	}
+
+	/** Replaces title and the whole ordered article list. */
+	record UpdateOnboardingListRequest(@NotBlank @Size(max = 200) String title,
+			@NotNull @Size(max = 100) List<UUID> articleIds) {
+	}
+
+	/** {@code read}: the caller's own mark; nobody else's is ever returned. */
+	record OnboardingItemResponse(UUID articleId, String title, boolean restricted, boolean read) {
+	}
+
+	/** {@code orgUnitId} null: the general list. {@code items}: active articles the caller may see, in list order. */
+	record OnboardingListResponse(UUID id, String title, UUID orgUnitId, String orgUnitName,
+			List<OnboardingItemResponse> items, boolean archived, Instant updatedAt) {
+	}
+
+	record ReadMarkResponse(boolean read) {
+	}
+
+	record OnboardingPromptResponse(boolean pending) {
+	}
+
 }
