@@ -165,3 +165,44 @@ export async function uploadArticleFile(file: File): Promise<ArticleAttachment> 
   if (!data?.id) throw toProblemError(response, error);
   return { id: data.id, fileName: data.fileName ?? file.name, mimeType: data.mimeType ?? file.type, size: data.size ?? file.size };
 }
+
+export interface ArticleVersionSummary {
+  versionNumber: number;
+  title: string;
+  editedAt: string;
+}
+
+export interface ArticleVersion extends ArticleVersionSummary {
+  content: RichDoc;
+}
+
+export async function listArticleVersions(id: string): Promise<ArticleVersionSummary[]> {
+  const { data, error, response } = await api.GET('/api/v1/articles/{id}/versions', {
+    params: { path: { id }, query: { page: { page: 0, size: 100, sort: 'versionNumber,desc' } } },
+  });
+  if (!data) throw toProblemError(response, error);
+  return (data.content ?? []).map((v) => ({ versionNumber: v.versionNumber ?? 0, title: v.title ?? '', editedAt: v.editedAt ?? '' }));
+}
+
+export async function getArticleVersion(id: string, versionNumber: number): Promise<ArticleVersion> {
+  const { data, error, response } = await api.GET('/api/v1/articles/{id}/versions/{versionNumber}', {
+    params: { path: { id, versionNumber } },
+  });
+  if (!data) throw toProblemError(response, error);
+  return {
+    versionNumber: data.versionNumber ?? versionNumber,
+    title: data.title ?? '',
+    editedAt: data.editedAt ?? '',
+    content: (data.content as RichDoc | undefined) ?? EMPTY_DOC,
+  };
+}
+
+/** Makes an old version the current one (a new version is created); tags, attachments and the restricted flag stay. */
+export async function restoreArticleVersion(id: string, versionNumber: number, expectedVersion?: number): Promise<Article> {
+  const { data, error, response } = await api.POST('/api/v1/articles/{id}/versions/{versionNumber}/restore', {
+    params: { path: { id, versionNumber } },
+    body: expectedVersion === undefined ? undefined : { expectedVersion },
+  });
+  if (!data) throw toProblemError(response, error);
+  return toArticle(data);
+}

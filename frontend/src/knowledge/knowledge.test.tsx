@@ -37,6 +37,9 @@ vi.mock('./knowledgeApi', async (orig) => ({
   archiveArticle: vi.fn(),
   restoreArticle: vi.fn(),
   uploadArticleFile: vi.fn(),
+  listArticleVersions: vi.fn(),
+  getArticleVersion: vi.fn(),
+  restoreArticleVersion: vi.fn(),
 }));
 vi.mock('../members/memberApi', async (orig) => ({ ...(await orig<typeof import('../members/memberApi')>()), listMembers: vi.fn().mockResolvedValue([]) }));
 vi.mock('../tasks/tasksApi', async (orig) => ({
@@ -288,5 +291,46 @@ describe('edit mode', () => {
     renderRoute('/knowledge/a1/edit', authWith(['kb.view']));
     expect(await screen.findByText(/немає прав/)).toBeInTheDocument();
     expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+  });
+});
+
+describe('version history', () => {
+  const VERSIONS = [
+    { versionNumber: 3, title: 'Onboarding guide', editedAt: '2031-01-01T10:00:00Z' },
+    { versionNumber: 2, title: 'Old title', editedAt: '2030-12-01T10:00:00Z' },
+  ];
+  beforeEach(() => {
+    vi.mocked(api.listArticleVersions).mockResolvedValue(VERSIONS);
+    vi.mocked(api.getArticleVersion).mockResolvedValue({ ...VERSIONS[1], content: doc('Old body') });
+  });
+
+  it('lists versions, previews one and restores it after confirmation with kb.edit', async () => {
+    vi.mocked(api.restoreArticleVersion).mockResolvedValue(article({ version: 4 }));
+    renderRoute('/knowledge/a1', authWith(['kb.view', 'kb.edit']));
+    await userEvent.click(await screen.findByRole('button', { name: 'Історія' }));
+    await userEvent.click(await screen.findByText('Old title'));
+    expect(await screen.findByText('Old body')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Відновити цю версію' }));
+    expect(screen.getByText(/Теги, вкладення та ознака обмеженого доступу/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Відновити' }));
+    await waitFor(() => expect(api.restoreArticleVersion).toHaveBeenCalledWith('a1', 2, 3));
+  });
+
+  it('hides restore without kb.edit', async () => {
+    renderRoute('/knowledge/a1', authWith(['kb.view']));
+    await userEvent.click(await screen.findByRole('button', { name: 'Історія' }));
+    await userEvent.click(await screen.findByText('Old title'));
+    expect(await screen.findByText('Old body')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Відновити цю версію' })).not.toBeInTheDocument();
+  });
+
+  it('shows the problem when the server answers 403', async () => {
+    vi.mocked(api.restoreArticleVersion).mockRejectedValue(new ApiProblemError(403, undefined));
+    renderRoute('/knowledge/a1', authWith(['kb.view', 'kb.edit']));
+    await userEvent.click(await screen.findByRole('button', { name: 'Історія' }));
+    await userEvent.click(await screen.findByText('Old title'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Відновити цю версію' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Відновити' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 });

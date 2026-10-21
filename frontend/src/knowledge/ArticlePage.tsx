@@ -10,6 +10,7 @@ import { articleErrorKey } from './articleLogic';
 import { ArticleView } from './editor/ArticleView';
 import { KB_ARCHIVE, KB_EDIT } from './knowledgeApi';
 import { KnowledgeLayout } from './KnowledgeLayout';
+import { VersionHistoryDrawer } from './VersionHistoryDrawer';
 import { parentOptions } from './treeLogic';
 import { useArticle, useArticleMutations, useArticleTree } from './useKnowledge';
 
@@ -61,6 +62,7 @@ export function ArticlePage() {
   const query = useArticle(id);
   const { archive, restore } = useArticleMutations();
   const [moving, setMoving] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const article = query.data;
   const actionError = archive.error ?? restore.error;
 
@@ -101,6 +103,9 @@ export function ArticlePage() {
                   {t('knowledge.newSubpage')}
                 </Button>
               )}
+              <Button variant="default" mih={44} onClick={() => setHistoryOpen(true)}>
+                {t('knowledge.history')}
+              </Button>
               {canEdit && !article.archived && (
                 <Button variant="default" mih={44} onClick={() => setMoving(true)}>
                   {t('knowledge.move.action')}
@@ -145,6 +150,14 @@ export function ArticlePage() {
           </Group>
 
           <ArticleView content={article.content} />
+          {historyOpen && (
+            <VersionHistoryDrawer
+              articleId={article.id}
+              currentVersion={article.version}
+              canRestore={canEdit && !article.archived}
+              onClose={() => setHistoryOpen(false)}
+            />
+          )}
           {moving && <MoveModal id={article.id} parentId={article.parentArticleId} onClose={() => setMoving(false)} />}
         </Stack>
       )}

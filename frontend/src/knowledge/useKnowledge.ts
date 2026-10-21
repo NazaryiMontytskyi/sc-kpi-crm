@@ -4,6 +4,9 @@ import {
   createArticle,
   getArticle,
   getArticleTree,
+  getArticleVersion,
+  listArticleVersions,
+  restoreArticleVersion,
   getTags,
   listArticles,
   moveArticle,
@@ -34,4 +37,18 @@ export function useArticleMutations() {
     archive: useMutation({ mutationFn: (id: string) => archiveArticle(id), onSuccess }),
     restore: useMutation({ mutationFn: (id: string) => restoreArticle(id), onSuccess }),
   };
+}
+
+export const useArticleVersions = (id: string | undefined, enabled: boolean) =>
+  useQuery({ queryKey: [...KB_KEY, 'versions', id], queryFn: () => listArticleVersions(id ?? ''), enabled: !!id && enabled });
+export const useArticleVersion = (id: string | undefined, n: number | null) =>
+  useQuery({ queryKey: [...KB_KEY, 'version', id, n], queryFn: () => getArticleVersion(id ?? '', n ?? 0), enabled: !!id && n !== null });
+
+export function useRestoreVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; versionNumber: number; expectedVersion?: number }) =>
+      restoreArticleVersion(v.id, v.versionNumber, v.expectedVersion),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KB_KEY }),
+  });
 }

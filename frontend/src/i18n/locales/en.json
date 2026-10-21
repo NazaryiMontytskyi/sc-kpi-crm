@@ -1105,6 +1105,20 @@
       "uploading": "Uploading file...",
       "notImage": "Choose an image file.",
       "notPdf": "Choose a PDF file."
+    },
+    "history": "History",
+    "versions": {
+      "title": "Version history",
+      "empty": "No versions yet.",
+      "version": "Version {{n}}",
+      "current": "Current",
+      "preview": "Preview",
+      "back": "Back to the list",
+      "restore": "Restore this version",
+      "confirmTitle": "Restore version {{n}}?",
+      "confirmBody": "The page will get the title and content of version {{n}} as a new version. Older versions are kept. Tags, attachments and the restricted flag stay as they are.",
+      "confirm": "Restore",
+      "loadError": "Could not load the version."
     }
   }
 }
