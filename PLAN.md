@@ -588,7 +588,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-043 — Notifications: core, channel abstraction, in-app delivery (backend)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `notifications`
 - **Depends on:** INC-033, INC-027
 - **Scope:** `Notification` (recipientId, type, targetRef, readAt, payload); `NotificationChannel` interface with `InAppChannel` implementation (extension point for Telegram/email `[LATER]`, not implemented); event listeners creating notifications for: resolution issued to me/co-executor, redirect, submitted for acceptance, accepted, returned for rework, child resolution accepted, @mention; endpoints: list (paginated, unread filter), unread count, mark read, mark all read; notifications for the actor themselves suppressed; poll/handover types reserved in enum only.
