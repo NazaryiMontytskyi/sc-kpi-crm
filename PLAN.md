@@ -642,7 +642,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** if upstream modules lack events, add them there under their own increments; report to orchestrator.
 
 #### INC-047 — Search frontend: global search bar and results
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `search`
 - **Depends on:** INC-046, INC-007
 - **Scope:** header search with debounce, results page grouped by type with counts, keyboard shortcut on desktop, full-screen search on mobile.
