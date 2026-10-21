@@ -536,7 +536,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-039 — Knowledge: versioning
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `knowledge`
 - **Depends on:** INC-038
 - **Scope:** `ArticleVersion` snapshot on every save (content, title, editor, at, version number); list versions, read a version, restore (creates a new version, never rewrites history); optimistic locking on concurrent edits (409 problem code).
