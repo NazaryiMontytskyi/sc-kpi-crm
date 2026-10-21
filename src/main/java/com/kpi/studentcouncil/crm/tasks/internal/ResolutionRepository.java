@@ -50,4 +50,11 @@ interface ResolutionRepository extends ArchivableRepository<Resolution, UUID> {
 	long countExecutingOverdue(@Param("userId") UUID userId, @Param("excluded") Collection<ResolutionState> excluded,
 			@Param("today") java.time.LocalDate today);
 
+	/** Non-archived resolutions that are not ACCEPTED or CANCELED and due on or before the given date. */
+	@Query("select r from Resolution r where r.archivedAt is null and r.state not in"
+			+ " (com.kpi.studentcouncil.crm.tasks.internal.ResolutionState.ACCEPTED,"
+			+ " com.kpi.studentcouncil.crm.tasks.internal.ResolutionState.CANCELED) and r.dueDate <= :latest"
+			+ " order by r.dueDate, r.id")
+	List<Resolution> findOpenDueOnOrBefore(@Param("latest") java.time.LocalDate latest);
+
 }

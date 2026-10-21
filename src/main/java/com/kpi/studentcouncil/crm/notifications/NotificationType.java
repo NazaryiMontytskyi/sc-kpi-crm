@@ -17,6 +17,10 @@ public enum NotificationType {
 	RESOLUTION_REWORK,
 	/** A resolution redirected from mine was accepted by its author. */
 	RESOLUTION_CHILD_ACCEPTED,
+	/** A resolution I execute is approaching its due date. */
+	RESOLUTION_DUE_SOON,
+	/** A resolution I execute or authored passed its due date. */
+	RESOLUTION_OVERDUE,
 	/** I was mentioned in a comment. */
 	MENTION,
 	/** Reserved [v2]: a poll was opened for me. */
