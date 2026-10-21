@@ -2032,6 +2032,28 @@
         }
       }
     },
+    "/api/v1/search/reindex": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Rebuild the whole search index",
+        "description": "Reads every active task, resolution, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.",
+        "operationId": "reindex",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReindexResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles": {
       "get": {
         "tags": [
@@ -4409,6 +4431,67 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/UserPermissionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search everything the caller may see, grouped by type",
+        "description": "Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "TASK",
+                  "RESOLUTION",
+                  "ARTICLE",
+                  "PERSON",
+                  "ORG_UNIT"
+                ]
+              },
+              "uniqueItems": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
                 }
               }
             }
@@ -7062,6 +7145,31 @@
           "type"
         ]
       },
+      "ReindexResponse": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resolutions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articles": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orgUnits": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SubmitResolutionRequest": {
         "type": "object",
         "properties": {
@@ -7389,6 +7497,8 @@
               "RESOLUTION_ACCEPTED",
               "RESOLUTION_REWORK",
               "RESOLUTION_CHILD_ACCEPTED",
+              "RESOLUTION_DUE_SOON",
+              "RESOLUTION_OVERDUE",
               "MENTION",
               "POLL_OPENED",
               "POLL_CLOSED",
@@ -8094,6 +8204,82 @@
             "format": "date-time"
           }
         }
+      },
+      "SearchGroup": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "restricted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "snippet",
+          "title"
+        ]
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "tasks": {
+            "$ref": "#/components/schemas/SearchGroup"
+          },
+          "resolutions": {
+            "$ref": "#/components/schemas/SearchGroup"
+          },
+          "articles": {
+            "$ref": "#/components/schemas/SearchGroup"
+          },
+          "people": {
+            "$ref": "#/components/schemas/SearchGroup"
+          },
+          "orgUnits": {
+            "$ref": "#/components/schemas/SearchGroup"
+          }
+        },
+        "required": [
+          "articles",
+          "orgUnits",
+          "people",
+          "query",
+          "resolutions",
+          "tasks"
+        ]
       },
       "PageResponseRoleResponse": {
         "type": "object",

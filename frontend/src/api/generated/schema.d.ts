@@ -654,6 +654,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rebuild the whole search index
+         * @description Reads every active task, resolution, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.
+         */
+        post: operations["reindex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -1695,6 +1715,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search everything the caller may see, grouped by type
+         * @description Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resolutions": {
         parameters: {
             query?: never;
@@ -2711,6 +2751,18 @@ export interface components {
             required?: boolean;
             options?: string[];
         };
+        ReindexResponse: {
+            /** Format: int32 */
+            tasks?: number;
+            /** Format: int32 */
+            resolutions?: number;
+            /** Format: int32 */
+            articles?: number;
+            /** Format: int32 */
+            people?: number;
+            /** Format: int32 */
+            orgUnits?: number;
+        };
         SubmitResolutionRequest: {
             completionNote: string;
         };
@@ -2820,7 +2872,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "RESOLUTION_ISSUED" | "RESOLUTION_REDIRECTED" | "RESOLUTION_SUBMITTED" | "RESOLUTION_ACCEPTED" | "RESOLUTION_REWORK" | "RESOLUTION_CHILD_ACCEPTED" | "MENTION" | "POLL_OPENED" | "POLL_CLOSED" | "HANDOVER_STARTED";
+            type?: "RESOLUTION_ISSUED" | "RESOLUTION_REDIRECTED" | "RESOLUTION_SUBMITTED" | "RESOLUTION_ACCEPTED" | "RESOLUTION_REWORK" | "RESOLUTION_CHILD_ACCEPTED" | "RESOLUTION_DUE_SOON" | "RESOLUTION_OVERDUE" | "MENTION" | "POLL_OPENED" | "POLL_CLOSED" | "HANDOVER_STARTED";
             targetType?: string;
             /** Format: uuid */
             targetId?: string;
@@ -3078,6 +3130,28 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        SearchGroup: {
+            /** Format: int64 */
+            total?: number;
+            items: components["schemas"]["SearchHit"][];
+        };
+        SearchHit: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            snippet: string;
+            /** Format: uuid */
+            parentId?: string;
+            restricted?: boolean;
+        };
+        SearchResponse: {
+            query: string;
+            tasks: components["schemas"]["SearchGroup"];
+            resolutions: components["schemas"]["SearchGroup"];
+            articles: components["schemas"]["SearchGroup"];
+            people: components["schemas"]["SearchGroup"];
+            orgUnits: components["schemas"]["SearchGroup"];
         };
         PageResponseRoleResponse: {
             content?: components["schemas"]["RoleResponse"][];
@@ -4667,6 +4741,26 @@ export interface operations {
             };
         };
     };
+    reindex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReindexResponse"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query: {
@@ -6196,6 +6290,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UserPermissionsDto"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                q?: string;
+                types?: ("TASK" | "RESOLUTION" | "ARTICLE" | "PERSON" | "ORG_UNIT")[];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SearchResponse"];
                 };
             };
         };
