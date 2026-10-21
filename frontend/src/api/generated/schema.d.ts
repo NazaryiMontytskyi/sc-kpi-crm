@@ -1142,6 +1142,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark one of the caller's notifications as read (idempotent)
+         * @description 404 NOT_FOUND when the notification does not exist or belongs to someone else.
+         */
+        post: operations["markNotificationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark all of the caller's unread notifications as read */
+        post: operations["markAllNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members": {
         parameters: {
             query?: never;
@@ -1821,6 +1858,43 @@ export interface paths {
          * @description Archived articles and restricted ones the caller may not see are left out; the order is kept. Each item carries the caller's own read mark.
          */
         get: operations["mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's notifications, newest first (paginated)
+         * @description unread=true returns only unread ones. text is rendered in the caller's locale from the notification.<type> message key; the stored data (type, target, payload) is locale-independent.
+         */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Number of the caller's unread notifications */
+        get: operations["unreadNotificationCount"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2742,6 +2816,28 @@ export interface components {
             orgUnitId?: string;
             articleIds: string[];
         };
+        NotificationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "RESOLUTION_ISSUED" | "RESOLUTION_REDIRECTED" | "RESOLUTION_SUBMITTED" | "RESOLUTION_ACCEPTED" | "RESOLUTION_REWORK" | "RESOLUTION_CHILD_ACCEPTED" | "MENTION" | "POLL_OPENED" | "POLL_CLOSED" | "HANDOVER_STARTED";
+            targetType?: string;
+            /** Format: uuid */
+            targetId?: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            text?: string;
+            read?: boolean;
+            /** Format: date-time */
+            readAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        MarkAllReadResponse: {
+            /** Format: int32 */
+            updated?: number;
+        };
         CreateMemberRequest: {
             login: string;
             lastName: string;
@@ -3079,6 +3175,23 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
             children?: components["schemas"]["OrgUnitTreeNode"][];
+        };
+        PageResponseNotificationResponse: {
+            content?: components["schemas"]["NotificationResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        UnreadCountResponse: {
+            /** Format: int64 */
+            count?: number;
         };
         MemberSummary: {
             /** Format: uuid */
@@ -5246,6 +5359,48 @@ export interface operations {
             };
         };
     };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotificationResponse"];
+                };
+            };
+        };
+    };
+    markAllNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MarkAllReadResponse"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query: {
@@ -6240,6 +6395,49 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OnboardingListResponse"][];
+                };
+            };
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query: {
+                page: components["schemas"]["PageParams"];
+                unread?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseNotificationResponse"];
+                };
+            };
+        };
+    };
+    unreadNotificationCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UnreadCountResponse"];
                 };
             };
         };
