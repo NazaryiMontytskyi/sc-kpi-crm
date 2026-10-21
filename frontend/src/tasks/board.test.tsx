@@ -66,7 +66,7 @@ beforeEach(async () => {
   vi.mocked(api.listSpaces).mockResolvedValue([SPACE]);
   vi.mocked(api.getSpace).mockResolvedValue(SPACE);
   vi.mocked(api.listTasks).mockResolvedValue({ items: [T1, T2], page: 0, totalPages: 1, totalElements: 2 });
-  vi.mocked(api.changeTaskStatus).mockResolvedValue({ ...T1, statusId: 's2', description: null, customFieldValues: {}, relatedTaskIds: [], attachmentIds: [], suggestDone: false });
+  vi.mocked(api.changeTaskStatus).mockResolvedValue({ ...T1, statusId: 's2', description: null, customFieldValues: {}, relatedTaskIds: [], attachmentIds: [], attachments: [], suggestDone: false });
 });
 
 describe('board logic', () => {

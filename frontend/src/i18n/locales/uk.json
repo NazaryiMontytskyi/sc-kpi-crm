@@ -844,6 +844,17 @@
       "cancelEdit": "Скасувати",
       "attachments": "Вкладення"
     },
+    "attachments": {
+      "title": "Вкладення",
+      "empty": "Файлів не прикріплено.",
+      "add": "Прикріпити файли",
+      "takePhoto": "Зробити фото",
+      "remove": "Прибрати {{name}}",
+      "uploading": "Завантаження {{name}}: {{percent}}%",
+      "progressLabel": "Прогрес завантаження {{name}}",
+      "limitReached": "Досягнуто ліміт вкладень.",
+      "typeNotAllowed": "Цей тип файлу не дозволено. Використайте зображення, PDF, текст, документ Office або ZIP."
+    },
     "spaces": {
       "title": "Простори",
       "create": "Новий простір",

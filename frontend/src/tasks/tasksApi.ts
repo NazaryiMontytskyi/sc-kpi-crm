@@ -1,5 +1,6 @@
 import { api, type components } from '../api/client';
 import { toProblemError } from '../api/problem';
+import type { AttachmentInfo } from './attachmentLogic';
 
 type Schemas = components['schemas'];
 
@@ -64,6 +65,8 @@ export interface Task extends TaskSummary {
   relatedTaskIds: string[];
   /** Ids of attached files; PUT is a full replacement, so they are sent back unchanged on edit. */
   attachmentIds: string[];
+  /** The same files with metadata for display. */
+  attachments: AttachmentInfo[];
   /** Computed by the backend: every non-canceled resolution is accepted and the task is not yet done. */
   suggestDone: boolean;
 }
@@ -223,6 +226,9 @@ function toTask(t: Schemas['TaskResponse']): Task {
     customFieldValues: t.customFieldValues ?? {},
     relatedTaskIds: t.relatedTaskIds ?? [],
     attachmentIds: (t.attachments ?? []).flatMap((a) => (a.id ? [a.id] : [])),
+    attachments: (t.attachments ?? []).flatMap((a) =>
+      a.id ? [{ id: a.id, fileName: a.fileName ?? '', mimeType: a.mimeType ?? '', size: a.size ?? 0 }] : [],
+    ),
     suggestDone: t.suggestDone === true,
   };
 }

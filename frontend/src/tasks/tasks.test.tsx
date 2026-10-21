@@ -96,6 +96,7 @@ const TASK: api.Task = {
   customFieldValues: { f1: 'значення' },
   relatedTaskIds: ["rel1"],
   attachmentIds: ["att1", "att2"],
+  attachments: [{ id: "att1", fileName: "a.pdf", mimeType: "application/pdf", size: 2048 }, { id: "att2", fileName: "b.png", mimeType: "image/png", size: 10 }],
   suggestDone: false,
 };
 

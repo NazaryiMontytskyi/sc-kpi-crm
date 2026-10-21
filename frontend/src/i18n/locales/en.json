@@ -844,6 +844,17 @@
       "cancelEdit": "Cancel",
       "attachments": "Attachments"
     },
+    "attachments": {
+      "title": "Attachments",
+      "empty": "No files attached.",
+      "add": "Attach files",
+      "takePhoto": "Take photo",
+      "remove": "Remove {{name}}",
+      "uploading": "Uploading {{name}}: {{percent}}%",
+      "progressLabel": "Upload progress of {{name}}",
+      "limitReached": "The attachment limit is reached.",
+      "typeNotAllowed": "This file type is not allowed. Use an image, PDF, text, Office or ZIP file."
+    },
     "spaces": {
       "title": "Spaces",
       "create": "New space",

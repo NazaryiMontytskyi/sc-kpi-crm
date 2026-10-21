@@ -1,6 +1,7 @@
 import { api, type components } from '../api/client';
 import { toProblemError } from '../api/problem';
 import type { RichDoc } from '../shared/RichTextField';
+import { uploadAttachment } from './attachmentsApi';
 
 type Schemas = components['schemas'];
 
@@ -93,16 +94,6 @@ export async function archiveComment(id: string): Promise<Comment> {
 }
 
 /** Uploads a file through the files module and returns its id and metadata. */
-export async function uploadCommentFile(file: File): Promise<CommentAttachment> {
-  const { data, error, response } = await api.POST('/api/v1/files', {
-    // The generated type models the binary part as a string; the serializer sends the real File.
-    body: { file: file as unknown as string },
-    bodySerializer: () => {
-      const form = new FormData();
-      form.append('file', file);
-      return form;
-    },
-  });
-  if (!data?.id) throw toProblemError(response, error);
-  return { id: data.id, fileName: data.fileName ?? file.name, mimeType: data.mimeType ?? file.type, size: data.size ?? file.size };
+export function uploadCommentFile(file: File, onProgress?: (fraction: number) => void): Promise<CommentAttachment> {
+  return uploadAttachment(file, onProgress);
 }

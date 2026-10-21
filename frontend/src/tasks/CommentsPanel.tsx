@@ -1,13 +1,15 @@
-import { ActionIcon, Alert, Anchor, Badge, Button, Card, FileButton, Group, Loader, Paper, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Button, Card, Group, Loader, Paper, Stack, Text, TextInput } from '@mantine/core';
 import type { Editor } from '@tiptap/core';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatKyivDateTime } from '../audit/kyivTime';
 import { useAuth } from '../auth/CurrentUser';
-import { fileUrl, type MemberSummary } from '../members/memberApi';
+import type { MemberSummary } from '../members/memberApi';
 import { fullName } from '../members/memberFormat';
 import { useMembers } from '../members/useMembers';
 import { isDocEmpty, RichTextField, RichTextView, type RichDoc } from '../shared/RichTextField';
+import { AttachmentList, AttachmentUploader } from './Attachments';
+import { remainingSlots } from './attachmentLogic';
 import {
   canModifyComment,
   canSubmitComment,
@@ -60,20 +62,6 @@ function CommentComposer({ initial, members, submitLabel, pending, onSubmit, onC
     setSearch('');
   };
 
-  const upload = async (file: File | null) => {
-    if (!file) return;
-    setFailure(null);
-    setUploading(true);
-    try {
-      const uploaded = await uploadCommentFile(file);
-      setAttachments((current) => [...current, uploaded]);
-    } catch (e) {
-      setFailure(e);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const canSend = canSubmitComment(isDocEmpty(doc), attachments.length) && !pending && !uploading;
   const send = async () => {
     setFailure(null);
@@ -102,25 +90,13 @@ function CommentComposer({ initial, members, submitLabel, pending, onSubmit, onC
         minHeight={72}
         disabled={pending}
       />
-      {attachments.length > 0 && (
-        <Group gap="xs" aria-label={t('tasks.comments.attachments')}>
-          {attachments.map((a) => (
-            <Badge key={a.id} variant="light" color="gray" tt="none" size="lg" style={{ maxWidth: '100%' }} rightSection={
-              <ActionIcon
-                size="sm"
-                variant="subtle"
-                color="gray"
-                aria-label={t('tasks.comments.removeAttachment', { name: a.fileName })}
-                onClick={() => setAttachments((current) => current.filter((x) => x.id !== a.id))}
-              >
-                <span aria-hidden>×</span>
-              </ActionIcon>
-            }>
-              {a.fileName}
-            </Badge>
-          ))}
-        </Group>
-      )}
+      <AttachmentList
+        attachments={attachments}
+        label={t('tasks.comments.attachments')}
+        removeLabel={(name) => t('tasks.comments.removeAttachment', { name })}
+        onRemove={(a) => setAttachments((current) => current.filter((x) => x.id !== a.id))}
+        disabled={pending}
+      />
       {picker && (
         <Paper withBorder p="xs" aria-label={t('tasks.comments.mentionTitle')}>
           <Stack gap="xs">
@@ -145,6 +121,13 @@ function CommentComposer({ initial, members, submitLabel, pending, onSubmit, onC
           </Stack>
         </Paper>
       )}
+      <AttachmentUploader
+        upload={uploadCommentFile}
+        slots={remainingSlots(attachments.length, MAX_COMMENT_ATTACHMENTS)}
+        disabled={pending}
+        onBusyChange={setUploading}
+        onUploaded={(uploaded) => setAttachments((current) => [...current, ...uploaded])}
+      />
       {failure !== null && <Alert color="red">{t(commentErrorKey(failure))}</Alert>}
       <Group gap="xs">
         <Button
@@ -156,13 +139,6 @@ function CommentComposer({ initial, members, submitLabel, pending, onSubmit, onC
         >
           @ {t('tasks.comments.mention')}
         </Button>
-        <FileButton onChange={upload} disabled={pending || uploading || attachments.length >= MAX_COMMENT_ATTACHMENTS}>
-          {(props) => (
-            <Button {...props} mih={TOUCH} variant="default" loading={uploading}>
-              {t('tasks.comments.attach')}
-            </Button>
-          )}
-        </FileButton>
         <Group gap="xs" ml="auto">
           {onCancel && (
             <Button mih={TOUCH} variant="default" onClick={onCancel} disabled={pending}>
@@ -224,15 +200,7 @@ function CommentItem({ comment, members, targetType, targetId }: ItemProps) {
             <div style={{ overflowWrap: 'anywhere' }}>
               <RichTextView key={JSON.stringify(comment.body)} value={comment.body} />
             </div>
-            {comment.attachments.length > 0 && (
-              <Group gap="xs" aria-label={t('tasks.comments.attachments')}>
-                {comment.attachments.map((a) => (
-                  <Anchor key={a.id} href={fileUrl(a.id)} target="_blank" rel="noopener noreferrer" size="sm" style={{ overflowWrap: 'anywhere' }}>
-                    {a.fileName}
-                  </Anchor>
-                ))}
-              </Group>
-            )}
+            <AttachmentList attachments={comment.attachments} label={t('tasks.comments.attachments')} />
           </>
         )}
         {failure !== null && <Alert color="red">{t(commentErrorKey(failure))}</Alert>}

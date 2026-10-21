@@ -11,6 +11,7 @@ import { RichTextView } from '../shared/RichTextField';
 import { CommentsPanel } from './CommentsPanel';
 import { ResolutionsPanel } from './ResolutionsPanel';
 import { SuggestDoneBanner } from './SuggestDoneBanner';
+import { TaskAttachments } from './TaskAttachments';
 import { TaskFormModal } from './TaskFormModal';
 import { canEditTask, TASKS_ARCHIVE, taskErrorKey } from './taskLogic';
 import type { CustomField, Task } from './tasksApi';
@@ -148,6 +149,8 @@ function TaskBody({ task }: { task: Task }) {
           </Stack>
         </Card>
       )}
+
+      <TaskAttachments task={task} editable={editable} />
 
       <Tabs defaultValue={initialTab} keepMounted={false}>
         <Tabs.List>

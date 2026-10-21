@@ -87,6 +87,7 @@ const TASK: tasksApi.Task = {
   customFieldValues: {},
   relatedTaskIds: [],
   attachmentIds: [],
+  attachments: [],
   suggestDone: true,
 };
 
