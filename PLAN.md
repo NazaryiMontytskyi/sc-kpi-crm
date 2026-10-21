@@ -602,7 +602,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-044 — Notifications: due-date approaching/passed scheduler
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `notifications`
 - **Depends on:** INC-043
 - **Scope:** scheduled job (configurable lead time, default 24 h, Europe/Kyiv-aware day boundaries) via `tasks` public API listing active resolutions; at-most-once notifications per resolution per threshold (idempotency table); "overdue" notification when passing due date.
