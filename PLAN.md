@@ -615,7 +615,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-045 — Notifications frontend: bell and page
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `notifications`
 - **Depends on:** INC-043, INC-007
 - **Scope:** header bell with unread counter (polling interval via TanStack Query), dropdown of latest, notifications page, mark read/all, deep link to target.
