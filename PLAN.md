@@ -523,7 +523,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** —
 
 #### INC-038 — Knowledge: Article CRUD, hierarchy, tags (backend)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `knowledge`
 - **Depends on:** INC-005, INC-009
 - **Scope:** `Article` (title, rich-text JSON content, parentArticleId, tags[], attachments[] via files, version, restricted flag for `kb.restricted.view`, archivedAt); create/edit (`kb.edit`), archive/restore (`kb.archive`), view (`kb.view`; restricted articles need `kb.restricted.view`, unused by default); page tree and children endpoints; move article; no cycles; tag list/filter; article links/mentions (articles, tasks, people) stored as references in content JSON; plain-text extraction for search.
