@@ -1,0 +1,20 @@
+# ADR-0007: Search index and query
+
+- Status: Accepted
+- Date: 2026-10-21
+
+## Context
+INC-046 (CONTEXT.md search requirements): one query must find tasks, resolutions, knowledge-base articles (including body text), people and org units, tolerate partial words and small typos, work for Ukrainian and English, and never reveal what the caller may not see (restricted articles, archived items). Modules may not read each other's tables, so the index cannot be a SQL view over foreign tables. PostgreSQL has no built-in Ukrainian text-search dictionary.
+
+## Decision
+- **Own table.** The `search` module owns the denormalized table `search_document` (migration V24), keyed by (`entity_type`, `entity_id`) with `title`, `body`, lower-cased `title_lc` / `search_text`, a `restricted` flag and a `parent_id` for navigation. It holds derived data only: no foreign keys to other modules and no audit columns of its own. Writing it is idempotent (upsert/delete).
+- **Fed by domain events, read through public providers.** `search` listens to `TaskEvent`, `ResolutionEvent`, `ArticleEvent`, `MemberEvent` and `OrgUnitEvent`. The events carry only ids, so the listener re-reads the current text through public interfaces: `TaskTextProvider` (tasks), `MemberTextProvider` (members), `ArticleTextProvider` (knowledge) and `OrgService` (org). Listeners run in the publisher's transaction (like `notifications`): the index changes atomically with the source, a rolled-back change leaves no trace, and a created/updated/archived item is searchable/removed immediately. An archived or missing entity is deleted from the index. A task event also refreshes the task's resolutions, because a resolution of an archived task is hidden.
+- **Matching.** PostgreSQL full-text search over a generated `tsv` column combining the `simple` configuration (Ukrainian words as typed) and `english` (stemming), queried with prefix terms (`term:*`, AND), plus `pg_trgm`: a substring `LIKE` on `search_text` and word similarity (`<%`) on the title for typo tolerance. Text is lower-cased by the application (`Locale.ROOT`) so matching does not depend on the database locale. GIN indexes cover `tsv` and both trigram columns. The extension is enabled by the migration (`CREATE EXTENSION IF NOT EXISTS pg_trgm`; trusted in PostgreSQL 13+, shipped in the standard image). Ranking: text-search rank plus title similarity, titles first.
+- **Visibility is applied at query time, per type.** Tasks and resolutions need `tasks.view`, articles `kb.view` (restricted ones also `kb.restricted.view`), people `members.view`, org units `org.view`; a group the caller may not see is returned empty. The permissions come from the caller's authorities. Archived items are never indexed. Because the actor of an event may lack `kb.restricted.view` (or be absent, e.g. a seeder), the index reads articles through `ArticleTextProvider.findTextForIndexing`, which ignores the actor, and stores the `restricted` flag; the query filters on it.
+- **API.** `GET /api/v1/search?q=&types=&limit=` returns one group per type with `total` and the top `limit` hits (id, title, snippet, parent id, restricted); queries shorter than 2 characters return empty groups. `POST /api/v1/search/reindex` (permission `settings.manage`, the existing administrative permission) rebuilds the whole index from the providers in one transaction and emits an audit event.
+- **Additive upstream APIs** (no behaviour change): `knowledge.ArticleTextProvider.findTextForIndexing/findActiveIds`, `org.OrgService.findAll`, new `tasks.TaskTextProvider` (+ `TaskText`, `ResolutionText`) and `members.MemberTextProvider` (+ `MemberText`).
+
+## Consequences
+- A bug in an indexing listener fails the business operation (same transaction). Accepted for consistency; the reindex repairs drift.
+- Ukrainian has no stemming: inflected forms are found by prefix, substring and trigram similarity, not by lemma. A dedicated dictionary can later replace the `simple` half of `tsv` in a new migration.
+- Out of scope here: meetings and polls (v2), positions, comments, attachments' content.
