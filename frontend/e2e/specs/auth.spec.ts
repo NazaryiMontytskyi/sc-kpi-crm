@@ -37,3 +37,24 @@ test('wrong credentials are rejected without revealing which part was wrong', as
   await expect(page.getByTestId('login-error')).toBeVisible();
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test('submitting right after navigation while /auth/me is slow still signs in', async ({ page, admin }) => {
+  const member = await createActor(admin, 'earlybird');
+  // Hold back the initial session probe until released: the XSRF cookie only arrives with its answer.
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/v1/auth/me', async (route) => {
+    await released;
+    await route.continue();
+  });
+
+  await page.goto('/login');
+  await page.getByLabel(/^Login/).fill(member.login);
+  await page.getByLabel(/^Password/).fill(member.password);
+  const submit = page.getByRole('button', { name: 'Sign in' });
+  await expect(submit).toBeDisabled();
+  release();
+  // Clicking waits for the button to become enabled, i.e. for the bootstrap to finish.
+  await submit.click();
+  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+});

@@ -3,35 +3,15 @@ import { ApiSession } from './api';
 import type { Actor } from './data';
 import { ADMIN } from './env';
 
-/**
- * KNOWN DEFECT WORKAROUND (reported with INC-051): the generated API client serializes the pagination object as
- * `page[size]=100` (openapi-fetch deepObject style) while the backend binds the flat form `?page=0&size=100`, so
- * every paginated list answers 400 in the real stack. Until the client or the backend is fixed, the browser requests
- * are rewritten to the flat form here. Set E2E_FLATTEN_PAGE_PARAMS=0 to run without the workaround.
- */
-async function flattenPageParams(context: BrowserContext): Promise<void> {
-  await context.route(/\/api\/v1\/.*[?&]page(%5B|\[)/i, async (route) => {
-    const url = new URL(route.request().url());
-    const flat = new URLSearchParams();
-    for (const [key, value] of url.searchParams) {
-      const nested = /^page\[(.+)\]$/.exec(key);
-      flat.append(nested ? nested[1] : key, value);
-    }
-    url.search = flat.toString();
-    await route.continue({ url: url.toString() });
-  });
-}
-
 async function prepareContext(context: BrowserContext): Promise<void> {
   // Scenarios assert on English labels; the profile language of every fake member is "en" as well.
   await context.addInitScript(() => window.localStorage.setItem('crm.language', 'en'));
-  if (process.env.E2E_FLATTEN_PAGE_PARAMS !== '0') await flattenPageParams(context);
 }
 
-/** Opens the login page once the app has obtained its CSRF cookie (submitting earlier is rejected as CSRF). */
+/** Opens the login page; the form itself keeps submit disabled until the session/CSRF bootstrap is done. */
 export async function openLogin(page: Page): Promise<void> {
   await page.goto('/login');
-  await expect.poll(async () => (await page.context().cookies()).some((c) => c.name === 'XSRF-TOKEN')).toBe(true);
+  await expect(page.getByLabel(/^Login/)).toBeVisible();
 }
 
 /** Signs in through the login form and waits until the app shell is shown. */
