@@ -414,7 +414,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** depends on resolutions data; schedule after INC-032 (dependency declared).
 
 #### INC-030 — Tasks: attachments UI and file previews
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `tasks`
 - **Depends on:** INC-025, INC-009
 - **Scope:** upload/list/download attachments on tasks and comments; image thumbnail; progress and error states.
@@ -667,7 +667,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** add `dashboard.view` to seed roles (update INC-013 seeds via new migration/seed version, not by editing history).
 
 #### INC-049 — Deployment: Docker Compose, nginx, backups
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** `deploy/` (+ Dockerfiles at `deploy/`, no files in `src/`)
 - **Depends on:** INC-008
 - **Scope:** `deploy/docker-compose.yml` (services `backend`, `frontend` (nginx static + reverse proxy `/api`, same-domain cookie), `postgres:16`, `backup`); backend Dockerfile (multi-stage Maven build, Java 21), frontend Dockerfile (Node build -> nginx; `frontend/dist` not copied into `src/main/resources/static`); `nginx.conf` (HTTPS-ready, gzip, security headers, SPA fallback); volumes for DB and file storage; `deploy/.env.example` with placeholders only; daily backup script for DB + file volume with retention; restore instructions; healthchecks; README deployment section; ADR-0003 deployment topology.
@@ -681,7 +681,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** All host-specific values (domain, TLS cert paths, backup target, server user) are parameters in `deploy/.env.example` and nginx templates; no real values committed. Server/domain/TLS ownership is unresolved (OPEN-Q9) and is the only item needing a human before a real deployment.
 
 #### INC-050 — Frontend PWA-free polish: brand assets integration and a11y pass
-- **Status:** TODO
+- **Status:** BLOCKED — guard hook blocks agents from writing assets/brand/; human must copy logo files and write README
 - **Module(s):** frontend `layout`
 - **Depends on:** INC-007, INC-047
 - **Scope:** wire real files from `assets/brand/` when they exist (build step copies/imports; favicon, title, logo variants per §6.1 placement table); until present keep text placeholders; contrast/focus audit of light+dark; empty/error states across features.
