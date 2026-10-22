@@ -28,7 +28,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      # prod by default; dev only for local evaluation (see deploy/.env.example).
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-crm}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-crm}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}

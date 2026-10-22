@@ -30,7 +30,8 @@ grep -q XSRF-TOKEN "$JAR" || fail "XSRF-TOKEN cookie not issued"
 
 if [ -n "${SMOKE_LOGIN:-}" ] && [ -n "${SMOKE_PASSWORD:-}" ]; then
   echo "sign-in through nginx"
-  # The session cookie is Secure (prod profile); curl only stores it over http for localhost, so pass the XSRF value explicitly.
+  # Works for both profiles: Secure session cookie (prod; curl stores it over http only for localhost) or plain (dev).
+  # The XSRF value is passed explicitly.
   xsrf=$(awk '$6=="XSRF-TOKEN"{print $7}' "$JAR")
   code=$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" -c "$JAR" -H "X-XSRF-TOKEN: $xsrf" \
     -H 'Content-Type: application/json' \

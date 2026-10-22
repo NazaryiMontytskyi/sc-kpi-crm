@@ -39,7 +39,7 @@ npm run api:generate:live   # refresh openapi.json from a running backend (dev p
 Environment: copy `frontend/.env.example` to `frontend/.env.local`. Brand colors only via theme tokens (`src/theme/colors.ts`); logos are read from `assets/brand/` and fall back to the product name as text when missing. UI strings live in `src/i18n/locales/{uk,en}.json` (keep keys identical).
 
 ## Deployment (Docker Compose)
-Topology and rationale: `docs/adr/0008-deployment-topology.md`. Services: `postgres`, `backend` (profile `prod`), `frontend` (nginx: SPA + reverse proxy of `/api`, same domain), `backup`.
+Topology and rationale: `docs/adr/0008-deployment-topology.md`. Services: `postgres`, `backend` (profile `prod` by default), `frontend` (nginx: SPA + reverse proxy of `/api`, same domain), `backup`.
 ```bash
 cp deploy/.env.example deploy/.env      # then set POSTGRES_PASSWORD, CRM_BOOTSTRAP_ADMIN_LOGIN/PASSWORD, CRM_DOMAIN, ...
 docker compose -f deploy/docker-compose.yml up --build -d
@@ -47,6 +47,8 @@ SMOKE_LOGIN=<admin login> SMOKE_PASSWORD=<admin password> bash deploy/smoke.sh h
 docker compose -f deploy/docker-compose.yml down       # stops the stack; volumes (data) are kept
 ```
 The deployment settings file is git-ignored; never commit it. The SPA is at `http://localhost` (change `HTTP_PORT` if 80 is busy). The first Admin is created from `CRM_BOOTSTRAP_ADMIN_*` on an empty database and must change the password on first sign-in. Because the session cookie is `Secure` in `prod`, use HTTPS on any real host (browsers allow it on `localhost`).
+
+The backend profile is `SPRING_PROFILES_ACTIVE` (default `prod`). For local evaluation only, `SPRING_PROFILES_ACTIVE=dev` runs the same stack with the DEV_ONLY seeders (currently no sample rows), a non-Secure session cookie (plain HTTP works on any host) and public OpenAPI/Swagger UI in the backend (nginx proxies only `/api/` and the health probe, so they are not published through the stack). Never use `dev` on a real server.
 
 ### HTTPS
 Set `NGINX_TEMPLATE=https.conf.template`, `CRM_DOMAIN`, `TLS_CERT_DIR` (host directory), `TLS_CERT_FILE`, `TLS_KEY_FILE` in the deployment settings. Issuing and renewing the certificate is up to the operator or university IT (OPEN-Q9: server, domain and TLS ownership are not decided yet); reload nginx after renewal: `docker compose -f deploy/docker-compose.yml exec frontend nginx -s reload`.
