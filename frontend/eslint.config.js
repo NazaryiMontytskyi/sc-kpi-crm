@@ -17,7 +17,7 @@ const noHexColors = [
 ];
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/api/generated'] },
+  { ignores: ['dist', 'node_modules', 'src/api/generated', 'e2e/.output'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -31,6 +31,11 @@ export default tseslint.config(
   {
     files: ['src/theme/colors.ts', '**/*.test.{ts,tsx}'],
     rules: { 'no-restricted-syntax': 'off' },
+  },
+  {
+    // Playwright fixtures hand their value to a callback named `use`, which the React hooks rule mistakes for a hook.
+    files: ['e2e/**/*.ts'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
   },
   {
     files: ['scripts/**/*.mjs', 'eslint.config.js'],

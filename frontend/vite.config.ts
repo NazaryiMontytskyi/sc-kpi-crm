@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
       css: false,
+      // Playwright scenarios (e2e/) run with `npm run e2e`, not with vitest.
+      exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     },
   };
 });

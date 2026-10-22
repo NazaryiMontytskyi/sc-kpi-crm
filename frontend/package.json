@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test --config e2e/playwright.config.ts",
     "api:generate": "openapi-typescript openapi/openapi.json -o src/api/generated/schema.d.ts",
     "api:fetch": "node scripts/fetch-openapi.mjs",
     "api:generate:live": "npm run api:fetch && npm run api:generate"
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.7",
