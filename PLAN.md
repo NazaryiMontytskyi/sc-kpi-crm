@@ -681,7 +681,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** All host-specific values (domain, TLS cert paths, backup target, server user) are parameters in `deploy/.env.example` and nginx templates; no real values committed. Server/domain/TLS ownership is unresolved (OPEN-Q9) and is the only item needing a human before a real deployment.
 
 #### INC-050 — Frontend PWA-free polish: brand assets integration and a11y pass
-- **Status:** BLOCKED — guard hook blocks agents from writing assets/brand/; human must copy logo files and write README
+- **Status:** DONE
 - **Module(s):** frontend `layout`
 - **Depends on:** INC-007, INC-047
 - **Scope:** wire real files from `assets/brand/` when they exist (build step copies/imports; favicon, title, logo variants per §6.1 placement table); until present keep text placeholders; contrast/focus audit of light+dark; empty/error states across features.
@@ -695,7 +695,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q1): source files are in `.claude/resources/img/` (currently two PNGs: logo mark and full logo, blue). Implementator copies them into `assets/brand/` (per the README mapping; no SVG, light-background variant or PWA icons exist, so those stay placeholders and are reported missing; never generate or recolor) and writes `assets/brand/README.md`. If a hook blocks writing to `assets/brand/`, the implementator must report it and not work around it.
 
 #### INC-051 — End-to-end scenarios (Playwright)
-- **Status:** TODO
+- **Status:** IN_VALIDATION
 - **Module(s):** `frontend/e2e`
 - **Depends on:** INC-049, INC-048, INC-042
 - **Scope:** Playwright suite on the compose stack with seeded fake data covering: sign-in with forced password change; HR creates member + department + role; issue resolution -> redirect -> submit -> rework -> accept; read an article and create a new version; search; notification bell; all run also at 375 px viewport.
@@ -734,6 +734,36 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
   3. Works at 375 px (cards on mobile), light and dark theme, brand color via tokens; uk+en keys complete.
 - **Tests required:** frontend (form validation, permission gating).
 - **Notes:** schedule together with INC-016 when the frontend toolchain is available.
+
+#### INC-054 — Flat pagination query parameters in OpenAPI contract and generated client
+- **Status:** TODO
+- **Module(s):** backend shared `crm.shared.pagination` + controllers using `PageParams` (springdoc configuration only, no behaviour change) / frontend `frontend/src/api` (generated client, shared client)
+- **Depends on:** INC-051
+- **Scope:** Root cause: controllers bind `@Valid PageParams page`, which springdoc documents as a single object parameter `page`, so openapi-fetch emits deepObject `page[size]=100&page[page]=0` while Spring binds flat `page`/`size`/`sort`. Fix at the contract: make the spec declare flat query params `page`, `size`, `sort` for every operation taking `PageParams` (preferred: springdoc `@ParameterObject` on each `PageParams` argument or one global springdoc customizer/`ParameterObject` registration for `PageParams`, whichever touches least code). Export updated `frontend/openapi/openapi.json`, run `npm run api:generate`. Safety net in `frontend/src/api/client.ts`: a `querySerializer` that serializes any remaining object-valued query parameter flat (no `a[b]` form) — only if still needed after regeneration. Update frontend call sites that pass `{ page: { page, size } }` to the new flat shape. Shared code change is explicitly sanctioned by this increment.
+- **Out of scope:** changing backend binding or the pagination response format; new endpoints.
+- **Acceptance criteria:**
+  1. `openapi.json` contains no parameter named `page` of type object/`PageParams` schema; every paginated operation declares `page`, `size`, `sort` as separate integer/integer/string query parameters (CONTEXT.md §8 API conventions).
+  2. Backend test (integration/OpenAPI) asserts the generated `/v3/api-docs` has flat `page`/`size` parameters for at least members list, faculties list and activity levels list, and fails if an object `page` parameter reappears.
+  3. Frontend regression test, with a mocked `fetch`, calls the real shared client for members directory, faculties and activity levels and asserts the exact request URL query string is `?page=0&size=100` (no `[`/`%5B` characters).
+  4. A paginated list called through the UI against the real backend returns 200 (verified by INC-055 e2e without the workaround).
+  5. Client regenerated and committed in the same increment; `npm run build`, `lint`, `test` and `./mvnw verify` pass.
+- **Tests required:** backend OpenAPI integration test; frontend unit test on request URL (asserting query string, not mocks of the API layer).
+- **Notes:** If the backend and the spec change in different places, controllers must keep behaving identically (binding is already flat). Alternative of only patching the client serializer is rejected because the spec would keep lying to other consumers.
+
+#### INC-055 — Sign-in CSRF token obtained before submit; remove e2e workaround
+- **Status:** TODO
+- **Module(s):** frontend `auth` (sign-in flow, `frontend/src/api`), `frontend/e2e`
+- **Depends on:** INC-054, INC-051
+- **Scope:** Sign-in must not race with the first `/auth/me`. Ensure the `XSRF-TOKEN` cookie exists before the login request is sent: the sign-in page/auth provider awaits the initial session/CSRF bootstrap (the form submit button is disabled with a loading state until it completes), and the login mutation, if the cookie is still absent, performs one bootstrap request and then sends the login (no blind retry loop). Remove `flattenPageParams` and `E2E_FLATTEN_PAGE_PARAMS` from `frontend/e2e/support/fixtures.ts` and `deploy/e2e.sh`/docs; re-run the full suite with `bash deploy/e2e.sh`.
+- **Out of scope:** changes to backend CSRF configuration.
+- **Acceptance criteria:**
+  1. Submit is disabled until the CSRF bootstrap completes; a unit test with a delayed `/auth/me` response shows the login request is not sent before the cookie is present and succeeds afterwards.
+  2. When the cookie is absent at submit time, the login mutation fetches it first and sends the `X-XSRF-TOKEN` header; test covers this path.
+  3. An e2e test submits the sign-in form immediately after navigation (with `/auth/me` artificially delayed) and signs in successfully.
+  4. No page-param flattening workaround remains in `frontend/e2e`; grep for `flattenPageParams`/`E2E_FLATTEN_PAGE_PARAMS` is empty.
+  5. `bash deploy/e2e.sh` passes fully (desktop and 375 px projects); INC-051 can then be marked DONE.
+- **Tests required:** frontend unit (race and missing-cookie path), e2e (full suite without workaround).
+- **Notes:** Needs Docker and a running compose stack for e2e.
 
 ### Open questions
 - **OPEN-Q3** (INC-022): activity level scale (tiers vs numeric) with HR (CONTEXT.md §10 item 3). Plan uses editable reference data with a placeholder scale.
