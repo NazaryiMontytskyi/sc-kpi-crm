@@ -736,7 +736,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** schedule together with INC-016 when the frontend toolchain is available.
 
 #### INC-054 — Flat pagination query parameters in OpenAPI contract and generated client
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend shared `crm.shared.pagination` + controllers using `PageParams` (springdoc configuration only, no behaviour change) / frontend `frontend/src/api` (generated client, shared client)
 - **Depends on:** INC-051
 - **Scope:** Root cause: controllers bind `@Valid PageParams page`, which springdoc documents as a single object parameter `page`, so openapi-fetch emits deepObject `page[size]=100&page[page]=0` while Spring binds flat `page`/`size`/`sort`. Fix at the contract: make the spec declare flat query params `page`, `size`, `sort` for every operation taking `PageParams` (preferred: springdoc `@ParameterObject` on each `PageParams` argument or one global springdoc customizer/`ParameterObject` registration for `PageParams`, whichever touches least code). Export updated `frontend/openapi/openapi.json`, run `npm run api:generate`. Safety net in `frontend/src/api/client.ts`: a `querySerializer` that serializes any remaining object-valued query parameter flat (no `a[b]` form) — only if still needed after regeneration. Update frontend call sites that pass `{ page: { page, size } }` to the new flat shape. Shared code change is explicitly sanctioned by this increment.
