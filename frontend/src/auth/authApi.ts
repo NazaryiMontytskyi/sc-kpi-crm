@@ -1,4 +1,5 @@
 import { api, type components } from '../api/client';
+import { CSRF_COOKIE, readCookie } from '../api/csrf';
 import { toProblemError } from '../api/problem';
 import type { Language } from '../i18n';
 import type { CurrentUser } from './CurrentUser';
@@ -34,7 +35,17 @@ export async function fetchSession(): Promise<Session | null> {
   return toSession(data);
 }
 
+/**
+ * Makes sure the XSRF-TOKEN cookie exists before a state-changing call. When it is absent (the initial /auth/me has
+ * not finished yet), performs exactly one bootstrap request; the answer, even a 401, carries the cookie.
+ */
+export async function ensureCsrfToken(): Promise<void> {
+  if (readCookie(CSRF_COOKIE)) return;
+  await api.GET('/api/v1/auth/me');
+}
+
 export async function loginRequest(login: string, password: string): Promise<Session> {
+  await ensureCsrfToken();
   const { data, error, response } = await api.POST('/api/v1/auth/login', { body: { login, password } });
   if (!data) throw toProblemError(response, error);
   return toSession(data);

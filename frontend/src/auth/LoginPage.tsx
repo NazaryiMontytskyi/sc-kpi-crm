@@ -60,7 +60,13 @@ export function LoginPage() {
             size="md"
             required
           />
-          <Button type="submit" size="md" fullWidth loading={mutation.isPending} disabled={!login.trim() || !password}>
+          <Button
+            type="submit"
+            size="md"
+            fullWidth
+            loading={mutation.isPending || status === 'loading'}
+            disabled={status === 'loading' || !login.trim() || !password}
+          >
             {t('auth.signIn')}
           </Button>
         </Stack>

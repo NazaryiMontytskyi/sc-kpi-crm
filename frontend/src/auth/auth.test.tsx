@@ -83,6 +83,28 @@ describe('sign-in', { timeout: 20000 }, () => {
   });
 });
 
+describe('sign-in racing the initial session bootstrap', { timeout: 20000 }, () => {
+  it('keeps submit disabled until /auth/me has answered, then sends the login', async () => {
+    let release!: (value: null) => void;
+    vi.mocked(authApi.fetchSession).mockReturnValue(new Promise((resolve) => (release = resolve)));
+    vi.mocked(authApi.loginRequest).mockResolvedValue(session({ locale: 'en' }));
+    setup('/login');
+
+    await userEvent.type(await screen.findByLabelText(/Логін/), 'someone');
+    await userEvent.type(screen.getByLabelText(/Пароль/), 'some-pass-1');
+    const button = screen.getByRole('button', { name: 'Увійти' });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(authApi.loginRequest).not.toHaveBeenCalled();
+
+    release(null);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Увійти' })).toBeEnabled());
+    await userEvent.click(screen.getByRole('button', { name: 'Увійти' }));
+    expect(await screen.findByText('Welcome')).toBeInTheDocument();
+    expect(authApi.loginRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('forced password change', { timeout: 20000 }, () => {
   it('keeps a user with a temporary password on the change-password screen', async () => {
     vi.mocked(authApi.fetchSession).mockResolvedValue(session({ mustChangePassword: true }));
