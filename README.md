@@ -67,3 +67,13 @@ docker compose -f deploy/docker-compose.yml start backend frontend
 bash deploy/smoke.sh http://localhost
 ```
 To restore onto a new server, bring the stack up, place the two backup files into the backup directory, then run the same steps. On Windows Git Bash prefix `MSYS_NO_PATHCONV=1` to the `exec` commands.
+
+## End-to-end tests (Playwright)
+The suite in `frontend/e2e` drives the real UI of the production-like compose stack headless in Chromium, once at desktop size and once at a 375 px phone viewport (projects `desktop` and `mobile-375`). Scenarios: sign-in with forced password change, HR creates a member, a department and a role, resolution issue -> redirect -> submit -> rework -> accept, reading an article and saving a new version, search, notification bell. Requirements: Docker and Node 22 (`cd frontend && npm ci` once).
+```bash
+bash deploy/e2e.sh                                  # build + start stack "crme2e", run everything headless, stop the stack
+bash deploy/e2e.sh --project=mobile-375             # extra arguments go to Playwright (project, file, --headed, ...)
+E2E_RESET=1 bash deploy/e2e.sh                      # start from an empty database (also exercises the bootstrap Admin password change)
+E2E_BASE_URL=http://localhost:8081 npm run e2e      # from frontend/: run against a stack that is already up (nothing is started)
+```
+`deploy/e2e.sh` uses its own compose project (`E2E_PROJECT`, default `crme2e`, nginx on `E2E_HTTP_PORT`, default 8081), so it never touches a normal `crm` stack. The stack is stopped afterwards with its volumes kept (`E2E_KEEP_STACK=1` leaves it running). No env file is read or created: the script passes fake, throw-away values (database password, bootstrap Admin `e2e.admin`) through the process environment, and the suite creates its own uniquely named fake members, roles, spaces and articles through the API and UI, so it can be re-run any number of times. Report and traces of failures are written to `frontend/e2e/.output/` (git-ignored). Vitest (`npm test`) does not pick up the e2e specs.

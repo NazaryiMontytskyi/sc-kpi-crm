@@ -41,3 +41,6 @@ frontend/dist/
 
 ### Deployment secrets ###
 deploy/.env
+
+### Playwright output (frontend/e2e) ###
+frontend/e2e/.output/
