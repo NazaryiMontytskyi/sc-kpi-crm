@@ -1,0 +1,7 @@
+# Plain HTTP mode (default): local evaluation, or TLS terminated by a proxy/load balancer in front of this stack.
+# When nginx itself terminates TLS, use https.conf.template instead.
+server {
+    listen 80;
+    server_name ${CRM_DOMAIN};
+    include /etc/nginx/snippets/crm-common.conf;
+}

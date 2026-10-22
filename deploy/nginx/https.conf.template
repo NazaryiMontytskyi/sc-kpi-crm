@@ -1,0 +1,28 @@
+# HTTPS mode: select with NGINX_TEMPLATE=https.conf.template in deploy/.env and mount the certificate directory
+# (TLS_CERT_DIR on the host) containing TLS_CERT_FILE and TLS_KEY_FILE. Certificate issuance is not part of this stack.
+server {
+    listen 80;
+    server_name ${CRM_DOMAIN};
+    # Health probe stays reachable over HTTP for container healthchecks; everything else is redirected.
+    location = /actuator/health {
+        proxy_pass http://backend:8080;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${CRM_DOMAIN};
+
+    ssl_certificate     /etc/nginx/tls/${TLS_CERT_FILE};
+    ssl_certificate_key /etc/nginx/tls/${TLS_KEY_FILE};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    include /etc/nginx/snippets/crm-common.conf;
+}

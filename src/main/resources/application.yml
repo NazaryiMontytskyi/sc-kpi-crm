@@ -87,6 +87,8 @@ spring:
     compose:
       enabled: false
 server:
+  # Behind nginx: honour X-Forwarded-* so redirects and absolute URLs use the public scheme and host.
+  forward-headers-strategy: native
   servlet:
     session:
       cookie:
