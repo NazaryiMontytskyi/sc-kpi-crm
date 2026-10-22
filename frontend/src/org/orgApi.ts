@@ -219,7 +219,7 @@ export function listUnitMemberships(unitId: string, includeEnded: boolean): Prom
   return fetchAll(
     (page) =>
       api.GET('/api/v1/org-units/{id}/memberships', {
-        params: { path: { id: unitId }, query: { page: { page, size: PAGE_SIZE }, includeEnded } },
+        params: { path: { id: unitId }, query: { page, size: PAGE_SIZE, includeEnded } },
       }),
     toMembership,
   );
@@ -258,7 +258,7 @@ export function listPositions(unitId: string, includeArchived: boolean): Promise
   return fetchAll(
     (page) =>
       api.GET('/api/v1/org-units/{id}/positions', {
-        params: { path: { id: unitId }, query: { page: { page, size: PAGE_SIZE }, includeArchived } },
+        params: { path: { id: unitId }, query: { page, size: PAGE_SIZE, includeArchived } },
       }),
     toPosition,
   );
@@ -305,7 +305,7 @@ export function listPositionHistory(positionId: string): Promise<Appointment[]> 
   return fetchAll(
     (page) =>
       api.GET('/api/v1/positions/{id}/appointments', {
-        params: { path: { id: positionId }, query: { page: { page, size: PAGE_SIZE }, includeEnded: true } },
+        params: { path: { id: positionId }, query: { page, size: PAGE_SIZE, includeEnded: true } },
       }),
     toAppointment,
   );

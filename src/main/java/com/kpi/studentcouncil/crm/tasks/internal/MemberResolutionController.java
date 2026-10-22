@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,7 +50,7 @@ class MemberResolutionController {
 			description = "role=EXECUTOR (default) returns those the member executes as executor or co-executor, "
 					+ "role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; "
 					+ "state filters one state. Archived resolutions are excluded. 404 for an unknown member.")
-	PageResponse<MemberResolutionResponse> list(@PathVariable UUID id, @Valid PageParams page,
+	PageResponse<MemberResolutionResponse> list(@PathVariable UUID id, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "EXECUTOR") Role role, @RequestParam(defaultValue = "false") boolean active,
 			@RequestParam(required = false) ResolutionState state) {
 		return PageResponse.of(service.list(id, role, active, state, page.toPageable(SORTABLE, DEFAULT_SORT)),

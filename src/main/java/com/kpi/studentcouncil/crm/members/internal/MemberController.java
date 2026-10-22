@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -77,7 +78,7 @@ class MemberController {
 					+ "honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a "
 					+ "deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, "
 					+ "so paging is stable.")
-	PageResponse<MemberSummary> list(@Valid PageParams page, @RequestParam(required = false) String q,
+	PageResponse<MemberSummary> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) String q,
 			@RequestParam(required = false) UUID facultyId, @RequestParam(required = false) UUID departmentId,
 			@RequestParam(required = false) UUID divisionId, @RequestParam(required = false) UUID positionId,
 			@RequestParam(required = false) UUID activityLevelId,

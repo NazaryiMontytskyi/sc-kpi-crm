@@ -49,7 +49,7 @@ function toRole(r: RoleResponse): Role {
 
 export async function listRoles(includeArchived: boolean): Promise<Role[]> {
   const { data, error, response } = await api.GET('/api/v1/roles', {
-    params: { query: { page: { size: PAGE_SIZE }, includeArchived } },
+    params: { query: { size: PAGE_SIZE, includeArchived } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map(toRole);
@@ -109,7 +109,7 @@ export async function revokeRole(userId: string, roleId: string): Promise<void> 
 /** Active members of the directory, for the user picker (the member id is the user id). */
 export async function listMemberOptions(): Promise<MemberOption[]> {
   const { data, error, response } = await api.GET('/api/v1/members', {
-    params: { query: { page: { size: PAGE_SIZE } } },
+    params: { query: { size: PAGE_SIZE } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map((m) => ({

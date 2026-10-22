@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,7 +54,7 @@ class CommentController {
 	@Operation(summary = "Comments of a record (paginated, oldest first)",
 			description = "Needs the view permission of the target (tasks.view for TASK). Archived comments are "
 					+ "hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.")
-	PageResponse<CommentResponse> list(@Valid PageParams page, @RequestParam CommentTargetType targetType,
+	PageResponse<CommentResponse> list(@ParameterObject @Valid PageParams page, @RequestParam CommentTargetType targetType,
 			@RequestParam UUID targetId) {
 		return PageResponse.of(service.list(targetType, targetId, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				CommentController::response);

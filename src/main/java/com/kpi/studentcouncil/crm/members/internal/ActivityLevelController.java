@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +47,7 @@ class ActivityLevelController {
 	@Operation(summary = "List activity level definitions (paginated, default order by sortOrder)",
 			description = "Active definitions only. includeArchived=true is honoured only for holders of "
 					+ "settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.")
-	PageResponse<DefinitionResponse> list(@Valid PageParams page,
+	PageResponse<DefinitionResponse> list(@ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeArchived, Authentication authentication) {
 		boolean archivedAllowed = includeArchived && canManage(authentication);
 		Sort sort = Sort.by(Sort.Direction.ASC, "sortOrder").and(Sort.by(Sort.Direction.ASC, "id"));

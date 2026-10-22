@@ -64,7 +64,7 @@ function toComment(c: Schemas['CommentResponse']): Comment {
 /** One page of comments, oldest first; archived comments are hidden by the backend. */
 export async function listComments(targetType: CommentTargetType, targetId: string, page: number): Promise<CommentPage> {
   const { data, error, response } = await api.GET('/api/v1/comments', {
-    params: { query: { page: { page, size: COMMENTS_PAGE_SIZE }, targetType, targetId } },
+    params: { query: { page, size: COMMENTS_PAGE_SIZE, targetType, targetId } },
   });
   if (!data) throw toProblemError(response, error);
   return {

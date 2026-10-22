@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +49,7 @@ class FacultyController {
 	@Operation(summary = "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
 			description = "Active faculties only. includeArchived=true is honoured only for holders of "
 					+ "settings.manage; for everyone else it is ignored.")
-	PageResponse<FacultyResponse> list(@Valid PageParams page,
+	PageResponse<FacultyResponse> list(@ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeArchived, Authentication authentication) {
 		boolean archivedAllowed = includeArchived && canManage(authentication);
 		return PageResponse.of(

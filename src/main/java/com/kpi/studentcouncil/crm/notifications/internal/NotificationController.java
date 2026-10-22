@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
@@ -55,7 +56,7 @@ class NotificationController {
 	@Operation(summary = "The caller's notifications, newest first (paginated)",
 			description = "unread=true returns only unread ones. text is rendered in the caller's locale from the "
 					+ "notification.<type> message key; the stored data (type, target, payload) is locale-independent.")
-	PageResponse<NotificationResponse> listNotifications(@Valid PageParams page,
+	PageResponse<NotificationResponse> listNotifications(@ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean unread) {
 		var pageable = page.toPageable(Set.of("createdAt"), Sort.by(Sort.Direction.DESC, "createdAt", "id"));
 		return PageResponse.of(service.list(unread, pageable), this::response);

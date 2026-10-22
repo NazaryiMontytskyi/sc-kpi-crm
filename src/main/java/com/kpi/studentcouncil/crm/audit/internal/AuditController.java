@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -64,7 +65,7 @@ class AuditController {
 			description = "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction "
 					+ "name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of "
 					+ "that UTC day). Invalid values yield 422 INVALID_FILTER.")
-	PageResponse<AuditEntryResponse> list(@Valid PageParams page, @RequestParam(required = false) String actorId,
+	PageResponse<AuditEntryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) String actorId,
 			@RequestParam(required = false) String entityType, @RequestParam(required = false) String entityId,
 			@RequestParam(required = false) String action, @RequestParam(required = false) String from,
 			@RequestParam(required = false) String to) {
@@ -83,7 +84,7 @@ class AuditController {
 	@Operation(summary = "History of one object, newest first (paginated); any authenticated user",
 			description = "403 for entity types registered as restricted when the permission is missing.")
 	PageResponse<AuditEntryResponse> history(@PathVariable String type, @PathVariable UUID id,
-			@Valid PageParams page, Authentication authentication) {
+			@ParameterObject @Valid PageParams page, Authentication authentication) {
 		String required = RESTRICTED_ENTITY_TYPES.get(type);
 		if (required != null && (authentication == null
 				|| authentication.getAuthorities().stream().noneMatch(a -> required.equals(a.getAuthority())))) {

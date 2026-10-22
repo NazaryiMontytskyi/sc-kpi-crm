@@ -57,7 +57,7 @@ function toChange(c: ChangeResponse): ActivityLevelChange {
 /** Active definitions of the scale, in the configured order. */
 export async function listActivityLevels(): Promise<ActivityLevel[]> {
   const { data, error, response } = await api.GET('/api/v1/activity-levels', {
-    params: { query: { page: { size: PAGE_SIZE } } },
+    params: { query: { size: PAGE_SIZE } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map((d) => toActivityLevel(d)).filter((l): l is ActivityLevel => l !== null);
@@ -74,7 +74,7 @@ export async function setActivityLevel(memberId: string, levelId: string, commen
 
 export async function listActivityLevelHistory(memberId: string): Promise<ActivityLevelChange[]> {
   const { data, error, response } = await api.GET('/api/v1/members/{id}/activity-level-history', {
-    params: { path: { id: memberId }, query: { page: { size: PAGE_SIZE } } },
+    params: { path: { id: memberId }, query: { size: PAGE_SIZE } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map(toChange);

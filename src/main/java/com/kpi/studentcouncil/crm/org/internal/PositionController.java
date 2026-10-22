@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -57,7 +58,7 @@ class PositionController {
 	@Operation(summary = "Positions of a unit (paginated, sortable by title, createdAt; default title)",
 			description = "Archived positions only with includeArchived=true. Each position lists its active holders; "
 					+ "a position without holders is vacant.")
-	PageResponse<PositionResponse> ofUnit(@PathVariable UUID id, @Valid PageParams page,
+	PageResponse<PositionResponse> ofUnit(@PathVariable UUID id, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeArchived) {
 		Page<Position> result = positions.listOfUnit(id, includeArchived,
 				page.toPageable(POSITION_SORTABLE, POSITION_SORT));
@@ -110,7 +111,7 @@ class PositionController {
 	@GetMapping("/positions/{id}/appointments")
 	@Operation(summary = "History of a position: who held it and when (paginated, sortable by startDate, endDate; "
 			+ "default startDate desc)", description = "Ended appointments are included unless includeEnded=false.")
-	PageResponse<AppointmentResponse> history(@PathVariable UUID id, @Valid PageParams page,
+	PageResponse<AppointmentResponse> history(@PathVariable UUID id, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "true") boolean includeEnded) {
 		return PageResponse.of(
 				appointments.listOfPosition(id, includeEnded, page.toPageable(APPOINTMENT_SORTABLE, APPOINTMENT_SORT)),
@@ -119,7 +120,7 @@ class PositionController {
 
 	@GetMapping("/appointments")
 	@Operation(summary = "Appointments of a person (paginated; active only unless includeEnded=true)")
-	PageResponse<AppointmentResponse> ofUser(@RequestParam UUID userId, @Valid PageParams page,
+	PageResponse<AppointmentResponse> ofUser(@RequestParam UUID userId, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeEnded) {
 		return PageResponse.of(
 				appointments.listOfUser(userId, includeEnded, page.toPageable(APPOINTMENT_SORTABLE, APPOINTMENT_SORT)),

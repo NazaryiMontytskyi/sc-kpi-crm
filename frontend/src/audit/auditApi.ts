@@ -91,7 +91,7 @@ export function cleanFilters(filters: AuditFilters): AuditFilters {
 /** Global audit log (needs `audit.view`). `page` is zero-based. */
 export async function listAudit(filters: AuditFilters, page: number): Promise<AuditPage> {
   const { data, error, response } = await api.GET('/api/v1/audit', {
-    params: { query: { page: { page, size: AUDIT_PAGE_SIZE }, ...cleanFilters(filters) } },
+    params: { query: { page, size: AUDIT_PAGE_SIZE, ...cleanFilters(filters) } },
   });
   if (!data) throw toProblemError(response, error);
   return toPage(data);
@@ -100,7 +100,7 @@ export async function listAudit(filters: AuditFilters, page: number): Promise<Au
 /** History of one object; visible to every authenticated user. */
 export async function listEntityHistory(entityType: string, entityId: string, page: number): Promise<AuditPage> {
   const { data, error, response } = await api.GET('/api/v1/audit/entities/{type}/{id}', {
-    params: { path: { type: entityType, id: entityId }, query: { page: { page, size: AUDIT_PAGE_SIZE } } },
+    params: { path: { type: entityType, id: entityId }, query: { page, size: AUDIT_PAGE_SIZE } },
   });
   if (!data) throw toProblemError(response, error);
   return toPage(data);

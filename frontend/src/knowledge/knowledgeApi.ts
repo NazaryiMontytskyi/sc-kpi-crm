@@ -101,7 +101,7 @@ export async function getTags(): Promise<TagCount[]> {
 
 export async function listArticles(tag: string | undefined, includeArchived: boolean): Promise<ArticleSummary[]> {
   const { data, error, response } = await api.GET('/api/v1/articles', {
-    params: { query: { page: { page: 0, size: 100, sort: 'title,asc' }, tag, includeArchived: includeArchived || undefined } },
+    params: { query: { page: 0, size: 100, sort: 'title,asc', tag, includeArchived: includeArchived || undefined } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map(toSummary);
@@ -178,7 +178,7 @@ export interface ArticleVersion extends ArticleVersionSummary {
 
 export async function listArticleVersions(id: string): Promise<ArticleVersionSummary[]> {
   const { data, error, response } = await api.GET('/api/v1/articles/{id}/versions', {
-    params: { path: { id }, query: { page: { page: 0, size: 100, sort: 'versionNumber,desc' } } },
+    params: { path: { id }, query: { page: 0, size: 100, sort: 'versionNumber,desc' } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map((v) => ({ versionNumber: v.versionNumber ?? 0, title: v.title ?? '', editedAt: v.editedAt ?? '' }));

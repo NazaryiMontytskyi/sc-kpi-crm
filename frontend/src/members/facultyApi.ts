@@ -34,7 +34,7 @@ export function facultyName(f: Pick<Faculty, 'nameUk' | 'nameEn'>, language: str
 
 export async function listFaculties(includeArchived: boolean): Promise<Faculty[]> {
   const { data, error, response } = await api.GET('/api/v1/faculties', {
-    params: { query: { page: { size: PAGE_SIZE }, includeArchived } },
+    params: { query: { size: PAGE_SIZE, includeArchived } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map(toFaculty);

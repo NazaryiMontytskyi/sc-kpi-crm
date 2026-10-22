@@ -89,7 +89,7 @@ export async function listMembers(includeArchived: boolean): Promise<MemberSumma
   const all: MemberSummary[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
     const { data, error, response } = await api.GET('/api/v1/members', {
-      params: { query: { page: { page, size: PAGE_SIZE }, includeArchived } },
+      params: { query: { page, size: PAGE_SIZE, includeArchived } },
     });
     if (!data) throw toProblemError(response, error);
     all.push(...(data.content ?? []).map(toSummary));
@@ -112,7 +112,7 @@ export async function searchMembers(f: MemberFilters): Promise<MemberPage> {
   const { data, error, response } = await api.GET('/api/v1/members', {
     params: {
       query: {
-        page: { page: f.page, size: PAGE_SIZE_DIRECTORY, sort: f.sort },
+        page: f.page, size: PAGE_SIZE_DIRECTORY, sort: f.sort,
         q: f.q.trim() || undefined,
         facultyId: f.facultyId ?? undefined,
         departmentId: f.departmentId ?? undefined,

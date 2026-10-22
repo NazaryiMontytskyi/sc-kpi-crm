@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -50,7 +51,7 @@ class MemberActivityLevelController {
 
 	@GetMapping("/activity-level-history")
 	@Operation(summary = "Activity level history of a member, newest first (paginated)")
-	PageResponse<ChangeResponse> history(@PathVariable UUID id, @Valid PageParams page) {
+	PageResponse<ChangeResponse> history(@PathVariable UUID id, @ParameterObject @Valid PageParams page) {
 		Pageable requested = page.toPageable(Set.of("changedAt"), Sort.by(Sort.Direction.DESC, "changedAt"));
 		Pageable pageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(),
 				requested.getSort().and(Sort.by(Sort.Direction.DESC, "id")));

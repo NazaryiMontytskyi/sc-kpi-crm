@@ -2020,6 +2020,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My resolutions mini-dashboard
+         * @description Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.
+         */
+        get: operations["myDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/me": {
         parameters: {
             query?: never;
@@ -2197,26 +2217,6 @@ export interface paths {
         };
         /** Get one appointment */
         get: operations["getAppointment"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/dashboard/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * My resolutions mini-dashboard
-         * @description Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.
-         */
-        get: operations["myDashboard"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3026,13 +3026,6 @@ export interface components {
             userId?: string;
             permissions?: string[];
         };
-        PageParams: {
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            sort?: string;
-        };
         PageResponseTaskSummaryResponse: {
             content?: components["schemas"]["TaskSummaryResponse"][];
             /** Format: int32 */
@@ -3384,6 +3377,29 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
+        MyDashboardResponse: {
+            resolutions?: components["schemas"]["MyResolutions"];
+        };
+        MyResolutions: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            overdue?: number;
+            /** Format: int64 */
+            awaitingAcceptance?: number;
+            upcoming?: components["schemas"]["UpcomingResolution"][];
+        };
+        UpcomingResolution: {
+            /** Format: uuid */
+            resolutionId?: string;
+            /** Format: uuid */
+            taskId?: string;
+            taskTitle?: string;
+            /** Format: date */
+            dueDate?: string;
+            state?: string;
+            overdue?: boolean;
+        };
         PageResponseCommentResponse: {
             content?: components["schemas"]["CommentResponse"][];
             /** Format: int32 */
@@ -3523,29 +3539,6 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
-        };
-        MyDashboardResponse: {
-            resolutions?: components["schemas"]["MyResolutions"];
-        };
-        MyResolutions: {
-            /** Format: int64 */
-            active?: number;
-            /** Format: int64 */
-            overdue?: number;
-            /** Format: int64 */
-            awaitingAcceptance?: number;
-            upcoming?: components["schemas"]["UpcomingResolution"][];
-        };
-        UpcomingResolution: {
-            /** Format: uuid */
-            resolutionId?: string;
-            /** Format: uuid */
-            taskId?: string;
-            taskTitle?: string;
-            /** Format: date */
-            dueDate?: string;
-            state?: string;
-            overdue?: boolean;
         };
     };
     responses: never;
@@ -4326,8 +4319,10 @@ export interface operations {
     };
     list: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 spaceId?: string;
                 statusId?: string;
                 labels?: string[];
@@ -4382,8 +4377,10 @@ export interface operations {
     };
     listByTask: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
             };
             header?: never;
             path: {
@@ -4502,8 +4499,10 @@ export interface operations {
     };
     list_1: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
             };
             header?: never;
             path?: never;
@@ -4548,8 +4547,10 @@ export interface operations {
     };
     list_2: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeArchived?: boolean;
                 orgUnitId?: string;
             };
@@ -4806,8 +4807,10 @@ export interface operations {
     };
     list_3: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeArchived?: boolean;
             };
             header?: never;
@@ -5089,8 +5092,10 @@ export interface operations {
     };
     history: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeEnded?: boolean;
             };
             header?: never;
@@ -5186,8 +5191,10 @@ export interface operations {
     };
     ofUnit: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeArchived?: boolean;
             };
             header?: never;
@@ -5263,8 +5270,10 @@ export interface operations {
     };
     ofUnit_1: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeEnded?: boolean;
             };
             header?: never;
@@ -5540,8 +5549,10 @@ export interface operations {
     };
     list_4: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 q?: string;
                 facultyId?: string;
                 departmentId?: string;
@@ -5714,8 +5725,10 @@ export interface operations {
     };
     list_5: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeArchived?: boolean;
             };
             header?: never;
@@ -5806,7 +5819,9 @@ export interface operations {
     list_6: {
         parameters: {
             query: {
-                page: components["schemas"]["PageParams"];
+                page?: number;
+                size?: number;
+                sort?: string;
                 targetType: "TASK" | "RESOLUTION";
                 targetId: string;
             };
@@ -5986,8 +6001,10 @@ export interface operations {
     };
     list_7: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 tag?: string;
                 parentArticleId?: string;
                 includeArchived?: boolean;
@@ -6180,8 +6197,10 @@ export interface operations {
     };
     list_8: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeArchived?: boolean;
             };
             header?: never;
@@ -6363,8 +6382,10 @@ export interface operations {
     };
     list_9: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 taskId?: string;
                 executorId?: string;
                 authorId?: string;
@@ -6478,7 +6499,9 @@ export interface operations {
         parameters: {
             query: {
                 userId: string;
-                page: components["schemas"]["PageParams"];
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeEnded?: boolean;
             };
             header?: never;
@@ -6562,8 +6585,10 @@ export interface operations {
     };
     listNotifications: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 unread?: boolean;
             };
             header?: never;
@@ -6605,8 +6630,10 @@ export interface operations {
     };
     list_10: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 role?: "EXECUTOR" | "AUTHOR";
                 active?: boolean;
                 state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
@@ -6654,8 +6681,10 @@ export interface operations {
     };
     history_1: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
             };
             header?: never;
             path: {
@@ -6707,6 +6736,26 @@ export interface operations {
             };
         };
     };
+    myDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyDashboardResponse"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -6738,8 +6787,10 @@ export interface operations {
     };
     list_11: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 actorId?: string;
                 entityType?: string;
                 entityId?: string;
@@ -6766,8 +6817,10 @@ export interface operations {
     };
     history_2: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
             };
             header?: never;
             path: {
@@ -6791,8 +6844,10 @@ export interface operations {
     };
     versions: {
         parameters: {
-            query: {
-                page: components["schemas"]["PageParams"];
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
             };
             header?: never;
             path: {
@@ -6902,7 +6957,9 @@ export interface operations {
         parameters: {
             query: {
                 userId: string;
-                page: components["schemas"]["PageParams"];
+                page?: number;
+                size?: number;
+                sort?: string;
                 includeEnded?: boolean;
             };
             header?: never;
@@ -6940,26 +6997,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AppointmentResponse"];
-                };
-            };
-        };
-    };
-    myDashboard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MyDashboardResponse"];
                 };
             };
         };

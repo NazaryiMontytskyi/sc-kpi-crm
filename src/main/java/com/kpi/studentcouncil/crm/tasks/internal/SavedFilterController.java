@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +48,7 @@ class SavedFilterController {
 	@GetMapping("/task-filters")
 	@PreAuthorize("isAuthenticated()")
 	@Operation(summary = "My saved task filters (paginated, sortable by name, createdAt; default name)")
-	PageResponse<SavedFilterResponse> list(@Valid PageParams page) {
+	PageResponse<SavedFilterResponse> list(@ParameterObject @Valid PageParams page) {
 		return PageResponse.of(service.list(page.toPageable(SORTABLE, DEFAULT_SORT)), SavedFilterController::response);
 	}
 

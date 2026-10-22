@@ -98,7 +98,7 @@ function toDetail(r: Schemas['ResolutionResponse']): ResolutionDetail {
 
 export async function listTaskResolutions(taskId: string, page: number): Promise<ResolutionPage> {
   const { data, error, response } = await api.GET('/api/v1/tasks/{taskId}/resolutions', {
-    params: { path: { taskId }, query: { page: { page, size: RESOLUTIONS_PAGE_SIZE, sort: 'createdAt,desc' } } },
+    params: { path: { taskId }, query: { page, size: RESOLUTIONS_PAGE_SIZE, sort: 'createdAt,desc' } },
   });
   if (!data) throw toProblemError(response, error);
   return {

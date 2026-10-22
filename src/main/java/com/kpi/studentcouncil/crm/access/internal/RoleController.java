@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -71,7 +72,7 @@ class RoleController {
 	@GetMapping("/roles")
 	@Operation(summary = "List roles (paginated, by name; the built-in Admin role first)",
 			description = "includeArchived=true is honoured only for holders of roles.manage.")
-	PageResponse<RoleResponse> list(@Valid PageParams page,
+	PageResponse<RoleResponse> list(@ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeArchived, Authentication authentication) {
 		boolean archivedAllowed = includeArchived && authentication != null
 				&& authentication.getAuthorities().stream().anyMatch(a -> MANAGE.equals(a.getAuthority()));

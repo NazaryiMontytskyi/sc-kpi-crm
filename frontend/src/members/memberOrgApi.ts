@@ -55,7 +55,7 @@ export function listMembershipsOfUser(userId: string): Promise<Membership[]> {
   return fetchAll(
     (page) =>
       api.GET('/api/v1/org-memberships', {
-        params: { query: { userId, page: { page, size: PAGE_SIZE }, includeEnded: true } },
+        params: { query: { userId, page, size: PAGE_SIZE, includeEnded: true } },
       }),
     toMembership,
   );
@@ -66,7 +66,7 @@ export function listAppointmentsOfUser(userId: string): Promise<Appointment[]> {
   return fetchAll(
     (page) =>
       api.GET('/api/v1/appointments', {
-        params: { query: { userId, page: { page, size: PAGE_SIZE }, includeEnded: true } },
+        params: { query: { userId, page, size: PAGE_SIZE, includeEnded: true } },
       }),
     toAppointment,
   );

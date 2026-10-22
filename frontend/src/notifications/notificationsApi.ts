@@ -59,7 +59,7 @@ function toNotification(n: Schemas['NotificationResponse']): AppNotification {
 
 export async function listNotifications(page: number, size: number, unread?: boolean): Promise<NotificationPage> {
   const { data, error, response } = await api.GET('/api/v1/notifications', {
-    params: { query: { page: { page, size }, ...(unread ? { unread: true } : {}) } },
+    params: { query: { page, size, ...(unread ? { unread: true } : {}) } },
   });
   if (!data) throw toProblemError(response, error);
   return {

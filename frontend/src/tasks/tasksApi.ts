@@ -239,7 +239,7 @@ export async function listSpaces(includeArchived: boolean): Promise<SpaceSummary
   const all: SpaceSummary[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
     const { data, error, response } = await api.GET('/api/v1/spaces', {
-      params: { query: { page: { page, size: PAGE_SIZE, sort: 'name' }, includeArchived } },
+      params: { query: { page, size: PAGE_SIZE, sort: 'name', includeArchived } },
     });
     if (!data) throw toProblemError(response, error);
     all.push(...(data.content ?? []).map(toSpaceSummary));
@@ -347,7 +347,7 @@ export async function listTasks(q: TaskQuery): Promise<Paged<TaskSummary>> {
   const { data, error, response } = await api.GET('/api/v1/tasks', {
     params: {
       query: {
-        page: { page: q.page, size: q.size, sort: `${q.sortBy},${q.direction}` },
+        page: q.page, size: q.size, sort: `${q.sortBy},${q.direction}`,
         spaceId: q.spaceId,
         statusId: q.statusId,
         labels: q.labels.length > 0 ? q.labels : undefined,
@@ -427,7 +427,7 @@ function toSavedFilter(f: Schemas['SavedFilterResponse']): SavedFilter {
 /** The caller's own saved filters (the backend allows at most 50 per user). */
 export async function listSavedFilters(): Promise<SavedFilter[]> {
   const { data, error, response } = await api.GET('/api/v1/task-filters', {
-    params: { query: { page: { page: 0, size: PAGE_SIZE, sort: 'name' } } },
+    params: { query: { page: 0, size: PAGE_SIZE, sort: 'name' } },
   });
   if (!data) throw toProblemError(response, error);
   return (data.content ?? []).map(toSavedFilter);

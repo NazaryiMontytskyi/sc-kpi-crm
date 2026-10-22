@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,7 +74,7 @@ class ResolutionController {
 	@GetMapping("/tasks/{taskId}/resolutions")
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Resolutions of a task (paginated, sortable by createdAt, updatedAt, dueDate, state)")
-	PageResponse<ResolutionSummaryResponse> listByTask(@PathVariable UUID taskId, @Valid PageParams page) {
+	PageResponse<ResolutionSummaryResponse> listByTask(@PathVariable UUID taskId, @ParameterObject @Valid PageParams page) {
 		return PageResponse.of(service.list(new ResolutionFilter(taskId, null, null, null, false),
 				page.toPageable(SORTABLE, DEFAULT_SORT)), this::summary);
 	}
@@ -83,7 +84,7 @@ class ResolutionController {
 	@Operation(summary = "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
 			description = "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the "
 					+ "author, the executor or a co-executor.")
-	PageResponse<ResolutionSummaryResponse> list(@Valid PageParams page, @RequestParam(required = false) UUID taskId,
+	PageResponse<ResolutionSummaryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) UUID taskId,
 			@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
 			@RequestParam(required = false) ResolutionState state, @RequestParam(defaultValue = "false") boolean mine) {
 		return PageResponse.of(service.list(new ResolutionFilter(taskId, executorId, authorId, state, mine),

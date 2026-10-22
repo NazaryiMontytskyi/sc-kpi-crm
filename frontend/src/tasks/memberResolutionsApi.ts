@@ -64,7 +64,7 @@ export async function listMemberResolutions(memberId: string, q: MemberResolutio
     params: {
       path: { id: memberId },
       query: {
-        page: { page: q.page, size: MEMBER_RESOLUTIONS_PAGE_SIZE },
+        page: q.page, size: MEMBER_RESOLUTIONS_PAGE_SIZE,
         role: q.role,
         active: q.active ?? false,
         state: q.state,

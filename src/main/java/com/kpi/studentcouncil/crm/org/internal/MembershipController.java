@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +47,7 @@ class MembershipController {
 	@GetMapping("/org-units/{id}/memberships")
 	@Operation(summary = "Memberships of a unit (paginated, sortable by since, until; default since desc)",
 			description = "Active memberships only unless includeEnded=true (history).")
-	PageResponse<MembershipResponse> ofUnit(@PathVariable UUID id, @Valid PageParams page,
+	PageResponse<MembershipResponse> ofUnit(@PathVariable UUID id, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeEnded) {
 		return PageResponse.of(service.listOfUnit(id, includeEnded, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				MembershipController::toResponse);
@@ -55,7 +56,7 @@ class MembershipController {
 	@GetMapping("/org-memberships")
 	@Operation(summary = "Memberships of a person (paginated; a person may be in several units)",
 			description = "Active memberships only unless includeEnded=true (history).")
-	PageResponse<MembershipResponse> ofUser(@RequestParam UUID userId, @Valid PageParams page,
+	PageResponse<MembershipResponse> ofUser(@RequestParam UUID userId, @ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeEnded) {
 		return PageResponse.of(service.listOfUser(userId, includeEnded, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				MembershipController::toResponse);

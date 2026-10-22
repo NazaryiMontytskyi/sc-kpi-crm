@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -59,7 +60,7 @@ class TaskController {
 						+ "Resolution filters executorId (executor or co-executor), authorId, resolutionState and view "
 						+ "(MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a "
 						+ "non-archived resolution that satisfies all of them at once.")
-	PageResponse<TaskSummaryResponse> list(@Valid PageParams page, @RequestParam(required = false) UUID spaceId,
+	PageResponse<TaskSummaryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) UUID spaceId,
 			@RequestParam(required = false) UUID statusId, @RequestParam(required = false) List<String> labels,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,

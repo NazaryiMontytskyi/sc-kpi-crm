@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,7 +54,7 @@ class SpaceController {
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Spaces (paginated, sortable by name, createdAt; default name)",
 			description = "Archived spaces only with includeArchived=true. Optional filter by orgUnitId.")
-	PageResponse<SpaceSummaryResponse> list(@Valid PageParams page,
+	PageResponse<SpaceSummaryResponse> list(@ParameterObject @Valid PageParams page,
 			@RequestParam(defaultValue = "false") boolean includeArchived, @RequestParam(required = false) UUID orgUnitId) {
 		return PageResponse.of(service.list(includeArchived, orgUnitId, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				SpaceController::summary);

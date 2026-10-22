@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +65,7 @@ class ArticleController {
 	@Operation(summary = "Articles (paginated, sortable by title, createdAt, updatedAt; default title)",
 			description = "Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with "
 					+ "includeArchived=true. Restricted articles are omitted without kb.restricted.view.")
-	PageResponse<ArticleSummaryResponse> list(@Valid PageParams page, @RequestParam(required = false) String tag,
+	PageResponse<ArticleSummaryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) String tag,
 			@RequestParam(required = false) UUID parentArticleId,
 			@RequestParam(defaultValue = "false") boolean includeArchived) {
 		return PageResponse.of(
@@ -133,7 +134,7 @@ class ArticleController {
 	@PreAuthorize("hasAuthority('kb.view')")
 	@Operation(summary = "Version history of an article (paginated, newest first; sortable by versionNumber)",
 			description = "404 for a restricted article without kb.restricted.view.")
-	PageResponse<ArticleVersionSummaryResponse> versions(@PathVariable UUID id, @Valid PageParams page) {
+	PageResponse<ArticleVersionSummaryResponse> versions(@PathVariable UUID id, @ParameterObject @Valid PageParams page) {
 		return PageResponse.of(service.listVersions(id, page.toPageable(VERSION_SORTABLE, VERSION_SORT)),
 				v -> new ArticleVersionSummaryResponse(v.getVersionNumber(), v.getTitle(), v.getCreatedBy(),
 						v.getCreatedAt()));
