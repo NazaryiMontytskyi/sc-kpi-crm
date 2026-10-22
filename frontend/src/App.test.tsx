@@ -18,7 +18,7 @@ describe('App shell', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByText('Ласкаво просимо')).toBeInTheDocument();
-    expect(screen.getByTestId('brand-text')).toHaveTextContent('SC KPI TMS');
+    expect(screen.getAllByText('SC KPI TMS').length).toBeGreaterThan(0);
     expect(screen.getByTestId('bell-slot')).toBeInTheDocument();
     expect(document.title).toBe('Головна · ІС СР КПІ');
 

@@ -1,0 +1,4 @@
+/* Dark theme: the filled brand shade (5) has < 3:1 contrast on dark surfaces, so keyboard focus uses shade 2. */
+[data-mantine-color-scheme='dark'] :focus-visible {
+  outline-color: var(--mantine-color-studrada-2) !important;
+}

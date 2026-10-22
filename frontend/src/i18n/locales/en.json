@@ -307,6 +307,7 @@
     "title": "Roles",
     "description": "A role is a set of permissions. A user has the union of the permissions of all their roles; changes apply immediately. The built-in Admin role has every permission and cannot be edited.",
     "showArchived": "Show archived",
+    "empty": "No roles yet.",
     "add": "Create role",
     "edit": "Edit",
     "view": "View",

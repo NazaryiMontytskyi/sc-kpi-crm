@@ -108,6 +108,8 @@ export function RolesPage() {
       {query.isLoading && <Loader size="sm" />}
       {loadError && <Alert color="red">{t(loadError === 'problems.UNKNOWN' ? 'roles.loadFailed' : loadError)}</Alert>}
 
+      {!query.isLoading && !loadError && roles.length === 0 && <Text c="dimmed">{t('roles.empty')}</Text>}
+
       {roles.length > 0 && isDesktop && (
         <Table withTableBorder highlightOnHover>
           <Table.Thead>

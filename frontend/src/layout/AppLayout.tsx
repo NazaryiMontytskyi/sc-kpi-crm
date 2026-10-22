@@ -103,7 +103,15 @@ export function AppLayout({ routes = appRoutes }: { routes?: AppRoute[] }) {
           <Group gap="sm" wrap="nowrap">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="md" aria-label={t('layout.menu')} />
             <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }} aria-label={t('nav.home')}>
-              <BrandLogo short />
+              <Group gap="xs" wrap="nowrap">
+                <BrandLogo variant="mark" height={32} textFallback={false} />
+                <Text fw={700} visibleFrom="sm">
+                  {t('app.name')}
+                </Text>
+                <Text fw={700} hiddenFrom="sm">
+                  {t('app.shortName')}
+                </Text>
+              </Group>
             </Link>
           </Group>
           <Group gap="xs" wrap="nowrap">
