@@ -695,7 +695,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** Decision (Q1): source files are in `.claude/resources/img/` (currently two PNGs: logo mark and full logo, blue). Implementator copies them into `assets/brand/` (per the README mapping; no SVG, light-background variant or PWA icons exist, so those stay placeholders and are reported missing; never generate or recolor) and writes `assets/brand/README.md`. If a hook blocks writing to `assets/brand/`, the implementator must report it and not work around it.
 
 #### INC-051 — End-to-end scenarios (Playwright)
-- **Status:** IN_VALIDATION
+- **Status:** DONE
 - **Module(s):** `frontend/e2e`
 - **Depends on:** INC-049, INC-048, INC-042
 - **Scope:** Playwright suite on the compose stack with seeded fake data covering: sign-in with forced password change; HR creates member + department + role; issue resolution -> redirect -> submit -> rework -> accept; read an article and create a new version; search; notification bell; all run also at 375 px viewport.
@@ -751,7 +751,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 - **Notes:** If the backend and the spec change in different places, controllers must keep behaving identically (binding is already flat). Alternative of only patching the client serializer is rejected because the spec would keep lying to other consumers.
 
 #### INC-055 — Sign-in CSRF token obtained before submit; remove e2e workaround
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth` (sign-in flow, `frontend/src/api`), `frontend/e2e`
 - **Depends on:** INC-054, INC-051
 - **Scope:** Sign-in must not race with the first `/auth/me`. Ensure the `XSRF-TOKEN` cookie exists before the login request is sent: the sign-in page/auth provider awaits the initial session/CSRF bootstrap (the form submit button is disabled with a loading state until it completes), and the login mutation, if the cookie is still absent, performs one bootstrap request and then sends the login (no blind retry loop). Remove `flattenPageParams` and `E2E_FLATTEN_PAGE_PARAMS` from `frontend/e2e/support/fixtures.ts` and `deploy/e2e.sh`/docs; re-run the full suite with `bash deploy/e2e.sh`.
