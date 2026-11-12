@@ -66,7 +66,11 @@ export function PositionFormModal({ position, unitId, unitHasHead, onClose }: Po
       <TextInput
         label={t('org.position.title')}
         value={values.title}
-        onChange={(e) => setValues((v) => ({ ...v, title: e.currentTarget.value }))}
+        onChange={(e) => {
+          // Read the value before the updater runs: React calls it during render, when currentTarget is already null.
+          const title = e.currentTarget.value;
+          setValues((v) => ({ ...v, title }));
+        }}
         error={errors.title ? t(errors.title) : undefined}
         data-autofocus
         styles={{ input: { minHeight: TOUCH } }}

@@ -372,3 +372,14 @@ describe('PositionPage', () => {
     expect(api.appoint).not.toHaveBeenCalled();
   });
 });
+
+describe('position form', () => {
+  it('accepts typing a title', async () => {
+    const user = userEvent.setup();
+    renderUnit(['org.manage', 'positions.manage']);
+    await user.click(await screen.findByRole('button', { name: i18n.t('org.position.create') }));
+    const input = await screen.findByLabelText(i18n.t('org.position.title'));
+    await user.type(input, 'Нова посада');
+    expect(input).toHaveValue('Нова посада');
+  });
+});
