@@ -242,6 +242,13 @@
   }
 }
 
+/* §6.3 / FT-3: the user's pause turns off the entrance, the stagger and the message fade like reduced motion. */
+.host[data-motion='off'] .card,
+.host[data-motion='off'] .item,
+.host[data-motion='off'] .error {
+  animation: none;
+}
+
 /* §6.3: no entrance, stagger, shake, lift or sweep under reduced motion; the message simply appears. */
 @media (prefers-reduced-motion: reduce) {
   .card,

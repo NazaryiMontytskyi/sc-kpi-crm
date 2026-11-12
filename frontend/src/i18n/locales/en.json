@@ -103,7 +103,19 @@
       "footer": "© {{year}} Student Council of Igor Sikorsky Kyiv Polytechnic Institute",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
-      "capsLock": "Caps Lock is on"
+      "capsLock": "Caps Lock is on",
+      "taglines": [
+        "On the same wave with a student",
+        "The voice of a student of KPI",
+        "Making KPI better together"
+      ],
+      "motion": {
+        "pause": "Pause background animation"
+      },
+      "indicator": {
+        "label": "Campus photos",
+        "goTo": "Photo {{index}} of {{count}}"
+      }
     },
     "password": "Password",
     "changePassword": {

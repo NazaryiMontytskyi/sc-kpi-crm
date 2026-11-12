@@ -4,7 +4,7 @@ import { loginPageConfig } from '../loginPage.config';
 import type { SlideImage } from '../slideshowImages';
 import { BackgroundSlideshow } from './BackgroundSlideshow';
 
-const { slideDurationMs, crossfadeMs } = loginPageConfig.slideshow;
+const { slideDurationMs, crossfadeMs, reducedMotionIntervalMs } = loginPageConfig.slideshow;
 
 function slide(n: number): SlideImage {
   const set = (format: string) =>
@@ -156,5 +156,104 @@ describe('BackgroundSlideshow', () => {
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  describe('Ken Burns and motion preference (INC-060)', () => {
+    function pictureOf(container: HTMLElement, n: number) {
+      return imageOf(container, n)?.closest('picture') ?? null;
+    }
+
+    function loadAll(container: HTMLElement) {
+      for (const img of images(container)) fireEvent.load(img);
+    }
+
+    it('zooms and pans the visible photo, keeps it moving while it fades out, never on a pending one (BG-4)', () => {
+      const { container } = render(<BackgroundSlideshow slides={slides(3)} random={noShuffle} />);
+      loadAll(container);
+      const first = pictureOf(container, 1)!;
+      expect(first.className).toMatch(/kenBurns/);
+      expect(first.style.getPropertyValue('--login-kb-x')).toMatch(/%$/);
+      expect(pictureOf(container, 2)!.className).not.toMatch(/kenBurns/);
+      expect(screen.getByTestId('login-background').style.getPropertyValue('--login-kb-duration')).toBe(
+        `${slideDurationMs + crossfadeMs}ms`,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(slideDurationMs);
+      });
+      expect(layerOf(container, 1)).toHaveAttribute('data-state', 'outgoing');
+      expect(pictureOf(container, 1)!.className).toMatch(/kenBurns/);
+      expect(pictureOf(container, 2)!.className).toMatch(/kenBurns/);
+    });
+
+    it('never gives two consecutive slides the same direction', () => {
+      const { container } = render(
+        <BackgroundSlideshow slides={slides(4)} random={noShuffle} kenBurnsRandom={() => 0} />,
+      );
+      let previous: string | null = null;
+      for (let step = 0; step < 8; step++) {
+        loadAll(container);
+        const visible = container.querySelector('[data-state="visible"] picture')!;
+        const preset = visible.getAttribute('data-ken-burns');
+        expect(preset).not.toBeNull();
+        expect(preset).not.toBe(previous);
+        previous = preset;
+        act(() => {
+          vi.advanceTimersByTime(slideDurationMs);
+        });
+      }
+    });
+
+    it('pause stops the advance and removes the Ken Burns class; pressing again resumes (FT-3)', () => {
+      const { container, rerender } = render(<BackgroundSlideshow slides={slides(3)} random={noShuffle} />);
+      loadAll(container);
+      rerender(<BackgroundSlideshow slides={slides(3)} random={noShuffle} paused />);
+      expect(container.querySelectorAll('[class*="kenBurns"]')).toHaveLength(0);
+      act(() => {
+        vi.advanceTimersByTime(slideDurationMs * 5);
+      });
+      expect(layerOf(container, 1)).toHaveAttribute('data-state', 'visible');
+
+      rerender(<BackgroundSlideshow slides={slides(3)} random={noShuffle} />);
+      expect(pictureOf(container, 1)!.className).toMatch(/kenBurns/);
+      act(() => {
+        vi.advanceTimersByTime(slideDurationMs);
+      });
+      expect(layerOf(container, 2)).toHaveAttribute('data-state', 'visible');
+    });
+
+    it('under reduced motion: no Ken Burns, a plain crossfade every 15 s; pause then stops it (spec §9.8)', () => {
+      const { container, rerender } = render(
+        <BackgroundSlideshow slides={slides(3)} random={noShuffle} reducedMotion />,
+      );
+      loadAll(container);
+      expect(container.querySelectorAll('[class*="kenBurns"]')).toHaveLength(0);
+      act(() => {
+        vi.advanceTimersByTime(slideDurationMs);
+      });
+      expect(layerOf(container, 1)).toHaveAttribute('data-state', 'visible');
+      act(() => {
+        vi.advanceTimersByTime(reducedMotionIntervalMs - slideDurationMs);
+      });
+      expect(layerOf(container, 2)).toHaveAttribute('data-state', 'visible');
+      // The crossfade remains.
+      expect(layerOf(container, 1)).toHaveAttribute('data-state', 'outgoing');
+      expect(container.querySelectorAll('[class*="kenBurns"]')).toHaveLength(0);
+
+      loadAll(container);
+      rerender(<BackgroundSlideshow slides={slides(3)} random={noShuffle} reducedMotion paused />);
+      act(() => {
+        vi.advanceTimersByTime(reducedMotionIntervalMs * 3);
+      });
+      expect(layerOf(container, 2)).toHaveAttribute('data-state', 'visible');
+    });
+
+    it('renders the controls outside the decorative layer with the slideshow state', () => {
+      const controls = vi.fn(() => <button type="button">control</button>);
+      render(<BackgroundSlideshow slides={slides(3)} random={noShuffle} controls={controls} />);
+      const button = screen.getByRole('button', { name: 'control' });
+      expect(screen.getByTestId('login-background')).not.toContainElement(button);
+      expect(controls).toHaveBeenLastCalledWith(expect.objectContaining({ current: 0, order: [0, 1, 2] }));
+    });
   });
 });

@@ -33,6 +33,10 @@ export interface Slideshow {
   progressKey: number;
   /** True when there were slides but every image failed to load. */
   failedAll: boolean;
+  /** The lifetime of the visible slide is counting: not paused, tab visible and the image loaded (CAP-3 fill). */
+  running: boolean;
+  /** Lifetime of a slide in the current mode (normal or reduced motion). */
+  intervalMs: number;
   /** Jumps to a slide as soon as its image is loaded (CAP-4); the current slide restarts its lifetime. */
   goTo: (slide: number) => void;
   markLoaded: (slide: number) => void;
@@ -203,6 +207,8 @@ export function useSlideshow(slides: readonly unknown[], options: UseSlideshowOp
     next,
     progressKey,
     failedAll: slides.length > 0 && current === null,
+    running: running && currentLoaded,
+    intervalMs: interval,
     goTo,
     markLoaded,
     markFailed,

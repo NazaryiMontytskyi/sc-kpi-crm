@@ -55,14 +55,34 @@ export const loginPageConfig = {
       { x: 1, y: 0 },
       { x: -1, y: 0 },
     ] as readonly KenBurnsDirection[],
+    /**
+     * BG-4: pan distance at the end of the zoom, in percent of the photo size per axis. Must stay below half of the
+     * zoom overflow ((scaleTo - 1) / 2 = 4 %), so the photo edges never show.
+     */
+    panPercent: 3,
   },
   tagline: {
     /** HERO-4: interval between tagline phrases. */
     intervalMs: 4000,
+    /** HERO-4: outgoing slide-up/fade and incoming slide-up of one word, and the delay between words. */
+    transitionMs: 500,
+    wordStaggerMs: 45,
+    /** HERO-4: vertical travel of the words. */
+    risePx: 14,
+    /** §6.3: plain cross-fade of the phrases under reduced motion. */
+    fadeMs: 600,
   },
   headline: {
     /** HERO-5: delay between words of the staggered headline reveal. */
     staggerStepMs: 60,
+    /** HERO-5: fade + rise of one word, and how far it rises. */
+    wordMs: 600,
+    risePx: 12,
+  },
+  caption: {
+    /** CAP-1: fade + slide-in of the caption of each new slide (fade only when motion is reduced or paused). */
+    enterMs: 700,
+    enterRisePx: 8,
   },
   card: {
     /** CARD-2: entrance rise distance and duration, and the stagger between fields. */

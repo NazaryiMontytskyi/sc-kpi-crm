@@ -226,6 +226,29 @@ describe('LoginCard submit and errors (CARD-6, CARD-7, spec §7, §9.5)', { time
     }
   });
 
+  it('never shakes and drops the entrance/stagger while the user has paused motion (FT-3, §6.3)', async () => {
+    localStorage.setItem(loginPageConfig.motion.pauseStorageKey, 'true');
+    try {
+      vi.mocked(authApi.loginRequest).mockRejectedValue(new ApiProblemError(401, 'INVALID_CREDENTIALS'));
+      renderPage();
+      await fill();
+      const card = screen.getByTestId('login-card');
+      expect(card).toHaveAttribute('data-motion', 'off');
+      const firstClass = card.className;
+      await userEvent.click(submitButton());
+      expect(await screen.findByTestId('login-error')).toBeInTheDocument();
+      expect(card).not.toHaveAttribute('data-shake');
+      expect(card.className).toBe(firstClass);
+    } finally {
+      localStorage.removeItem(loginPageConfig.motion.pauseStorageKey);
+    }
+  });
+
+  it('keeps card motion on by default', () => {
+    renderWithProviders(<LoginCard form={fakeForm()} />);
+    expect(screen.getByTestId('login-card')).toHaveAttribute('data-motion', 'on');
+  });
+
   it('keeps the shake within 400 ms and passes the configured timings to the CSS', () => {
     expect(loginPageConfig.card.shakeMs).toBeLessThanOrEqual(400);
     const style = LOGIN_CARD_STYLE as Record<string, string>;

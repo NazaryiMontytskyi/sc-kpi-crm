@@ -18,7 +18,25 @@
 
 .topBar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--mantine-spacing-sm);
+}
+
+/* CAP-1 slots, filled by the lazy background. Fixed height and one line, so a caption never shifts the layout. */
+.captionCompact,
+.captionWide {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 1.75rem;
+  overflow: hidden;
+}
+
+/* Desktop slot: hidden on phones and tablets, where the caption sits at the top. */
+.captionWide {
+  display: none;
 }
 
 .switchRoot {
@@ -49,10 +67,48 @@
 }
 
 .footer {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
   font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-white);
   text-shadow: 0 1px 2px color-mix(in srgb, var(--mantine-color-black) 60%, transparent);
+}
+
+/* CAP-3 row: the indicator (and the desktop caption). Reserved height, so nothing jumps when it appears. */
+.slideBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  min-height: 1.75rem;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+.indicatorSlot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 1.75rem;
+}
+
+/* Copyright centred, the motion toggle (FT-3) at the end; the spacer mirrors the toggle width. */
+.footerLine {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.footerSpacer {
+  width: 2rem;
+}
+
+.footerText {
+  margin: 0;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
@@ -70,5 +126,18 @@
 
   .footer {
     font-size: var(--mantine-font-size-sm);
+  }
+
+  .captionCompact {
+    display: none;
+  }
+
+  .captionWide {
+    display: flex;
+  }
+
+  .slideBar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    gap: var(--mantine-spacing-xl);
   }
 }

@@ -111,6 +111,11 @@ describe('sign-in page styles', () => {
         'components/LoginShell.module.css',
         'components/LoginCard.module.css',
         'components/FloatingField.module.css',
+        'components/MotionToggle.module.css',
+        'components/PhotoCaption.module.css',
+        'components/SlideIndicator.module.css',
+        'components/RotatingTagline.module.css',
+        'components/StaggeredHeadline.module.css',
       ]),
     );
   });
@@ -275,6 +280,102 @@ describe('sign-in page styles', () => {
       const hint = [block(card, '.capsHint {'), block(card, '.capsIcon {')].join('\n');
       expect(hint).toMatch(/--mantine-color-(yellow|orange)-/);
       expect(hint).not.toMatch(/studrada|primary|anchor/);
+    });
+  });
+
+  describe('motion, captions, indicator, tagline (INC-060)', () => {
+    const slideshow = stripComments(styles['components/BackgroundSlideshow.module.css']);
+    const card = stripComments(styles['components/LoginCard.module.css']);
+    const overlayModules = [
+      'components/MotionToggle.module.css',
+      'components/PhotoCaption.module.css',
+      'components/SlideIndicator.module.css',
+      'components/RotatingTagline.module.css',
+      'components/StaggeredHeadline.module.css',
+      'components/LoginShell.module.css',
+    ];
+
+    /** Body of every keyframes block, keyed by name. */
+    function keyframeBodies(css: string): Record<string, string> {
+      const out: Record<string, string> = {};
+      for (const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+        let depth = 1;
+        let i = (match.index ?? 0) + match[0].length;
+        const start = i;
+        while (i < css.length && depth > 0) {
+          if (css[i] === '{') depth++;
+          if (css[i] === '}') depth--;
+          i++;
+        }
+        out[match[1]] = css.slice(start, i - 1);
+      }
+      return out;
+    }
+
+    const propsOf = (body: string) => [...new Set(keyframeProperties(`@keyframes k {${body}}`))].sort();
+
+    it('runs Ken Burns as a transform-only zoom + pan of the configured length (BG-4)', () => {
+      const frames = keyframeBodies(slideshow);
+      expect(propsOf(frames.loginKenBurns)).toEqual(['transform']);
+      expect(frames.loginKenBurns).toMatch(/scale\(var\(--login-kb-scale-from\)\)/);
+      expect(frames.loginKenBurns).toMatch(/scale\(var\(--login-kb-scale-to\)\) translate\(var\(--login-kb-x\), var\(--login-kb-y\)\)/);
+      expect(slideshow).toMatch(/\.kenBurns\s*\{[^}]*animation:\s*loginKenBurns var\(--login-kb-duration\)/);
+      expect(slideshow).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.kenBurns\s*\{\s*animation:\s*none/);
+    });
+
+    it('fills the indicator with scaleX only and freezes it when not running (CAP-3)', () => {
+      const css = stripComments(styles['components/SlideIndicator.module.css']);
+      const frames = keyframeBodies(css);
+      expect(propsOf(frames.loginIndicatorFill)).toEqual(['transform']);
+      expect(frames.loginIndicatorFill).toMatch(/scaleX\(0\)[\s\S]*scaleX\(1\)/);
+      expect(css).toMatch(/\.filling\[data-running='false'\]\s*\{\s*animation-play-state:\s*paused/);
+      expect(css).toMatch(/\.segment:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--mantine-color-studrada-2\)/);
+    });
+
+    it('animates the tagline, headline and caption with transform and opacity only (HERO-4, HERO-5, CAP-1)', () => {
+      for (const path of [
+        'components/RotatingTagline.module.css',
+        'components/StaggeredHeadline.module.css',
+        'components/PhotoCaption.module.css',
+      ]) {
+        const css = stripComments(styles[path]);
+        for (const body of Object.values(keyframeBodies(css))) {
+          for (const prop of propsOf(body)) expect(['opacity', 'transform']).toContain(prop);
+        }
+        expect(transitionedProperties(css).every((prop) => prop === 'opacity')).toBe(true);
+      }
+      // All phrases share one grid cell: the height never changes (no layout shift).
+      const tagline = stripComments(styles['components/RotatingTagline.module.css']);
+      expect(tagline).toMatch(/\.tagline\s*\{[^}]*display:\s*grid/);
+      expect(tagline).toMatch(/\.phrase\s*\{[^}]*grid-area:\s*1 \/ 1/);
+    });
+
+    it('reserves fixed-height slots for the caption and the indicator (no layout shift)', () => {
+      const shell = stripComments(styles['components/LoginShell.module.css']);
+      expect(shell).toMatch(/\.captionCompact,\s*\.captionWide\s*\{[^}]*height:\s*1\.75rem/);
+      expect(shell).toMatch(/\.indicatorSlot\s*\{[^}]*height:\s*1\.75rem/);
+      expect(stripComments(styles['components/PhotoCaption.module.css'])).toMatch(
+        /\.text\s*\{[^}]*white-space:\s*nowrap[^}]*text-overflow:\s*ellipsis/,
+      );
+    });
+
+    it('turns off the card entrance, stagger and message fade when the user pauses motion (§6.3)', () => {
+      expect(card).toMatch(
+        /\.host\[data-motion='off'\] \.card,\s*\.host\[data-motion='off'\] \.item,\s*\.host\[data-motion='off'\] \.error\s*\{\s*animation:\s*none/,
+      );
+    });
+
+    it('colours the new overlay text and icons only white or studrada shade 2, focus rings shade 2', () => {
+      for (const path of overlayModules) {
+        const css = stripComments(styles[path]);
+        const colours = [...css.matchAll(/(?:^|[;{\s])color\s*:\s*([^;}]+)/g)].map(([, value]) => value.trim());
+        for (const value of colours) {
+          expect(['var(--mantine-color-white)', 'var(--mantine-color-studrada-2)']).toContain(value);
+        }
+        for (const [, value] of css.matchAll(/outline\s*:\s*([^;}]+)/g)) {
+          expect(value).toMatch(/var\(--mantine-color-studrada-2\)/);
+        }
+      }
     });
   });
 

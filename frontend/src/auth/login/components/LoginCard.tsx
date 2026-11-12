@@ -1,7 +1,7 @@
 import { ActionIcon, Alert, Button, Text, Title } from '@mantine/core';
 import { useId, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+import { useMotionPreference } from '../hooks/useMotionPreference';
 import type { LoginFormState } from '../hooks/useLoginForm';
 import { loginPageConfig } from '../loginPage.config';
 import { FloatingField } from './FloatingField';
@@ -74,7 +74,8 @@ interface LoginCardProps {
  */
 export function LoginCard({ form, alternatives }: LoginCardProps) {
   const { t } = useTranslation();
-  const reducedMotion = usePrefersReducedMotion();
+  // §6.3: reduced motion or the user's pause (FT-3) turn off the entrance, the stagger and the shake.
+  const { motionReduced } = useMotionPreference();
   const ids = useId();
   const titleId = `${ids}-title`;
   const loginId = `${ids}-login`;
@@ -86,7 +87,7 @@ export function LoginCard({ form, alternatives }: LoginCardProps) {
 
   const { problem, failureCount } = form;
   // Two identical keyframes alternate so that every failure restarts the animation (CARD-7); none when reduced.
-  const shakeClass = !reducedMotion && failureCount > 0 ? (failureCount % 2 === 1 ? classes.shakeA : classes.shakeB) : '';
+  const shakeClass = !motionReduced && failureCount > 0 ? (failureCount % 2 === 1 ? classes.shakeA : classes.shakeB) : '';
 
   const describedBy = (...parts: (string | false)[]) => parts.filter(Boolean).join(' ') || undefined;
   const trackCapsLock = (e: KeyboardEvent<HTMLInputElement>) => setCapsLock(e.getModifierState('CapsLock'));
@@ -97,6 +98,7 @@ export function LoginCard({ form, alternatives }: LoginCardProps) {
       style={LOGIN_CARD_STYLE}
       data-testid="login-card"
       data-shake={shakeClass ? 'on' : undefined}
+      data-motion={motionReduced ? 'off' : 'on'}
     >
       <section className={classes.card} aria-labelledby={titleId}>
         <header className={classes.header}>

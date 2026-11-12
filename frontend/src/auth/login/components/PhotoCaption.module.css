@@ -1,0 +1,71 @@
+/*
+ * CAP-1: caption of the current photo over the dark overlay. White text, studrada shade 2 pin (never shade 6 on
+ * dark). One line with an ellipsis so it never wraps into the layout; the slot height is reserved by LoginShell.
+ * Only opacity and transform are animated; durations come from loginPage.config.ts (`caption`).
+ */
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--mantine-color-white);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--mantine-color-black) 70%, transparent);
+}
+
+.pin {
+  display: inline-flex;
+  flex: none;
+  color: var(--mantine-color-studrada-2);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.slideIn {
+  animation: loginCaptionIn var(--login-caption-enter) ease-out both;
+}
+
+.fade {
+  animation: loginCaptionFade var(--login-caption-enter) ease-out both;
+}
+
+@keyframes loginCaptionIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--login-caption-rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes loginCaptionFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 64em) {
+  .caption {
+    font-size: var(--mantine-font-size-sm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slideIn {
+    animation-name: loginCaptionFade;
+  }
+}

@@ -1,0 +1,84 @@
+/*
+ * HERO-4: rotating tagline over the dark overlay (studrada shade 2 text, never shade 6). All phrases share one grid
+ * cell, so the height is that of the tallest phrase and never changes. `motion`: the outgoing phrase's words slide
+ * up and fade, the incoming ones slide up from below, one after another. `fade` (reduced motion): opacity only.
+ * Only opacity and transform are animated; timings come from loginPage.config.ts (`tagline`).
+ */
+.tagline {
+  display: grid;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--mantine-font-size-md);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--mantine-color-studrada-2);
+}
+
+.phrase {
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.phrase[data-state='idle'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Word-level transition (motion mode). */
+.word {
+  display: inline-block;
+  white-space: pre;
+}
+
+.moving[data-state='in'] .word {
+  animation: loginTaglineIn var(--login-tagline-transition) ease-out both;
+  animation-delay: calc(var(--login-tagline-word, 0) * var(--login-tagline-stagger));
+}
+
+.moving[data-state='out'] .word {
+  animation: loginTaglineOut var(--login-tagline-transition) ease-in both;
+  animation-delay: calc(var(--login-tagline-word, 0) * var(--login-tagline-stagger));
+}
+
+/* Plain cross-fade (reduced motion), or no change at all (paused, a single phrase). */
+.fading {
+  transition: opacity var(--login-tagline-fade) ease-in-out;
+}
+
+.fading[data-state='out'] {
+  opacity: 0;
+}
+
+@keyframes loginTaglineIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--login-tagline-rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes loginTaglineOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--login-tagline-rise) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moving[data-state='in'] .word,
+  .moving[data-state='out'] .word {
+    animation: none;
+  }
+
+  .moving[data-state='out'] {
+    opacity: 0;
+  }
+}
