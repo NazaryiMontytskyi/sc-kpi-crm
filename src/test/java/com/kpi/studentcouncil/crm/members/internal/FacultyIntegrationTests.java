@@ -198,11 +198,13 @@ class FacultyIntegrationTests {
 
 	@Test
 	void seederIsIdempotentAndReferenceDataIsPresent() {
-		long before = jdbc.queryForObject("select count(*) from faculty where code like 'FAC-%'", Long.class);
+		String codes = FacultySeeder.ENTRIES.stream().map(e -> "'" + e.code() + "'")
+				.collect(java.util.stream.Collectors.joining(","));
+		String sql = "select count(*) from faculty where code in (" + codes + ")";
+		long before = jdbc.queryForObject(sql, Long.class);
 		assertThat(before).isEqualTo(FacultySeeder.COUNT);
 		seeder.run();
-		assertThat(jdbc.queryForObject("select count(*) from faculty where code like 'FAC-%'", Long.class))
-				.isEqualTo(before);
+		assertThat(jdbc.queryForObject(sql, Long.class)).isEqualTo(before);
 	}
 
 }
