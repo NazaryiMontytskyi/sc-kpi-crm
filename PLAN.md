@@ -793,7 +793,7 @@ Planner decisions (apply to all increments):
 ### Increments
 
 #### INC-056 — Main page assets, image pipeline, config module, captions lookup
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login` (+ `assets/main_page/`, `frontend/vite.config.ts`, `frontend/package.json`)
 - **Depends on:** INC-006, INC-050
 - **Scope:** Copy the 11 originals to `assets/main_page/images/` byte-identical in content but renamed `image_<n>.<original extension>` (`image_1` ... `image_11`, alphabetical by original name, including the `.jfif`). Create `captions.json` keyed by the NEW names, with placeholder uk + en entries derived from the ORIGINAL names via the mapping (e.g. original `k-1-evening.jpg` -> `image_N.jpg`: "Головний корпус, вечір" / "Main Building, evening"; originals that give no hint get no entry). Add `assets/main_page/README.md` (purpose, original -> new name mapping table, how to add a photo, caption format, originals under `.claude/` stay untouched). Add `vite-imagetools` (or the documented fallback script) with widths 768/1280/1920 and avif + webp. Create `frontend/src/auth/login/loginPage.config.ts` as the single tunable module: slide 8000 ms, crossfade 1500 ms, reduced-motion interval 15000 ms, Ken Burns scale 1.00-1.08 and direction presets, tagline interval 4000 ms, intro durations, parallax 12/6 px, particle counts 15-30 (halved on phones), indicator cap 10, success transition 900 ms, shake 400 ms, seasonal flag. Create `slideshowImages.ts`: `SlideImage { id, srcSets per format, fallbackSrc }`, `discoverSlides()` and pure `captionFor(id, lang, captions)`. Add `check:images` npm script (node, runs on `frontend/dist`). ADR draft for the pipeline choice.
