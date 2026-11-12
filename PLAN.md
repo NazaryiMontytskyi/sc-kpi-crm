@@ -779,7 +779,7 @@ Conventions for ALL increments below (not repeated in each): permissions via `@P
 Source: .claude/MAIN_PAGE_FEATURE.md (human-approved feature; P0 + P1, P2 optional last) · .claude/CONTEXT.md §6.1 · .claude/CLAUDE.md "Project setup" · Created: 2026-11-12
 
 ### Overview
-Presentation-only redesign of the sign-in page (`frontend/src/auth/LoginPage.tsx`): rotating KPI campus photos, hero panel, glass login card, intro/exit transitions, ambient effects. Frontend only: no backend, no OpenAPI, no change to `loginRequest`, the CSRF bootstrap (INC-055), session storage or error mapping. Phases: (1) asset pipeline and config, (2) slideshow engine and background, (3) layout, hero and card, (4) motion preference, captions, tagline, success transition, (5) intro and ambient effects, (6) hardening and budgets, (7) optional P2 seasonal accents. Every increment leaves the sign-in page fully working; decorative layers are lazy-loaded so a failure of any of them never blocks the form.
+Presentation-only redesign of the sign-in page (`frontend/src/auth/LoginPage.tsx`): rotating KPI campus photos, hero panel, glass login card, intro/exit transitions, ambient effects. Frontend only: no backend, no OpenAPI, no change to `loginRequest`, the CSRF bootstrap (INC-055), session storage or error mapping. The section has 7 increments (INC-056 to INC-062): INC-056 asset pipeline and config (DONE), INC-057 slideshow engine and background, INC-058 layout, hero and white logos, INC-059 glass card and interactions, INC-060 motion preference, captions, indicator and tagline, INC-061 success transition, intro and ambient effects (optional seasonal snow last), INC-062 hardening and budgets. Every increment leaves the sign-in page fully working; decorative layers are lazy-loaded so a failure of any of them never blocks the form.
 
 Planner decisions (apply to all increments):
 - **Folder:** new code in `frontend/src/auth/login/` (`loginPage.config.ts`, `components/`, `hooks/`, `slideshowImages.ts`). `LoginPage.tsx` and `AuthLayout.tsx` stay where they are (routes and `ChangePasswordPage` import them). `ChangePasswordPage` keeps the existing plain layout and must not regress.
@@ -787,8 +787,9 @@ Planner decisions (apply to all increments):
 - **Images:** originals are copied from `.claude/resources/main_page/images/` to `assets/main_page/images/` (precedent INC-050), content byte-identical but **renamed** to `image_<n>.<original extension>` (`image_1` ... `image_11`, extension kept incl. `.jfif`/`.png`/`.webp`; numbers assigned alphabetically by original name; mapping recorded in `assets/main_page/README.md`; originals under `.claude/` untouched) `[user decision]`. About 8 MB of binaries go into plain git, no Git LFS `[user decision]`. That directory is the single committed source of truth; the spec path `resources/main_page/images/` is replaced by it. Never placed in `src/`; `frontend/dist` is never copied into `src/main/resources/static`.
 - **How Vite reads it (spec §6.1 option a):** `server.fs.allow` already includes `..` and `deploy/Dockerfile.frontend` builds with the repository root as context, so `import.meta.glob('<relative>/assets/main_page/images/*.{jpg,jpeg,jfif,png,webp,avif}', ...)` is used exactly like `frontend/src/brand/assets.ts`. Adding/removing a file and rebuilding needs no code change (BG-2). No copy step, no Spring static serving.
 - **Build-time optimisation (nothing generated is committed):** one new devDependency, **`vite-imagetools`** (wraps `sharp`). Justification: spec §6.1 requires WebP + AVIF at 2-3 widths through `srcset` with no hand-made copies; this is the smallest Vite-native way, avoids a custom build script, and is build/dev-time only (zero runtime JS, so the 30 KB budget is untouched). Widths 768/1280/1920, formats avif + webp with a webp fallback; the plugin `include` regex is extended so `.jfif` (a JPEG container, `sharp` detects format by content) is processed. Risks verified in INC-056: compatibility with Vite 8, and `sharp` prebuilt binaries on `node:22-alpine`. **Fallback if incompatible:** `frontend/scripts/build-images.mjs` using `sharp` directly from `prebuild`, writing to git-ignored `frontend/.generated/` plus a manifest, same output contract so `slideshowImages.ts` is unchanged. The choice is recorded by the implementator as an ADR draft in `docs/adr/`.
+- **Logos on the dark overlay:** the user supplied white variants `Лого знак_біле.png` (mark) and `Лого СР_біле.png` (full); INC-058 copies them byte-identical to `assets/brand/logo/logo-mark-white.png` and `logo-full-white.png`. Full white logo in the desktop hero (>= 1024 px), white mark in the phone/tablet hero and the intro splash; no chip on the dark overlay.
 - **Captions:** `assets/main_page/images/captions.json` (`{ "<file name>": { "uk", "en" } }`), read through the same glob (`query: '?raw'`), optional.
-- **Budgets that CI cannot measure:** Lighthouse mobile (Performance >= 85, Accessibility >= 95), CLS, 60 fps and "form interactive <= 2.5 s on Fast 3G" are run manually by the validator (procedure in INC-069) and recorded in the report. Automatable ones get scripts/tests: JS <= 30 KB gzip, 768 px image variant <= 250 KB, network allow-list, contrast arithmetic, timer/listener leaks.
+- **Budgets that CI cannot measure:** Lighthouse mobile (Performance >= 85, Accessibility >= 95), CLS, 60 fps and "form interactive <= 2.5 s on Fast 3G" are run manually by the validator (procedure in INC-062) and recorded in the report. Automatable ones get scripts/tests: JS <= 30 KB gzip, 768 px image variant <= 250 KB, network allow-list, contrast arithmetic, timer/listener leaks.
 
 ### Increments
 
@@ -809,237 +810,161 @@ Planner decisions (apply to all increments):
 - **Tests required:** unit (discovery with injected glob, `captionFor`, config sanity); post-build check script.
 - **Notes:** about 8 MB of binaries enter plain git without LFS (confirmed by the user). Because the files are renamed, new photos added later may use any name; the `image_<n>` convention is only for the initial set.
 
-#### INC-057 — `useSlideshow` hook and `usePrefersReducedMotion`
+#### INC-057 — Slideshow engine and background layer (crossfade, overlay, grain, aurora fallback)
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/hooks`
+- **Module(s):** frontend `auth/login` (hooks, `components`), `auth/LoginPage.tsx`, `auth/AuthLayout.tsx`
 - **Depends on:** INC-056
-- **Scope:** `usePrefersReducedMotion` (matchMedia, reactive, jsdom-safe). `useSlideshow(slides, options)`: shuffle once per mount (Fisher-Yates, injectable RNG); never the same image twice in a row, including at cycle restart (BG-5); timer-driven advance from config; `goTo(index)` for CAP-4; just-in-time preload of the next slide only while the current is shown, a slide is never shown before it loaded and the current one stays longer if the next is not ready (BG-8); failed images are dropped from rotation; pauses on `visibilityState === 'hidden'` and resumes on visible (BG-9); inputs `paused` and `reducedMotion` (15 s interval when reduced, stops when paused, spec §6.3). Returns `{ current, next, progressKey, failedAll }`. All timers/listeners cleaned on unmount.
-- **Out of scope:** rendering, Ken Burns, indicator, pause button.
+- **Absorbs:** former INC-057 (engine hook) + former INC-058 (background layer)
+- **Scope:** (1) `usePrefersReducedMotion` (matchMedia, reactive, jsdom-safe). (2) `useSlideshow(slides, options)`: shuffle once per mount (Fisher-Yates, injectable RNG); never the same image twice in a row, including at cycle restart (BG-5); timer-driven advance from config; `goTo(index)` for CAP-4; just-in-time preload of the next slide only while the current is shown, a slide is never shown before it loaded and the current one stays longer if the next is not ready (BG-8); failed images are dropped from rotation; pauses on `visibilityState === 'hidden'` and resumes on visible (BG-9); inputs `paused` and `reducedMotion` (15 s interval when reduced, stops when paused, spec §6.3). Returns `{ current, next, progressKey, failedAll }`. All timers/listeners cleaned on unmount. (3) `BackgroundSlideshow` (two stacked layers, opacity crossfade of 1.5 s, `<picture>`/`srcset` with `sizes`, `aria-hidden`, empty `alt`, not focusable, `pointer-events: none`); dark gradient overlay + vignette (BG-6) and CSS/SVG film grain (BG-7) from Mantine variables; `AuroraFallback` (2-3 blurred drifting blobs in the `studrada` palette, BG-10) shown when there are no slides, all failed, and as the initial state until the first photo has loaded. (4) The layer is a `React.lazy` chunk rendered behind `AuthLayout` on the sign-in route only, so the form renders without waiting for it. Fixed full-viewport, no layout shift. (5) Carry-over from INC-056 validation: replace the bare side-effect `import './login/slideshowImages';` in `frontend/src/auth/LoginPage.tsx` with the lazily loaded background, so the glob and picture metadata are not in the main bundle (keeps the 30 KB JS budget). (6) Carry-over: phone image budget must hold for DPR 2-3 phones that would pick the 1280 px variant (some 1280 px WebPs are 263-276 KB; the 1920 px `image_11` is 341 KB): set `sizes` / `<source media>` / srcset (and, if needed, encoder quality or an extra intermediate width in the INC-056 pipeline config) so that every variant a viewport <= 767 CSS px can select is <= 250 KB.
+- **Out of scope:** Ken Burns, parallax, hero, glass card, indicator, captions, pause button.
 - **Acceptance criteria:**
   1. Unit test (fake timers, injected RNG): over 3 full cycles with 2, 3 and 11 images no two consecutive slides are equal, including across the cycle boundary; with 1 image it stays on it without error.
   2. Unit test: advance occurs after the slide duration and not before; with reduced motion after 15 s; with `paused` never.
   3. Unit test: the next image is requested during the current slide; when its load is pending at the deadline the current slide stays and advance happens only after load; at mount only the first and next images are requested (BG-8).
   4. Unit test: `visibilitychange` to hidden stops advancing, to visible resumes.
   5. Unit test: an image that errors is skipped; when all fail `failedAll` is true.
-  6. Unit test: after unmount `vi.getTimerCount()` is 0 and the `visibilitychange`/matchMedia listeners are removed (spec §9.13, §9.15).
+  6. Unit test: after unmount `vi.getTimerCount()` is 0 and the `visibilitychange` / matchMedia listeners are removed (spec §9.13, §9.15).
   7. `usePrefersReducedMotion` unit test: initial value, reacts to a `change` event, listener removed on unmount.
-- **Tests required:** unit (vitest, fake timers).
-- **Notes:** No visual change.
+  8. Slide `img` elements have `alt=""`, `aria-hidden="true"`, no `tabindex`, `srcset` with 768/1280/1920 widths and `sizes` (spec §6.1).
+  9. Crossfade uses `opacity` transitions only, duration read from config (1.5 s).
+  10. With an empty slide list, or when every image fires `error`, `AuroraFallback` renders, no broken `<img>` is in the DOM and no `console.error` is emitted (spec §9.3); until the first image loads the aurora is visible (no white screen).
+  11. The sign-in form is rendered and usable while the background chunk is still pending (test with a never-resolving lazy import).
+  12. New CSS has no hex colours; `noHexColors` and `darkContrast` tests pass; a scan test shows `@keyframes` / `transition` in new `*.module.css` touch only `transform`, `opacity` (and `filter`), never `width|height|top|left|background-position` (spec §6.2).
+  13. `auth.test.tsx` and `loginCsrf.test.ts` pass with unchanged assertions; `ChangePasswordPage` renders without the background.
+  14. The layer performs no fetch/XHR other than the image URLs.
+  15. `frontend/src/auth/LoginPage.tsx` contains no static import of `slideshowImages`; a build-output check shows the glob / picture metadata only in the lazy chunk, not in the entry chunk.
+  16. `check:images` is extended so every variant listed for viewports <= 767 CSS px (including those chosen by DPR 2-3) is <= 250 KB, and passes for the current photo set.
+- **Tests required:** unit (hooks, vitest fake timers), component tests, CSS scan test, build-output check; manual 375 px light/dark check.
+- **Notes:** The overlay is dark in both colour schemes. If the srcset change in item (6) needs a pipeline config change in `vite.config.ts`, it stays inside this increment.
 
-#### INC-058 — Background layer: crossfade slideshow, overlay, grain, aurora fallback
+#### INC-058 — Layout, hero panel, white logos, greeting, footer, language switcher
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, `auth/AuthLayout.tsx`
+- **Module(s):** frontend `auth/login/components`, `auth/AuthLayout.tsx`, `frontend/src/brand/`, `assets/brand/`, i18n `uk`/`en`
 - **Depends on:** INC-057
-- **Scope:** `BackgroundSlideshow` (two stacked layers, opacity crossfade of 1.5 s, `<picture>`/`srcset` with `sizes="100vw"` so phones fetch the 768 variant, `aria-hidden`, empty `alt`, not focusable, `pointer-events: none`); dark gradient overlay + vignette (BG-6) and CSS/SVG film grain (BG-7) from Mantine variables; `AuroraFallback` (2-3 blurred drifting blobs in the `studrada` palette, BG-10) shown when there are no slides, all failed, and as the initial state until the first photo has loaded. The layer is a `React.lazy` chunk rendered behind `AuthLayout` on the sign-in route only, so the form renders without waiting for it. Fixed full-viewport, no layout shift.
-- **Out of scope:** Ken Burns, parallax, hero, glass card, indicator, captions, pause button.
-- **Acceptance criteria:**
-  1. Slide `img` elements have `alt=""`, `aria-hidden="true"`, no `tabindex`, `srcset` with 768/1280/1920 widths and `sizes` (spec §6.1).
-  2. Crossfade uses `opacity` transitions only, duration read from config (1.5 s).
-  3. With an empty slide list, or when every image fires `error`, `AuroraFallback` renders, no broken `<img>` is in the DOM and no `console.error` is emitted (spec §9.3); until the first image loads the aurora is visible (no white screen).
-  4. The sign-in form is rendered and usable while the background chunk is still pending (test with a never-resolving lazy import).
-  5. New CSS has no hex colours; `noHexColors` and `darkContrast` tests pass; a scan test shows `@keyframes`/`transition` in new `*.module.css` touch only `transform`, `opacity` (and `filter`), never `width|height|top|left|background-position` (spec §6.2).
-  6. `auth.test.tsx` and `loginCsrf.test.ts` pass with unchanged assertions; `ChangePasswordPage` renders without the background.
-  7. The layer performs no fetch/XHR other than the image URLs.
-- **Tests required:** component tests, CSS scan test; manual 375 px light/dark check.
-- **Notes:** The overlay is dark in both colour schemes.
-
-#### INC-059 — Two-column layout, hero panel with time-of-day greeting, footer, language switcher
-- **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, `auth/AuthLayout.tsx`, i18n `uk`/`en`
-- **Depends on:** INC-058
-- **Scope:** White logo mark (placed here because the hero is its first consumer): copy `.claude/resources/img/Лого знак_біле.png` byte-identical to `assets/brand/logo/logo-mark-white.png`; update `assets/brand/README.md` (new variant for dark backgrounds; a white FULL logo is still missing); expose it in `frontend/src/brand/assets.ts` (new `logo-mark-white` asset with lookup order `logo-mark-white.svg`, `.png`) and a `BrandLogo` variant, with unit tests like the existing ones. Never recolour or generate a logo; if a hook blocks writing to `assets/brand/`, the implementator reports instead of working around it. Responsive layout: >= 1024 px hero left + card right; below it hero collapses to the white mark + title above the card (HERO-1). `HeroPanel` uses the white logo mark directly on the dark overlay (no white chip; the blue full logo is not used on this dark surface; text wordmark if the asset is missing), greeting via `useTimeOfDayGreeting` (05-11 morning, 12-17 day, 18-22 evening, 23-04 night; local time), title and subtitle (HERO-2/3). Footer "© {year} ..." (FT-2). Reuse the existing language switch behaviour (`changeLanguage` / `changeLocale`), moved to the top-right (FT-1). New i18n keys under `auth.login.*` in `uk.json` and `en.json` together.
-- **Out of scope:** tagline rotation, staggered reveal, glass styling, motion toggle.
+- **Absorbs:** former INC-059
+- **Scope:** White logos (first consumer is the hero): copy `.claude/resources/img/Лого знак_біле.png` byte-identical to `assets/brand/logo/logo-mark-white.png` and `.claude/resources/img/Лого СР_біле.png` byte-identical to `assets/brand/logo/logo-full-white.png`; update `assets/brand/README.md` (both new variants, for dark backgrounds; no white-logo variant is missing any more); expose both in `frontend/src/brand/assets.ts` (`logo-mark-white`, `logo-full-white`, lookup `.svg` then `.png`; the existing `logo-full-light` slot may be reused or aliased, existing tests must keep passing) and as `BrandLogo` variants, with unit tests like the existing ones. Never recolour or generate a logo; if a hook blocks writing to `assets/brand/`, the implementator reports instead of working around it. **Where used on the dark overlay (planner decision):** the white FULL logo in the desktop hero (>= 1024 px); the white MARK in the collapsed phone/tablet hero (< 1024 px) and in the intro splash (INC-061); text wordmark if an asset is missing; no white chip. Responsive layout: >= 1024 px hero left + card right; below it the hero collapses to the white mark + title above the card (HERO-1). Greeting via `useTimeOfDayGreeting` (05-11 morning, 12-17 day, 18-22 evening, 23-04 night; local time), title and subtitle (HERO-2/3). Footer "© {year} ..." (FT-2). Reuse the existing language switch behaviour (`changeLanguage` / `changeLocale`), moved to the top-right (FT-1). New i18n keys under `auth.login.*` in `uk.json` and `en.json` together.
+- **Out of scope:** tagline rotation, staggered reveal, glass styling, motion toggle, using white logos in `ChangePasswordPage` / the app shell.
 - **Acceptance criteria:**
   1. `useTimeOfDayGreeting` unit tests with injected dates: 04:59 night, 05:00 morning, 11:59 morning, 12:00 day, 17:59 day, 18:00 evening, 22:59 evening, 23:00 night, 00:00 night (spec §9.15).
   2. Title/subtitle/greeting/footer come from i18n keys present in both locale files (key-parity test passes); switching language re-renders them without reload (spec §9.11); no literal user-facing strings in new components.
   3. Title is "Студентська рада КПІ ім. Ігоря Сікорського" / "Student Council of Igor Sikorsky Kyiv Polytechnic Institute"; subtitle "Внутрішня система Студради" / "Student Council internal system" (HERO-2), as keys separate from `app.name`.
-  4. At 1024 px hero precedes the card in a two-column grid; at 360/375 px it is one column with no horizontal overflow (spec §9.7).
+  4. At 1024 px the hero precedes the card in a two-column grid; at 360/375 px it is one column with no horizontal overflow (spec §9.7).
   5. Text on the overlay uses white or `studrada` shade 2 tokens; the footer year is computed at runtime.
   6. `auth.test.tsx`, e2e `auth.spec.ts` selectors (`getByLabel(/^Login/)`, button "Sign in", `data-testid="login-error"`) pass unchanged; `ChangePasswordPage` unaffected.
-- **Tests required:** unit (greeting), component (i18n switching, layout), existing Playwright suite at desktop and 375 px.
-- **Notes:** Only the white logo MARK exists; the blue full logo and the chip remain for light surfaces elsewhere (AuthLayout of `ChangePasswordPage`). Extra criteria: (7) `assets/brand/logo/logo-mark-white.png` is byte-identical to the source and `resolveBrandAsset('logo-mark-white')` returns it, and returns `undefined` safely when absent; (8) the hero renders the white mark with an i18n/accessible name and no chip, and `BrandLogo` tests for existing variants still pass.
+  7. `assets/brand/logo/logo-mark-white.png` and `assets/brand/logo/logo-full-white.png` are byte-identical to their sources (checksums in the report); `resolveBrandAsset('logo-mark-white')` and `resolveBrandAsset('logo-full-white')` return them and return `undefined` safely when absent; `assets/brand/README.md` documents both.
+  8. The hero renders the white full logo at >= 1024 px and the white mark below it, each with an accessible name and no chip (test via matchMedia / viewport contract); `BrandLogo` tests for the existing variants still pass.
+- **Tests required:** unit (greeting, brand asset lookup), component (i18n switching, layout, logo variant), existing Playwright suite at desktop and 375 px.
+- **Notes:** Blue artwork and the chip remain for light surfaces elsewhere (`AuthLayout` of `ChangePasswordPage`).
 
-#### INC-060 — Glass login card wrapping the existing form (floating labels, entrance, reserved slot)
+#### INC-059 — Glass login card: floating labels, entrance, reserved slot, interactions
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, `auth/LoginPage.tsx`
-- **Depends on:** INC-059
-- **Scope:** Move (not rewrite) the state/mutation/submit logic of `LoginPage` into `useLoginForm` (same `loginRequest`, `trim`, disabled rules, `status === 'loading'` gating from INC-055, same `problemMessage` mapping, same `onSuccess` `setQueryData(SESSION_KEY, ...)`) and render it in `LoginCard`: glassmorphism with an `@supports not (backdrop-filter)` solid fallback (CARD-1); entrance fade + 24 px rise and a short stagger of fields/button (CARD-2); floating labels that work with autofill (CARD-3); animated focus glow/underline (CARD-4) in addition to the existing `focus.css` ring; a `LoginAlternativesSlot` placeholder that renders nothing now and keeps layout unchanged when filled later (CARD-9). No "forgot password"/"remember me" exist today, so none are added (CARD-8).
-- **Out of scope:** password toggle labelling, Caps Lock, shake, shine button (INC-061); success transition (INC-065).
+- **Module(s):** frontend `auth/login/components`, `auth/LoginPage.tsx`, i18n
+- **Depends on:** INC-058
+- **Absorbs:** former INC-060 (card) + former INC-061 (interactions)
+- **Scope:** Move (not rewrite) the state/mutation/submit logic of `LoginPage` into `useLoginForm` (same `loginRequest`, `trim`, disabled rules, `status === 'loading'` gating from INC-055, same `problemMessage` mapping, same `onSuccess` `setQueryData(SESSION_KEY, ...)`) and render it in `LoginCard`: glassmorphism with an `@supports not (backdrop-filter)` solid fallback (CARD-1); entrance fade + 24 px rise and a short stagger of fields/button (CARD-2); floating labels that work with autofill (CARD-3); animated focus glow/underline (CARD-4) in addition to the existing `focus.css` ring; a `LoginAlternativesSlot` placeholder that renders nothing now and keeps layout unchanged when filled later (CARD-9). No "forgot password"/"remember me" exist today, so none are added (CARD-8). Interactions: password visibility toggle with i18n accessible label reflecting state (CARD-5); Caps Lock hint via `getModifierState('CapsLock')`, non-blocking, linked by `aria-describedby`; submit button hover lift + light "shine" sweep and loading spinner/disabled (CARD-6); failed login: card shake <= 400 ms (retriggered each failure) plus fade of the existing message (CARD-7); error linked by `aria-describedby` and inside an `aria-live="polite"` container while keeping `role="alert"` and the test id (spec §7).
+- **Out of scope:** pause/play preference (INC-060; the shake already honours `prefers-reduced-motion` via CSS and is extended there); success transition (INC-061).
 - **Acceptance criteria:**
   1. `useLoginForm` preserves behaviour: `auth.test.tsx`, `loginCsrf.test.ts` and the INC-055 race tests pass with unchanged assertions (spec §9.6).
   2. Labels stay real `<label>` elements associated with inputs (`getByLabelText` works) and `autocomplete` stays `username` / `current-password`; floating state is driven by CSS/data attributes so autofilled values never overlap the label.
   3. CSS contains the glass styles and a solid fallback inside `@supports not (backdrop-filter: blur(1px))` (scan test); colours via tokens only.
-  4. Entrance uses only `opacity`/`transform` and is disabled under `prefers-reduced-motion`.
+  4. Entrance uses only `opacity` / `transform` and is disabled under `prefers-reduced-motion`.
   5. `LoginAlternativesSlot` renders `null`; a test shows providing children later does not change card layout classes.
   6. The error `Alert` keeps `role="alert"` and `data-testid="login-error"` and fades in (opacity only).
   7. 375 px: card fully visible without horizontal scroll, light and dark (manual note in report).
-- **Tests required:** component tests for unchanged behaviour, CSS scan, e2e `auth.spec.ts` unchanged.
+  8. The password toggle has an i18n accessible name in uk and en that changes with state; clicking switches the input between `password` and `text`.
+  9. With `getModifierState('CapsLock') === true` the hint shows, with false it hides; it uses a warning token (not brand blue) and exists in both languages.
+  10. After a failed login (INVALID_CREDENTIALS mocked) the card gets the shake class; the configured shake duration is <= 400 ms (asserted); a second failure re-triggers it; the form stays enabled and re-submittable (spec §9.5).
+  11. Under `prefers-reduced-motion: reduce` the shake class is not applied and CSS guards exist for lift/shine.
+  12. Enter in either field submits exactly once; the button shows a spinner and is disabled while pending.
+  13. The error container has `aria-live="polite"`; inputs reference it with `aria-describedby` only while an error is shown.
+  14. Animated properties in the card CSS are limited to `transform` / `opacity` (CSS scan).
+- **Tests required:** component tests (userEvent) for unchanged behaviour and interactions, CSS scan, e2e `auth.spec.ts` unchanged.
 - **Notes:** Any change to `loginRequest` or CSRF handling is forbidden; stop and report if needed.
 
-#### INC-061 — Card interactions: password toggle, Caps Lock hint, shine button, error shake, a11y wiring
+#### INC-060 — Motion preference, Ken Burns, captions, slide indicator, tagline and headline reveal
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, i18n
-- **Depends on:** INC-060
-- **Scope:** Password visibility toggle with i18n accessible label reflecting state (CARD-5); Caps Lock hint via `getModifierState('CapsLock')`, non-blocking, linked by `aria-describedby`; submit button hover lift + light "shine" sweep and loading spinner/disabled (CARD-6); failed login: card shake <= 400 ms (retriggered each failure) plus fade of the existing message (CARD-7); error linked by `aria-describedby` and inside an `aria-live="polite"` container while keeping `role="alert"` and the test id (spec §7).
-- **Out of scope:** pause/play preference (INC-062); shake already honours `prefers-reduced-motion` via CSS and is extended there.
-- **Acceptance criteria:**
-  1. The toggle has an i18n accessible name in uk and en that changes with state; clicking switches the input between `password` and `text`.
-  2. With `getModifierState('CapsLock') === true` the hint shows, with false it hides; it uses a warning token (not brand blue) and exists in both languages.
-  3. After a failed login (INVALID_CREDENTIALS mocked) the card gets the shake class; the configured shake duration is <= 400 ms (asserted); a second failure re-triggers it; the form stays enabled and re-submittable (spec §9.5).
-  4. Under `prefers-reduced-motion: reduce` the shake class is not applied and CSS guards exist for lift/shine.
-  5. Enter in either field submits exactly once; the button shows a spinner and is disabled while pending.
-  6. The error container has `aria-live="polite"`; inputs reference it with `aria-describedby` only while an error is shown.
-  7. Animated properties limited to `transform`/`opacity` (CSS scan).
-- **Tests required:** component tests (userEvent), CSS scan.
-- **Notes:** None.
-
-#### INC-062 — Motion preference (pause/play), Ken Burns, reduced-motion behaviour
-- **Status:** TODO
-- **Module(s):** frontend `auth/login` (hooks, `MotionToggle`, `BackgroundSlideshow`)
-- **Depends on:** INC-061
-- **Scope:** `useMotionPreference` combining `prefers-reduced-motion` and the user's pause stored in `localStorage` (every access in try/catch, key in config); `MotionToggle` (icon, i18n label, `aria-pressed`) last in tab order (FT-3, WCAG 2.2.2); Ken Burns on the visible slide (BG-4): scale 1.00 -> ~1.08, pan direction from presets, never the same direction on consecutive slides; reduced motion/pause per spec §6.3 (no Ken Burns, shake or staggers; plain slow crossfade every ~15 s; pause stops on the current photo). Wire `useSlideshow` `paused` / `reducedMotion`.
-- **Out of scope:** particles, parallax, intro (they read this preference in their increments).
+- **Module(s):** frontend `auth/login` (hooks, `MotionToggle`, `BackgroundSlideshow`, `PhotoCaption`, `SlideIndicator`, `RotatingTagline`), i18n
+- **Depends on:** INC-059
+- **Absorbs:** former INC-062 + INC-063 + INC-064
+- **Scope:** (1) `useMotionPreference` combining `prefers-reduced-motion` and the user's pause stored in `localStorage` (every access in try/catch, key in config); `MotionToggle` (icon, i18n label, `aria-pressed`) last in tab order (FT-3, WCAG 2.2.2); Ken Burns on the visible slide (BG-4): scale 1.00 -> ~1.08, pan direction from presets, never the same direction on consecutive slides; reduced motion/pause per spec §6.3 (no Ken Burns, shake or staggers; plain slow crossfade every ~15 s; pause stops on the current photo); wire `useSlideshow` `paused` / `reducedMotion`. This shared preference is consumed by INC-061. (2) `PhotoCaption` (pin icon, localized caption, fade/slide-in per slide; bottom-left on desktop, top on phone; CAP-1), nothing rendered when `captionFor` is `undefined`; `SlideIndicator`: segmented "stories" bar, active segment fills over the slide lifetime (`scaleX`, duration from config, frozen when paused), up to 10 segments, otherwise one continuous line (CAP-3); segments are buttons with i18n `aria-label` calling `goTo` (CAP-4). (3) `RotatingTagline` cycling every ~4 s through the i18n phrases (`auth.login.taglines`, exactly 3 by user decision, overriding the spec's 4-6; the component works for any count >= 1, a single phrase is shown static) with the specified word-level transition (HERO-4); polite semantics (no constant announcements). Staggered letter/word reveal of the hero headline on first paint (HERO-5) keeping the full text for assistive tech (`aria-label`, animated spans `aria-hidden`). Reduced motion/pause: plain fade or static, no stagger. Timers cleaned on unmount.
+- **Out of scope:** caption editing UI; further copy changes; particles, parallax, intro (INC-061).
 - **Acceptance criteria:**
   1. Unit tests: pause is read from `localStorage` on mount, written on toggle, survives remount (spec §9.9); a throwing Storage does not crash and falls back to not paused.
-  2. Toggle stops slide advancement and removes the Ken Burns class; pressing again resumes.
+  2. The toggle stops slide advancement and removes the Ken Burns class; pressing again resumes.
   3. With reduced motion emulated: no Ken Burns / stagger / shake classes, interval 15 s, crossfade remains; pause then stops advancing (spec §9.8).
   4. Ken Burns direction differs between consecutive slides (direction picker unit test with injected RNG); animation uses `transform` only.
   5. The toggle is the last focusable element, has a visible focus ring and an i18n name (uk + en).
   6. Existing sign-in tests pass unchanged.
-- **Tests required:** unit (preference storage, direction picker), component (toggle effects).
-- **Notes:** The shared preference is consumed by INC-064 to INC-068.
+  7. With a caption entry the pin and localized text appear and update on language switch without reload; with no entry nothing renders and the file name never appears in the DOM (CAP-2).
+  8. N <= 10 gives N segments, 11 and 12 slides give the continuous variant; the active segment matches `current`.
+  9. Click/tap and Enter/Space on segment k jumps to photo k and restarts progress; segments are keyboard-focusable with visible focus ring.
+  10. Indicator fill uses `transform: scaleX` only, stops when paused or tab hidden, static under reduced motion.
+  11. No overlap of caption/indicator with card/hero at 375 px and 1280 px; fixed-height caption container so there is no layout shift; overlay text uses white / shade 2 tokens.
+  12. `auth.login.taglines` has exactly 3 entries, in this order, in both locale files (parity test): uk "Зі студентом на одній хвилі", "Голос студента КПІ ім. Ігоря Сікорського", "Разом робимо КПІ кращим"; en "On the same wave with a student", "The voice of a student of KPI", "Making KPI better together"; a unit test shows 1 phrase renders static with no timer and 2+ phrases rotate; switching language changes the phrase without reload (spec §9.11).
+  13. Fake-timer test: tagline index advances every configured interval, wraps, and no timers remain after unmount (spec §9.13).
+  14. Under reduced motion or paused no transform animation class applies to the tagline and the headline is not split into animated spans.
+  15. The `h1` accessible name equals the title key text.
+  16. Tagline and reveal animate only `transform` / `opacity`; reserved height so no layout shift.
+- **Tests required:** unit (preference storage, direction picker, tagline with fake timers), component (toggle effects, caption, indicator), manual 375 px check.
+- **Notes:** Captions are placeholders pending the human; the tagline phrases are final (user-supplied).
 
-#### INC-063 — Photo caption and slide indicator
+#### INC-061 — Success transition, intro splash, parallax, cursor light, particles (+ optional seasonal snow)
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/components`
-- **Depends on:** INC-062
-- **Scope:** `PhotoCaption` (pin icon, localized caption, fade/slide-in per slide; bottom-left on desktop, top on phone; CAP-1), nothing rendered when `captionFor` is `undefined`. `SlideIndicator`: segmented "stories" bar, active segment fills over the slide lifetime (`scaleX`, duration from config, frozen when paused), up to 10 segments, otherwise one continuous line (CAP-3); segments are buttons with i18n `aria-label` calling `goTo` (CAP-4).
-- **Out of scope:** caption editing UI.
-- **Acceptance criteria:**
-  1. With an entry the pin and localized text appear and update on language switch without reload; with no entry nothing renders and the file name never appears in the DOM (CAP-2).
-  2. N <= 10 gives N segments, 11 and 12 slides give the continuous variant; the active segment matches `current`.
-  3. Click/tap and Enter/Space on segment k jumps to photo k and restarts progress; segments are keyboard-focusable with visible focus ring.
-  4. Fill uses `transform: scaleX` only, stops when paused or tab hidden, static under reduced motion.
-  5. No overlap with card/hero at 375 px and 1280 px; fixed-height caption container so there is no layout shift.
-  6. Overlay text uses white/shade 2 tokens.
-- **Tests required:** component tests; manual 375 px check.
-- **Notes:** Captions are placeholders pending the human.
-
-#### INC-064 — Rotating tagline and staggered headline reveal
-- **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, i18n
-- **Depends on:** INC-062, INC-059
-- **Scope:** `RotatingTagline` cycling every ~4 s through the i18n phrases (`auth.login.taglines`, exactly 3 by user decision, overriding the spec's 4-6; the component works for any count >= 1, a single phrase is shown static) with the specified word-level transition (HERO-4); polite semantics (no constant announcements). Staggered letter/word reveal of the hero headline on first paint (HERO-5) keeping the full text for assistive tech (`aria-label`, animated spans `aria-hidden`). Reduced motion/pause: plain fade or static, no stagger. Timers cleaned on unmount.
-- **Out of scope:** further copy changes.
-- **Acceptance criteria:**
-  1. `auth.login.taglines` has exactly 3 entries, in this order, in both locale files (parity test): uk "Зі студентом на одній хвилі", "Голос студента КПІ ім. Ігоря Сікорського", "Разом робимо КПІ кращим"; en "On the same wave with a student", "The voice of a student of KPI", "Making KPI better together"; a unit test shows 1 phrase renders static with no timer and 2+ phrases rotate; switching language changes the phrase without reload (spec §9.11).
-  2. Fake-timer test: index advances every configured interval, wraps, and no timers remain after unmount (spec §9.13).
-  3. Under reduced motion or paused no transform animation class applies and the headline is not split into animated spans.
-  4. The `h1` accessible name equals the title key text.
-  5. Only `transform`/`opacity` animated; reserved height so no layout shift.
-- **Tests required:** unit/component with fake timers.
-- **Notes:** None.
-
-#### INC-065 — Success transition into the app
-- **Status:** TODO
-- **Module(s):** frontend `auth/LoginPage.tsx`, `auth/login`
-- **Depends on:** INC-062
-- **Scope:** After a successful login play the exit animation: card scales down and fades, background zooms and blurs, full-screen fade, then navigate; total <= 900 ms (config), navigation never later, and immediate under reduced motion/pause. The post-login `Navigate` is deferred through a local `exiting` state (guarded by a ref against double navigation); the redirect for an already authenticated user opening the page stays immediate with no animation (TR-4). Target logic (`from`, `/change-password`) unchanged.
-- **Out of scope:** animations on the next page.
+- **Module(s):** frontend `auth/LoginPage.tsx`, `auth/login` (components, hooks), config
+- **Depends on:** INC-060, INC-058
+- **Absorbs:** former INC-065 + INC-066 + INC-067 + INC-068 + INC-070
+- **Scope:** (1) **Success transition (TR-3, TR-4):** after a successful login the card scales down and fades, the background zooms and blurs, a full-screen fade follows, then navigate; total <= 900 ms (config), navigation never later, immediate under reduced motion/pause. The post-login `Navigate` is deferred through a local `exiting` state (guarded by a ref against double navigation, with a hard timeout fallback); the redirect for an already authenticated user opening the page stays immediate with no animation. Target logic (`from`, `/change-password`) unchanged. (2) **Intro splash (TR-1, TR-2):** `IntroSplash` once per browser session (`sessionStorage` flag in try/catch): the white logo mark (`logo-mark-white` via `BrandLogo`, INC-058) centred on a dark screen about 0.8 s, then a reveal opens the page (total <= 1.6 s, config); dismissed by click, tap or any key; skipped with reduced motion or paused preference; never delays the form (form rendered and focusable underneath, splash not trapping focus); not shown for authenticated users. (3) **Parallax and cursor light (AMB-1, AMB-3):** `useParallax`, rAF-driven, lerp-smoothed; background offset opposite to the pointer up to 12 px, hero with it up to 6 px, transform-only via CSS variables without React re-renders; only for `(pointer: fine)` and hover-capable devices, off for touch, reduced motion and paused; cursor-follow radial highlight on the card with the same eligibility; listeners and rAF cancelled on unmount and while the tab is hidden. (4) **Particles (AMB-2):** `Particles` with 15-30 soft dots drifting upward with sway and low opacity, pure CSS (preferred) or one canvas; count halves on phones (viewport < 768 px or coarse pointer); paused while the tab is hidden; not rendered with reduced motion or paused; a `variant` prop with a `default` implementation. (5) **Optional (P2, SEA-1/SEA-2), implement last and only if P0/P1 are validated:** `snow` variant of `Particles` chosen by date (Dec-Feb) and a `seasonalAccents` flag in `loginPage.config.ts` to turn it off.
+- **Out of scope:** animations on the next page; sound/video; other seasonal content.
 - **Acceptance criteria:**
   1. Fake-timer test: after successful login the target route is reached no later than `successTransitionMs` (<= 900); under reduced motion immediately.
   2. An already-authenticated user opening the login route is redirected in the same render with no exiting class (TR-4); `mustChangePassword` and `from` are still honoured.
-  3. The existing test "signs in, applies the profile locale and opens the app" keeps its behavioural assertions (timer/reduced-motion mock only to avoid waiting).
-  4. A failed login never triggers the exit transition.
-  5. Unmount during the transition leaves no timers (spec §9.13); configured value asserted <= 900.
-  6. Only `transform`, `opacity`, `filter` animated (CSS scan).
-- **Tests required:** unit/component; e2e `auth.spec.ts` green.
-- **Notes:** Risk is double navigation or a stuck state; keep a hard timeout fallback.
+  3. The existing test "signs in, applies the profile locale and opens the app" keeps its behavioural assertions (timer / reduced-motion mock only to avoid waiting).
+  4. A failed login never triggers the exit transition; unmount during the transition leaves no timers (spec §9.13); configured value asserted <= 900; only `transform`, `opacity`, `filter` are animated (CSS scan).
+  5. First mount with empty `sessionStorage` shows the splash and sets the flag; a second mount in the session does not (spec §9.10).
+  6. Click, pointer tap and any key dismiss the splash immediately; listeners are removed after.
+  7. Under reduced motion the splash is never rendered (spec §9.8, §9.10).
+  8. Configured splash total <= 1600 ms (asserted); inputs are in the DOM and focusable while it shows; with fake timers it unmounts after the configured time and leaves no timers.
+  9. A throwing `sessionStorage` does not crash (documented choice: splash skipped).
+  10. The splash uses the white logo mark through `BrandLogo` (no chip, no new asset) and animates only `transform` / `opacity` (no `clip-path`; the reveal is a scaled circular element).
+  11. Pure-function tests: parallax targets clamp to 12 / 6 px, background sign opposite to the hero's, lerp converges.
+  12. With a coarse pointer, reduced motion or paused, no `pointermove` listener and no rAF are registered (spec §9.7, §9.8).
+  13. After unmount `cancelAnimationFrame` and `removeEventListener` were called for everything registered (spy test, spec §9.13); the parallax loop stops while the tab is hidden.
+  14. Pointer movement causes no React re-renders (render counter unchanged).
+  15. Particle count is within 15-30 on desktop and `ceil(count/2)` on a phone viewport (matchMedia mock); values from config.
+  16. Zero particle DOM nodes/canvas under reduced motion or when paused; they return on resume.
+  17. A hidden tab pauses the particle animation; a canvas variant cancels its rAF on unmount (spy).
+  18. Particles are `aria-hidden`, `pointer-events: none`, below the card in stacking order; only `transform` / `opacity` animated; colours via tokens only.
+  19. (Optional) Pure `particleVariantFor(date, flag)` returns `snow` for Dec-Feb and `default` otherwise, always `default` when the flag is off (tests: 30 Nov, 1 Dec, 28 Feb, 29 Feb leap, 1 Mar).
+  20. (Optional) The snow variant reuses the same component, count rules, reduced-motion / pause / hidden-tab behaviour and budgets as the default; no new dependency; the budget script still passes.
+- **Tests required:** unit/component (fake timers, spies, pure math), e2e: splash shown on first navigation and not after reload in the same context; `auth.spec.ts` green.
+- **Notes:** Risks: double navigation or a stuck state after login (hence the hard timeout fallback). Items (1)-(4) are P1; item (5) is P2 and may be dropped by the human. If the increment proves too big for one review pass, the implementator reports and the orchestrator may split it at the (1)+(2) / (3)+(4)+(5) boundary.
 
-#### INC-066 — Intro splash
+#### INC-062 — Hardening: accessibility, contrast, performance budgets, leak and network checks, e2e, ADR
 - **Status:** TODO
-- **Module(s):** frontend `auth/login/components`
-- **Depends on:** INC-062, INC-059
-- **Scope:** `IntroSplash`: once per browser session (`sessionStorage` flag in try/catch): the white logo mark (`logo-mark-white` via `BrandLogo`, from INC-059) centred on a dark screen about 0.8 s, then a reveal opens the page (total <= 1.6 s, config) (TR-1); dismissed by click, tap or any key; skipped with reduced motion or paused preference; never delays the form (form rendered and focusable underneath, splash not trapping focus); not shown for authenticated users.
-- **Out of scope:** sound, video.
-- **Acceptance criteria:**
-  1. First mount with empty `sessionStorage` shows the splash and sets the flag; a second mount in the session does not (spec §9.10).
-  2. Click, pointer tap and any key dismiss it immediately; listeners are removed after.
-  3. Under reduced motion it is never rendered (spec §9.8, §9.10).
-  4. Configured total <= 1600 ms (asserted); inputs are in the DOM and focusable while it shows; with fake timers it unmounts after the configured time and leaves no timers.
-  5. A throwing `sessionStorage` does not crash (documented choice: splash skipped).
-  6. Uses the white logo mark through `BrandLogo` (no chip, no new asset); animates only `transform`/`opacity` (no `clip-path`; the reveal is a scaled circular element).
-- **Tests required:** component tests (fake timers); e2e: shown on first navigation, not after reload in the same context.
-- **Notes:** None.
-
-#### INC-067 — Mouse parallax and cursor-follow light
-- **Status:** TODO
-- **Module(s):** frontend `auth/login/hooks`, `components`
-- **Depends on:** INC-062
-- **Scope:** `useParallax`: rAF-driven, lerp-smoothed; background offset opposite to the pointer up to 12 px, hero with it up to 6 px (AMB-1), transform-only via CSS variables without React re-renders; only for `(pointer: fine)` and hover-capable devices, off for touch, reduced motion and paused. Cursor-follow radial highlight on the card (AMB-3), same eligibility. Listeners and rAF cancelled on unmount and while the tab is hidden.
-- **Out of scope:** particles.
-- **Acceptance criteria:**
-  1. Pure-function tests: targets clamp to 12 / 6 px, background sign opposite to the hero's, lerp converges.
-  2. With a coarse pointer, reduced motion or paused, no `pointermove` listener and no rAF are registered (spec §9.7, §9.8).
-  3. After unmount `cancelAnimationFrame` and `removeEventListener` were called for everything registered (spy test, spec §9.13).
-  4. The loop stops while the tab is hidden.
-  5. Pointer movement causes no React re-renders (render counter unchanged).
-- **Tests required:** unit (math), hook tests with spies.
-- **Notes:** None.
-
-#### INC-068 — Floating particles
-- **Status:** TODO
-- **Module(s):** frontend `auth/login/components`
-- **Depends on:** INC-062
-- **Scope:** `Particles`: 15-30 soft dots drifting upward with sway and low opacity, pure CSS (preferred) or one canvas; count halves on phones (viewport < 768 px or coarse pointer); paused while the tab is hidden; not rendered with reduced motion or paused (AMB-2). A `variant` prop with a `default` implementation is the extension point for SEA-1.
-- **Out of scope:** seasonal variant.
-- **Acceptance criteria:**
-  1. Count within 15-30 on desktop and `ceil(count/2)` on a phone viewport (matchMedia mock); values from config.
-  2. Zero DOM nodes/canvas under reduced motion or when paused; they return on resume.
-  3. Hidden tab pauses the animation; a canvas variant cancels its rAF on unmount (spy).
-  4. `aria-hidden`, `pointer-events: none`, below the card in stacking order; only `transform`/`opacity` animated.
-  5. Colours via tokens only.
-- **Tests required:** component tests.
-- **Notes:** None.
-
-#### INC-069 — Hardening: accessibility, contrast, performance budgets, leak and network checks, e2e
-- **Status:** TODO
-- **Module(s):** frontend `auth/login`, `frontend/e2e`, `frontend/scripts`
-- **Depends on:** INC-063, INC-064, INC-065, INC-066, INC-067, INC-068
-- **Scope:** (a) Contrast script/test: with `sharp`, compute the brightest-region luminance over all images in `assets/main_page/images/`, apply the configured overlay opacity and assert white text >= 4.5:1 (3:1 large text); tune overlay constants in config if failing. (b) `check:login-budget` after `vite build`: gzip size of the lazy login-decoration chunks plus new CSS <= 30 KB; reuse `check:images`. (c) Playwright specs: 360/375 px with no horizontal scroll and card fully visible; usable at 200 % zoom and phone landscape; request allow-list (static assets, `/api/v1/auth/me`, login only; spec §9.12); reduced-motion emulation (spec §9.8); pause persists across reload (spec §9.9); intro once per session (spec §9.10); empty-image scenario covered at unit level (aurora, no console errors, spec §9.3). (d) Tab-order test: language switcher -> fields -> password toggle -> submit -> motion toggle. (e) Leak test: mount, log in, unmount, assert no timers/rAF/listeners remain (spec §9.13). (f) Written manual procedure for Lighthouse mobile, CLS, Fast-3G form-interactive and 60 fps against `npm run build && npm run preview`. No new test dependency unless justified.
+- **Module(s):** frontend `auth/login`, `frontend/e2e`, `frontend/scripts`, `docs/adr/`
+- **Depends on:** INC-061
+- **Absorbs:** former INC-069
+- **Scope:** (a) Contrast script/test: with `sharp`, compute the brightest-region luminance over all images in `assets/main_page/images/`, apply the configured overlay opacity and assert white text >= 4.5:1 (3:1 large text); tune overlay constants in config if failing. (b) `check:login-budget` after `vite build`: gzip size of the lazy login-decoration chunks plus new CSS <= 30 KB, and the entry chunk must not contain the image glob metadata (see INC-057); reuse and extend `check:images` (all variants selectable by viewports <= 767 CSS px at DPR 1-3 are <= 250 KB, in particular the 1280 px variants chosen by DPR 2-3 phones). (c) Playwright specs: 360/375 px with no horizontal scroll and card fully visible; usable at 200 % zoom and phone landscape; request allow-list (static assets, `/api/v1/auth/me`, login only; spec §9.12); reduced-motion emulation (spec §9.8); pause persists across reload (spec §9.9); intro once per session (spec §9.10); empty-image scenario covered at unit level (aurora, no console errors, spec §9.3). (d) Tab-order test: language switcher -> fields -> password toggle -> submit -> motion toggle. (e) Leak test: mount, log in, unmount, assert no timers / rAF / listeners remain (spec §9.13). (f) Written manual procedure for Lighthouse mobile, CLS, Fast-3G form-interactive and 60 fps against `npm run build && npm run preview`. (g) ADR-0009 (image pipeline) status flipped from "Proposed" to "Accepted" if the `vite-imagetools` pipeline stays (otherwise updated to the fallback). No new test dependency unless justified.
 - **Out of scope:** new features, backend.
 - **Acceptance criteria:**
   1. The contrast test passes for every image and fails if the overlay opacity drops below the computed threshold (threshold function tested).
-  2. `check:login-budget` reports <= 30 KB gzip and fails above; `check:images` passes.
+  2. `check:login-budget` reports <= 30 KB gzip and fails above; the entry chunk contains no slideshow glob metadata; `check:images` passes including the DPR 2-3 phone case (all phone-selectable variants <= 250 KB, no phone path can select `image_11` at 1920 px).
   3. The new Playwright specs pass in desktop and 375 px projects through `bash deploy/e2e.sh`; `auth.spec.ts` and `hr.spec.ts` pass unchanged.
   4. The network allow-list spec fails on any other request.
   5. Leak test and tab-order test pass.
   6. Validator-run Lighthouse mobile (Performance >= 85, Accessibility >= 95), CLS < 0.05 and form-interactive <= 2.5 s on Fast 3G are recorded in the validation report; a miss creates a follow-up increment, it is not waived.
   7. `npm run build`, `lint`, `test` pass; light/dark and 375 px reviewed by hand.
+  8. ADR-0009 shows status "Accepted" (or documents the fallback) in the same increment.
 - **Tests required:** e2e (Playwright), unit/script tests, manual Lighthouse.
-- **Notes:** Lighthouse, 60 fps and Fast-3G timing cannot run in CI here, by design they are validator-run checks.
-
-#### INC-070 — (Optional, P2) Seasonal snowfall variant of particles
-- **Status:** TODO
-- **Module(s):** frontend `auth/login/components`, config
-- **Depends on:** INC-069
-- **Scope:** `Particles` variant `snow` chosen by date (Dec-Feb) as a variant of AMB-2 (SEA-1) and a `seasonalAccents` flag in `loginPage.config.ts` to turn it off (SEA-2). Start only when P0/P1 are validated.
-- **Out of scope:** other seasonal content.
-- **Acceptance criteria:**
-  1. Pure `particleVariantFor(date, flag)` returns `snow` for Dec-Feb and `default` otherwise, always `default` when the flag is off (tests: 30 Nov, 1 Dec, 28 Feb, 29 Feb leap, 1 Mar).
-  2. The snow variant reuses the same component, count rules, reduced-motion / pause / hidden-tab behaviour and budgets as INC-068.
-  3. No new dependency; budget script still passes.
-- **Tests required:** unit.
-- **Notes:** Optional; may be dropped by the human.
+- **Notes:** Lighthouse, 60 fps and Fast-3G timing cannot run in CI here; by design they are validator-run checks.
 
 ### Open questions
 All non-blocking; placeholders ship so no increment waits on them.
-- **Captions (INC-056, INC-063):** final `captions.json` texts for the 11 photos; captions are keyed by the new `image_<n>` names; originals such as `images.jfif` or hash-named PNGs gave no hint of the place, so they get no caption until supplied.
-- **Logo (INC-059):** the white logo MARK was supplied (`logo-mark-white.png`) and is used on dark surfaces; a white FULL logo (mark + wordmark) is still missing. No logo is drawn or generated.
-- **Product-name wording (INC-059):** HERO-2 title differs from the placeholder `app.name` (open since INC-006); a separate key is used until a human confirms the final wording.
+- **Captions (INC-056, INC-060):** final `captions.json` texts for the 11 photos; captions are keyed by the new `image_<n>` names; originals such as `images.jfif` or hash-named PNGs gave no hint of the place, so they get no caption until supplied.
+- **Product-name wording (INC-058):** HERO-2 title differs from the placeholder `app.name` (open since INC-006); a separate key is used until a human confirms the final wording.
 
 ### Conflicts
 - No conflict between `MAIN_PAGE_FEATURE.md` and `.claude/CONTEXT.md` found (the spec is presentation-only).
-- Applied deviations (not conflicts): spec path `resources/main_page/images/` -> `assets/main_page/images/`; spec folder `src/features/auth/login/` -> `frontend/src/auth/login/`; accent colours via the `studrada` tokens.
+- Applied deviations (not conflicts): spec path `resources/main_page/images/` -> `assets/main_page/images/` (files renamed `image_<n>`); spec folder `src/features/auth/login/` -> `frontend/src/auth/login/`; accent colours via the `studrada` tokens; tagline count is 3 (user decision) instead of the spec's 4-6.
 - Spec §9.6 "existing login tests pass unchanged": INC-055 changed the sign-in behaviour after the spec was written (submit disabled until `/auth/me`); the plan treats the current tests as the baseline.
-- Spec TR-1 suggests a "circular reveal" while §6.2 allows only `transform`/`opacity`/`filter`; the plan follows §6.2 (scaled element, no `clip-path`).
+- Spec TR-1 suggests a "circular reveal" while §6.2 allows only `transform` / `opacity` / `filter`; the plan follows §6.2 (scaled element, no `clip-path`).
