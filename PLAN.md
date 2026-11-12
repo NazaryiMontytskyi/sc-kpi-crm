@@ -857,7 +857,7 @@ Planner decisions (apply to all increments):
 - **Notes:** Blue artwork and the chip remain for light surfaces elsewhere (`AuthLayout` of `ChangePasswordPage`).
 
 #### INC-059 — Glass login card: floating labels, entrance, reserved slot, interactions
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login/components`, `auth/LoginPage.tsx`, i18n
 - **Depends on:** INC-058
 - **Absorbs:** former INC-060 (card) + former INC-061 (interactions)
