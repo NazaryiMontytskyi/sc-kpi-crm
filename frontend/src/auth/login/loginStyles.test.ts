@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { loginPageConfig } from './loginPage.config';
 
 /**
  * Static checks of the sign-in page CSS modules (MAIN_PAGE_FEATURE.md §6.2, CLAUDE.md "Brand"): colours only through
@@ -106,6 +107,8 @@ describe('sign-in page styles', () => {
         'components/BackgroundSlideshow.module.css',
         'components/AuroraFallback.module.css',
         'components/LoginBackground.module.css',
+        'components/HeroPanel.module.css',
+        'components/LoginShell.module.css',
       ]),
     );
   });
@@ -139,6 +142,50 @@ describe('sign-in page styles', () => {
   it('stops the aurora drift under prefers-reduced-motion', () => {
     const css = styles['components/AuroraFallback.module.css'];
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*animation:\s*none/);
+  });
+
+  describe('layout and hero (INC-058)', () => {
+    const shell = stripComments(styles['components/LoginShell.module.css']);
+    const hero = stripComments(styles['components/HeroPanel.module.css']);
+    const desktop = `@media (min-width: ${loginPageConfig.layout.desktopMinWidthEm}em)`;
+
+    /** Body of the first `@media` block with the given prelude. */
+    function mediaBlock(css: string, prelude: string): string {
+      const start = css.indexOf(prelude);
+      if (start < 0) return '';
+      let depth = 0;
+      let i = css.indexOf('{', start);
+      const open = i;
+      for (; i < css.length; i++) {
+        if (css[i] === '{') depth++;
+        if (css[i] === '}' && --depth === 0) break;
+      }
+      return css.slice(open + 1, i);
+    }
+
+    it('is one column on phones and hero + card side by side from the configured breakpoint (HERO-1)', () => {
+      const base = shell.slice(0, shell.indexOf('@media'));
+      expect(base).toMatch(/\.main\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/);
+      const wide = mediaBlock(shell, desktop);
+      expect(wide).toMatch(/\.main\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*420px\)/);
+      expect(mediaBlock(hero, desktop)).not.toBe('');
+    });
+
+    it('never lets the frame overflow horizontally', () => {
+      expect(shell).toMatch(/\.shell\s*\{[^}]*overflow-x:\s*clip/);
+      expect(shell).toMatch(/\.cardColumn\s*\{[^}]*min-width:\s*0/);
+      expect(hero).toMatch(/\.title\s*\{[^}]*overflow-wrap:\s*anywhere/);
+    });
+
+    it('colours text on the overlay only white or studrada shade 2 (CLAUDE.md, never shade 6)', () => {
+      for (const css of [shell, hero]) {
+        const colours = [...css.matchAll(/(?:^|[;{\s])color\s*:\s*([^;}]+)/g)].map(([, value]) => value.trim());
+        expect(colours.length).toBeGreaterThan(0);
+        for (const value of colours) {
+          expect(['var(--mantine-color-white)', 'var(--mantine-color-studrada-2)']).toContain(value);
+        }
+      }
+    });
   });
 
   describe('scanner', () => {

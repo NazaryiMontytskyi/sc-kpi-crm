@@ -11,6 +11,14 @@ export interface KenBurnsDirection {
 }
 
 export const loginPageConfig = {
+  layout: {
+    /**
+     * HERO-1: from this viewport width (64em = 1024 px) the hero and the card sit side by side and the hero shows
+     * the full white logo; below it the hero collapses to the white mark and the title above the card. The CSS
+     * modules use the same `64em` literal (asserted by loginStyles.test.ts).
+     */
+    desktopMinWidthEm: 64,
+  },
   slideshow: {
     /** BG-3: how long a slide stays visible. */
     slideDurationMs: 8000,

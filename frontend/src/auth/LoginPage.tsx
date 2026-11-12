@@ -6,10 +6,10 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { problemMessage } from '../api/problem';
 import { usePageTitle } from '../layout/pageTitle';
 import { SESSION_KEY } from './AuthProvider';
-import { AuthLayout } from './AuthLayout';
 import { loginRequest } from './authApi';
 import { useAuth } from './CurrentUser';
 import { LoginBackground } from './login/components/LoginBackground';
+import { LoginShell } from './login/components/LoginShell';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -37,7 +37,7 @@ export function LoginPage() {
   const problem = mutation.error ? problemMessage(mutation.error) : null;
 
   return (
-    <AuthLayout title={t('app.name')} subtitle={t('auth.subtitle')} background={<LoginBackground />}>
+    <LoginShell cardTitle={t('app.name')} cardSubtitle={t('auth.subtitle')} background={<LoginBackground />}>
       <form onSubmit={submit} noValidate>
         <Stack gap="sm">
           {problem && (
@@ -46,7 +46,7 @@ export function LoginPage() {
             </Alert>
           )}
           <TextInput
-            label={t('auth.login')}
+            label={t('auth.loginLabel')}
             autoComplete="username"
             value={login}
             onChange={(e) => setLogin(e.currentTarget.value)}
@@ -72,6 +72,6 @@ export function LoginPage() {
           </Button>
         </Stack>
       </form>
-    </AuthLayout>
+    </LoginShell>
   );
 }

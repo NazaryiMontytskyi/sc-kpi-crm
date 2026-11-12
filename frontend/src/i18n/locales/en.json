@@ -90,7 +90,18 @@
   "auth": {
     "subtitle": "Information system of the KPI Student Council",
     "signIn": "Sign in",
-    "login": "Login",
+    "loginLabel": "Login",
+    "login": {
+      "greeting": {
+        "morning": "Good morning",
+        "day": "Good afternoon",
+        "evening": "Good evening",
+        "night": "Good night"
+      },
+      "title": "Student Council of Igor Sikorsky Kyiv Polytechnic Institute",
+      "subtitle": "Student Council internal system",
+      "footer": "© {{year}} Student Council of Igor Sikorsky Kyiv Polytechnic Institute"
+    },
     "password": "Password",
     "changePassword": {
       "title": "Change password",
