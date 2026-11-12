@@ -838,7 +838,7 @@ Planner decisions (apply to all increments):
 - **Notes:** The overlay is dark in both colour schemes. If the srcset change in item (6) needs a pipeline config change in `vite.config.ts`, it stays inside this increment.
 
 #### INC-058 — Layout, hero panel, white logos, greeting, footer, language switcher
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login/components`, `auth/AuthLayout.tsx`, `frontend/src/brand/`, `assets/brand/`, i18n `uk`/`en`
 - **Depends on:** INC-057
 - **Absorbs:** former INC-059
