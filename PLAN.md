@@ -882,7 +882,7 @@ Planner decisions (apply to all increments):
 - **Notes:** Any change to `loginRequest` or CSRF handling is forbidden; stop and report if needed.
 
 #### INC-060 — Motion preference, Ken Burns, captions, slide indicator, tagline and headline reveal
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login` (hooks, `MotionToggle`, `BackgroundSlideshow`, `PhotoCaption`, `SlideIndicator`, `RotatingTagline`), i18n
 - **Depends on:** INC-059
 - **Absorbs:** former INC-062 + INC-063 + INC-064
