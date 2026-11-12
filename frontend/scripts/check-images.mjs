@@ -4,8 +4,14 @@
  * Run after `npm run build`: `npm run check:images [-- <distDir>]`.
  *
  * For every photo in ../assets/main_page/images it verifies that the build emitted AVIF and WebP variants at
- * 768/1280/1920 px (clamped to the original width, never upscaled), that the 768 px WebP variant stays within the
- * phone budget of 250 KB, and that no original file is served as-is. Exits with code 1 on any failure.
+ * 768/1280/1920 px (clamped to the original width, never upscaled), that every variant a phone can select stays
+ * within the phone budget of 250 KB, and that no original file is served as-is. It also verifies that the photo
+ * metadata (the slideshow glob) lives in a lazily loaded chunk, never in the entry chunk named by index.html.
+ * Exits with code 1 on any failure.
+ *
+ * Phone variants: viewports <= 767 CSS px get only the narrowest variant of each format through
+ * `<source media="(max-width: 767px)">`, whatever their pixel density (src/auth/login/slidePicture.ts). So for
+ * DPR 1-3 phones the selectable files are exactly the narrowest AVIF and WebP, and both must be within budget.
  */
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -15,7 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const WIDTHS = [768, 1280, 1920];
 export const FORMATS = ['avif', 'webp'];
-/** §8: largest variant served to phones (the 768 px WebP) must not exceed 250 KB. */
+/** §8: every variant a phone (viewport <= 767 CSS px, any DPR) can select must not exceed 250 KB. */
 export const PHONE_BUDGET_BYTES = 250 * 1000;
 export const SOURCE_EXTENSIONS = ['.jpg', '.jpeg', '.jfif', '.png', '.webp', '.avif'];
 
@@ -61,10 +67,14 @@ export function evaluate(sources, outputs, budget = PHONE_BUDGET_BYTES) {
         errors.push(`${source.name}: ${format} widths [${actual.join(', ')}], expected [${expected.join(', ')}]`);
       }
     }
-    const phone = variants.find((v) => v.format === 'webp' && v.width === expected[0]);
-    if (phone && phone.bytes > budget) {
-      errors.push(`${source.name}: ${expected[0]} px WebP is ${phone.bytes} bytes, budget ${budget}`);
+    // Phones only ever get the narrowest variant of each format (see the header comment).
+    for (const variant of phoneVariants(source, variants)) {
+      if (variant.bytes > budget) {
+        const label = variant.format === 'webp' ? 'WebP' : variant.format.toUpperCase();
+        errors.push(`${source.name}: ${variant.width} px ${label} is ${variant.bytes} bytes, budget ${budget}`);
+      }
     }
+    const phone = variants.find((v) => v.format === 'webp' && v.width === expected[0]);
     rows.push({
       source: source.name,
       width: source.width,
@@ -73,6 +83,38 @@ export function evaluate(sources, outputs, budget = PHONE_BUDGET_BYTES) {
     });
   }
   return { errors, rows };
+}
+
+/** Variants a phone can select: the narrowest variant of each format. */
+export function phoneVariants(source, variants) {
+  const narrowest = expectedWidths(source.width)[0];
+  return FORMATS.flatMap((format) => variants.filter((v) => v.format === format && v.width === narrowest));
+}
+
+/** The entry script of the app, from the built index.html. */
+export function entryScript(indexHtml) {
+  const tag = indexHtml.match(/<script\b[^>]*\btype="module"[^>]*\bsrc="([^"]+)"/);
+  return tag ? tag[1].replace(/^\//, '') : undefined;
+}
+
+/**
+ * The photo metadata must only be in a lazily loaded chunk (INC-057): the entry chunk must not reference any
+ * emitted photo variant, and some other JS chunk must (otherwise the background has no photos at all).
+ * chunks: [{ file, code }] of every JS file; variantFiles: base names of the emitted photo variants.
+ */
+export function evaluateChunks(entryFile, chunks, variantFiles) {
+  const errors = [];
+  if (!entryFile) return ['index.html has no module entry script'];
+  const entry = chunks.find((c) => c.file === entryFile);
+  if (!entry) return [`entry chunk ${entryFile} not found`];
+  if (variantFiles.length === 0) return errors;
+  const leaked = variantFiles.filter((name) => entry.code.includes(name));
+  if (leaked.length > 0) {
+    errors.push(`entry chunk ${entryFile} contains photo metadata (${leaked.length} variants, e.g. ${leaked[0]})`);
+  }
+  const holders = chunks.filter((c) => c.file !== entryFile && variantFiles.some((name) => c.code.includes(name)));
+  if (holders.length === 0) errors.push('no lazy chunk references the photo variants');
+  return errors;
 }
 
 function sha256(buffer) {
@@ -127,6 +169,12 @@ async function main() {
   );
 
   const { errors, rows } = evaluate(sources, outputs);
+  const indexHtml = readFileSync(join(distDir, 'index.html'), 'utf8');
+  const chunks = outputs
+    .filter((o) => o.format === 'js')
+    .map((o) => ({ file: o.file, code: readFileSync(join(distDir, o.file), 'utf8') }));
+  const variantFiles = sources.flatMap((s) => variantsOf(s.name, outputs)).map((v) => basename(v.file));
+  errors.push(...evaluateChunks(entryScript(indexHtml), chunks, variantFiles));
   if (rows.length === 0) console.log('check:images: no photos in assets/main_page/images (aurora fallback only)');
   else console.table(rows);
 
@@ -134,7 +182,10 @@ async function main() {
     for (const error of errors) console.error(`check:images: ${error}`);
     process.exit(1);
   }
-  console.log(`check:images: OK (${sources.length} photos, ${FORMATS.join(' + ')} at ${WIDTHS.join('/')} px)`);
+  console.log(
+    `check:images: OK (${sources.length} photos, ${FORMATS.join(' + ')} at ${WIDTHS.join('/')} px, ` +
+      'phone variants within budget, photo metadata only in a lazy chunk)',
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

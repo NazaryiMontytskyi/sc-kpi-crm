@@ -34,9 +34,18 @@ through `import.meta.glob` on `../assets/brand` (INC-050).
   cache); the globs then resolve to plain URLs and `discoverSlides()` ignores them. Unit tests inject glob results.
   `.jfif` is added to `assetsInclude` so Vite treats it as an asset in that mode.
 - **Post-build check.** `npm run check:images` (`frontend/scripts/check-images.mjs`, uses the `sharp` that
-  `vite-imagetools` depends on) verifies, for every original, AVIF and WebP variants at the clamped widths, the
-  768 px WebP within 250 KB, and that no original file is emitted unchanged. Its decision logic is pure and
-  unit-tested (`scripts/check-images.test.mjs`).
+  `vite-imagetools` depends on) verifies, for every original, AVIF and WebP variants at the clamped widths, every
+  phone-selectable variant (the narrowest AVIF and WebP, see "Phone variants") within 250 KB, that no original file
+  is emitted unchanged, and that the photo metadata is referenced only by a lazy chunk, never by the entry chunk
+  named in `index.html` (INC-057). Its decision logic is pure and unit-tested (`scripts/check-images.test.mjs`).
+- **Phone variants (INC-057).** `frontend/src/auth/login/slidePicture.ts` renders, before the full `srcset`
+  sources, one `<source media="(max-width: 767px)">` per format that lists only the narrowest variant. A DPR 2-3
+  phone therefore never selects the 1280 or 1920 px files (some 1280 px WebPs are 263-276 KB, the 1920 px
+  `image_11` WebP is 341 KB); no extra width or encoder setting was needed. The photo sits under a dark overlay
+  and film grain, so the softer image on dense phone screens is acceptable.
+- **Lazy loading (INC-057).** `slideshowImages.ts` is imported only by
+  `src/auth/login/components/BackgroundLayer.tsx`, which `LoginBackground.tsx` loads with `React.lazy`; the glob
+  and picture metadata (about 4 KB gzip with the slideshow code) stay out of the entry chunk.
 - **Rejected / fallback.** A custom `frontend/scripts/build-images.mjs` running `sharp` from `prebuild` into a
   git-ignored `frontend/.generated/` with a manifest. It stays the documented fallback if `vite-imagetools` ever
   breaks with a Vite or Node upgrade; it must keep the same `SlideImage` contract so `slideshowImages.ts` consumers
@@ -45,10 +54,11 @@ through `import.meta.glob` on `../assets/brand` (INC-050).
 ## Consequences
 - A cold build (Docker always builds cold) spends about one minute encoding AVIF/WebP for the current 11 photos;
   incremental local builds reuse the cache. Adding large photos increases build time roughly linearly.
-- The photos are emitted by the build as soon as `slideshowImages.ts` is part of the module graph (it is imported
-  by `LoginPage.tsx`); the background component that renders them comes in a later increment.
-- On high-density phones (`sizes="100vw"`, DPR 2-3) the browser may select the 1280 px variant; the 250 KB budget
-  is enforced for the 768 px variant as the spec states. The manual Lighthouse run (INC-069) is where the real
-  transfer on phones is measured.
+- The photos are emitted by the build as soon as `slideshowImages.ts` is part of the module graph (through the
+  lazily loaded background chunk).
+- Phones (<= 767 CSS px) get the narrowest variant whatever their pixel density, so the 250 KB budget holds for
+  every variant they can select; browsers without `<picture>`/WebP support would fall back to the `<img>` WebP
+  `srcset`, which is not a realistic case. The manual Lighthouse run (INC-062) is where the real transfer on
+  phones is measured.
 - One more devDependency with a native binary (`sharp`); unsupported platforms would fail `npm ci` at build time,
   not at runtime.
