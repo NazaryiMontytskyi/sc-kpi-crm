@@ -19,6 +19,21 @@ export const loginPageConfig = {
     /** §6.3: interval of the plain slow crossfade under reduced motion. */
     reducedMotionIntervalMs: 15000,
   },
+  overlay: {
+    /**
+     * BG-6: strength (0..1) of the dark layer over the photos, in both colour schemes. The gradient runs from
+     * `topOpacity` to `bottomOpacity`; the vignette darkens the corners up to `vignetteOpacity`.
+     */
+    topOpacity: 0.45,
+    bottomOpacity: 0.7,
+    vignetteOpacity: 0.55,
+    /** BG-7: opacity of the static film grain over the overlay. */
+    grainOpacity: 0.08,
+  },
+  aurora: {
+    /** BG-10: base drift period of the fallback blobs (the other blobs use 1.2x and 1.4x of it). */
+    driftMs: 28000,
+  },
   kenBurns: {
     /** BG-4: zoom range of the visible photo. */
     scaleFrom: 1.0,

@@ -9,8 +9,7 @@ import { SESSION_KEY } from './AuthProvider';
 import { AuthLayout } from './AuthLayout';
 import { loginRequest } from './authApi';
 import { useAuth } from './CurrentUser';
-// Puts the sign-in photos into the build (avif/webp variants, ADR-0009); the background that renders them comes later.
-import './login/slideshowImages';
+import { LoginBackground } from './login/components/LoginBackground';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -38,7 +37,7 @@ export function LoginPage() {
   const problem = mutation.error ? problemMessage(mutation.error) : null;
 
   return (
-    <AuthLayout title={t('app.name')} subtitle={t('auth.subtitle')}>
+    <AuthLayout title={t('app.name')} subtitle={t('auth.subtitle')} background={<LoginBackground />}>
       <form onSubmit={submit} noValidate>
         <Stack gap="sm">
           {problem && (

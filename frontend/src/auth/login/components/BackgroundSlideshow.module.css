@@ -1,0 +1,77 @@
+/*
+ * Sign-in background (MAIN_PAGE_FEATURE.md BG-1, BG-6, BG-7, §6.2). Fixed full-viewport layer behind the page,
+ * dark in both colour schemes. Only opacity is animated; colours come from Mantine variables.
+ * --login-crossfade, --login-overlay-*, --login-vignette and --login-grain are set from loginPage.config.ts.
+ */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  background-color: var(--mantine-color-black);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity var(--login-crossfade) ease-in-out;
+}
+
+/* The slide that is fading out stays fully visible underneath until the new one has faded in. */
+.layer[data-state='outgoing'] {
+  opacity: 1;
+  z-index: 2;
+}
+
+.layer[data-state='visible'] {
+  opacity: 1;
+  z-index: 3;
+}
+
+.picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* BG-6: dark gradient plus a soft vignette, dark in light and dark scheme alike. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background-image:
+    radial-gradient(
+      ellipse at center,
+      transparent 45%,
+      color-mix(in srgb, var(--mantine-color-black) var(--login-vignette), transparent) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--mantine-color-black) var(--login-overlay-top), transparent),
+      color-mix(in srgb, var(--mantine-color-black) var(--login-overlay-bottom), transparent)
+    );
+}
+
+/* BG-7: static film grain, an inline SVG noise tile (no network request), very low opacity. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  opacity: var(--login-grain);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}

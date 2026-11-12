@@ -5,12 +5,25 @@ import { BrandLogo } from '../brand/BrandLogo';
 import { changeLanguage, isLanguage } from '../i18n';
 import { useAuth } from './CurrentUser';
 
+interface AuthLayoutProps {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  /** Optional full-viewport decoration rendered behind the card (the sign-in photos); absent elsewhere. */
+  background?: ReactNode;
+}
+
 /** Centered card shared by the sign-in and forced change-password screens. Works from 375 px. */
-export function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+export function AuthLayout({ title, subtitle, children, background }: AuthLayoutProps) {
   const { t, i18n } = useTranslation();
   const { changeLocale, status } = useAuth();
-  return (
-    <Center mih="100dvh" p="md">
+  const content = (
+    <Center
+      mih="100dvh"
+      p="md"
+      pos={background ? 'relative' : undefined}
+      style={background ? { zIndex: 1 } : undefined}
+    >
       <Stack w="100%" maw={420} gap="md">
         <Paper withBorder radius="md" p={{ base: 'md', sm: 'xl' }}>
           <Stack gap="md">
@@ -40,5 +53,12 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
         />
       </Stack>
     </Center>
+  );
+  if (!background) return content;
+  return (
+    <>
+      {background}
+      {content}
+    </>
   );
 }
