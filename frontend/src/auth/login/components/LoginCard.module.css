@@ -1,0 +1,267 @@
+/*
+ * Glass sign-in card (CARD-1..9). Colours only through Mantine variables; brand accents through
+ * `--mantine-color-anchor` / `--mantine-primary-color-filled` (never shade 6 as text on dark). Status colours keep
+ * their meaning: the error is red, the Caps Lock hint uses the yellow/orange warning scales. Only `transform` and
+ * `opacity` are animated; all durations come from loginPage.config.ts through `--login-*` variables (LoginCard.tsx).
+ */
+
+/* Outer box: carries the shake (CARD-7) so it never fights the entrance animation of the card itself. */
+.host {
+  width: 100%;
+  min-width: 0;
+}
+
+.shakeA {
+  animation: loginShakeA var(--login-shake) ease-in-out;
+}
+
+.shakeB {
+  animation: loginShakeB var(--login-shake) ease-in-out;
+}
+
+/* CARD-1: translucent card with a blurred backdrop, thin light border, soft shadow, rounded corners. */
+.card {
+  position: relative;
+  min-width: 0;
+  padding: var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--mantine-color-white) 55%, transparent);
+  background-color: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+  -webkit-backdrop-filter: blur(var(--login-glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--login-glass-blur)) saturate(140%);
+  box-shadow: var(--mantine-shadow-xl);
+  color: var(--mantine-color-text);
+  /* CARD-2: fade in and rise. */
+  animation: loginCardEnter var(--login-card-entrance) ease-out both;
+}
+
+[data-mantine-color-scheme='dark'] .card {
+  border-color: color-mix(in srgb, var(--mantine-color-white) 14%, transparent);
+  background-color: color-mix(in srgb, var(--mantine-color-dark-7) 74%, transparent);
+}
+
+/* CARD-1: solid surface where the backdrop blur is unsupported, so the text never sits on a bare photo. */
+@supports not (backdrop-filter: blur(1px)) {
+  .card {
+    background-color: var(--mantine-color-body);
+  }
+
+  [data-mantine-color-scheme='dark'] .card {
+    background-color: var(--mantine-color-dark-7);
+  }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--mantine-spacing-md);
+  text-align: center;
+}
+
+.title {
+  overflow-wrap: anywhere;
+}
+
+/* Stronger than `dimmed` so it keeps AA contrast on the translucent surface. */
+.subtitle {
+  color: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme='dark'] .subtitle {
+  color: var(--mantine-color-dark-1);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+}
+
+/* The live region is always present; it takes no room while empty. */
+.errorRegion:empty {
+  display: none;
+}
+
+/* CARD-7: the existing message fades in (opacity only), again on every failure. */
+.error {
+  animation: loginFadeIn var(--login-error-fade) ease-out both;
+}
+
+/* CARD-2: fields and button follow the card in a short stagger (`--login-item` is the position). */
+.item {
+  min-width: 0;
+  animation: loginItemEnter var(--login-card-entrance) ease-out both;
+  animation-delay: calc(var(--login-card-entrance) * 0.4 + var(--login-item, 0) * var(--login-field-stagger));
+}
+
+.toggle {
+  color: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme='dark'] .toggle {
+  color: var(--mantine-color-dark-1);
+}
+
+.capsRegion:empty {
+  display: none;
+}
+
+/* CARD-5: non-blocking Caps Lock hint, warning scale (not brand blue). */
+.capsHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 4px 8px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-text);
+  background-color: color-mix(in srgb, var(--mantine-color-yellow-4) 28%, var(--mantine-color-body));
+  border-left: 3px solid var(--mantine-color-yellow-6);
+  border-radius: var(--mantine-radius-sm);
+}
+
+[data-mantine-color-scheme='dark'] .capsHint {
+  background-color: color-mix(in srgb, var(--mantine-color-yellow-8) 30%, var(--mantine-color-dark-7));
+  border-left-color: var(--mantine-color-yellow-5);
+}
+
+.capsIcon {
+  display: inline-flex;
+  color: var(--mantine-color-orange-8);
+}
+
+[data-mantine-color-scheme='dark'] .capsIcon {
+  color: var(--mantine-color-yellow-4);
+}
+
+/* CARD-6: hover lift and a light sweep across the button; none while disabled or loading. */
+.submit {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--login-lift) ease-out;
+}
+
+.submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    110deg,
+    transparent 30%,
+    color-mix(in srgb, var(--mantine-color-white) 35%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  pointer-events: none;
+  transition: none;
+}
+
+.submit:hover:not(:disabled, [data-loading]) {
+  transform: translateY(calc(var(--login-lift-distance) * -1));
+}
+
+.submit:hover:not(:disabled, [data-loading])::after {
+  transform: translateX(100%);
+  transition: transform var(--login-shine) ease-out;
+}
+
+/* CARD-9: future alternatives append below the button without touching the rows above. */
+.alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+}
+
+@media (min-width: 36em) {
+  .card {
+    padding: var(--mantine-spacing-xl);
+  }
+}
+
+@keyframes loginCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--login-card-rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes loginItemEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes loginFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Identical on purpose: switching between them restarts the shake on every failure. */
+@keyframes loginShakeA {
+  0%,
+  100% {
+    transform: none;
+  }
+  20%,
+  60% {
+    transform: translateX(calc(var(--login-shake-distance) * -1));
+  }
+  40%,
+  80% {
+    transform: translateX(var(--login-shake-distance));
+  }
+}
+
+@keyframes loginShakeB {
+  0%,
+  100% {
+    transform: none;
+  }
+  20%,
+  60% {
+    transform: translateX(calc(var(--login-shake-distance) * -1));
+  }
+  40%,
+  80% {
+    transform: translateX(var(--login-shake-distance));
+  }
+}
+
+/* §6.3: no entrance, stagger, shake, lift or sweep under reduced motion; the message simply appears. */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .item,
+  .error,
+  .shakeA,
+  .shakeB {
+    animation: none;
+  }
+
+  .submit,
+  .submit::after {
+    transition: none;
+  }
+
+  .submit:hover:not(:disabled, [data-loading]) {
+    transform: none;
+  }
+
+  .submit::after {
+    display: none;
+  }
+}

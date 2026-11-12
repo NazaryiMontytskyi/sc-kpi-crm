@@ -109,6 +109,8 @@ describe('sign-in page styles', () => {
         'components/LoginBackground.module.css',
         'components/HeroPanel.module.css',
         'components/LoginShell.module.css',
+        'components/LoginCard.module.css',
+        'components/FloatingField.module.css',
       ]),
     );
   });
@@ -185,6 +187,94 @@ describe('sign-in page styles', () => {
           expect(['var(--mantine-color-white)', 'var(--mantine-color-studrada-2)']).toContain(value);
         }
       }
+    });
+  });
+
+  describe('glass card and fields (INC-059)', () => {
+    const card = stripComments(styles['components/LoginCard.module.css']);
+    const field = stripComments(styles['components/FloatingField.module.css']);
+
+    /** Body of the first block whose prelude is exactly `prelude`. */
+    function block(css: string, prelude: string): string {
+      const start = css.indexOf(prelude);
+      if (start < 0) return '';
+      let depth = 0;
+      let i = css.indexOf('{', start);
+      const open = i;
+      for (; i < css.length; i++) {
+        if (css[i] === '{') depth++;
+        if (css[i] === '}' && --depth === 0) break;
+      }
+      return css.slice(open + 1, i);
+    }
+
+    /** Body of every keyframes block, keyed by name. */
+    function keyframes(css: string): Record<string, string> {
+      return Object.fromEntries(
+        [...css.matchAll(/@keyframes\s+([\w-]+)/g)].map(([prelude, name]) => [name, block(css, prelude)]),
+      );
+    }
+
+    it('is translucent with a backdrop blur and has a solid fallback without backdrop-filter (CARD-1)', () => {
+      const base = block(card, '.card {');
+      expect(base).toMatch(/backdrop-filter:\s*blur\(/);
+      expect(base).toMatch(/background-color:\s*color-mix\(in srgb, var\(--mantine-color-body\) \d+%, transparent\)/);
+      expect(base).toMatch(/border:\s*1px solid/);
+      expect(base).toMatch(/box-shadow:\s*var\(--mantine-shadow-/);
+      expect(base).toMatch(/border-radius:\s*var\(--mantine-radius-/);
+      const fallback = block(card, '@supports not (backdrop-filter: blur(1px))');
+      expect(fallback).toMatch(/\.card\s*\{[^}]*background-color:\s*var\(--mantine-color-body\)/);
+      expect(fallback).toMatch(/dark'\]\s*\.card\s*\{[^}]*background-color:\s*var\(--mantine-color-dark-7\)/);
+    });
+
+    it('enters with opacity + transform and staggers the fields (CARD-2)', () => {
+      const frames = keyframes(card);
+      expect(Object.keys(frames)).toEqual(
+        expect.arrayContaining(['loginCardEnter', 'loginItemEnter', 'loginFadeIn', 'loginShakeA', 'loginShakeB']),
+      );
+      expect(frames.loginCardEnter).toMatch(/transform:\s*translateY\(var\(--login-card-rise\)\)/);
+      expect(block(card, '.item {')).toMatch(/animation-delay:[^;]*var\(--login-item[^;]*var\(--login-field-stagger\)/);
+    });
+
+    it('fades the error with opacity only and shakes with transform only (CARD-7)', () => {
+      const frames = keyframes(card);
+      expect(keyframeProperties(`@keyframes k {${frames.loginFadeIn}}`)).toEqual(['opacity', 'opacity']);
+      for (const name of ['loginShakeA', 'loginShakeB']) {
+        const props = new Set(keyframeProperties(`@keyframes k {${frames[name]}}`));
+        expect([...props]).toEqual(['transform']);
+      }
+      expect(frames.loginShakeA).toBe(frames.loginShakeB);
+      expect(block(card, '.shakeA {')).toMatch(/animation:\s*\S+ var\(--login-shake\)/);
+      expect(block(card, '.error {')).toMatch(/animation:\s*\S+ var\(--login-error-fade\)/);
+    });
+
+    it('turns off entrance, stagger, shake, lift and shine under prefers-reduced-motion (CARD-7, §6.3)', () => {
+      const reduced = block(card, '@media (prefers-reduced-motion: reduce)');
+      expect(reduced).toMatch(/\.card,\s*\.item,\s*\.error,\s*\.shakeA,\s*\.shakeB\s*\{\s*animation:\s*none/);
+      expect(reduced).toMatch(/\.submit,\s*\.submit::after\s*\{\s*transition:\s*none/);
+      expect(reduced).toMatch(/\.submit:hover[^{]*\{\s*transform:\s*none/);
+      expect(reduced).toMatch(/\.submit::after\s*\{\s*display:\s*none/);
+      expect(block(field, '@media (prefers-reduced-motion: reduce)')).toMatch(/transition:\s*none/);
+    });
+
+    it('lifts and sweeps the submit button only when it is enabled (CARD-6)', () => {
+      expect(card).toMatch(/\.submit:hover:not\(:disabled, \[data-loading\]\)\s*\{[^}]*transform:\s*translateY/);
+      expect(card).toMatch(/\.submit:hover:not\(:disabled, \[data-loading\]\)::after\s*\{[^}]*transform:\s*translateX/);
+    });
+
+    it('floats the label on focus, value and autofill with transform only (CARD-3, CARD-4)', () => {
+      expect(field).toMatch(/\.field:focus-within \.label,\s*\.field\[data-filled\] \.label\s*\{\s*transform:/);
+      expect(field).toMatch(/\.input:autofill \+ \.label\s*\{\s*transform:/);
+      expect(field).toMatch(/\.input:-webkit-autofill \+ \.label\s*\{\s*transform:/);
+      expect(block(field, '.label {')).toMatch(/pointer-events:\s*none/);
+      expect(block(field, '.underline {')).toMatch(/transform:\s*scaleX\(0\)/);
+      expect(field).toMatch(/\.field:focus-within::before\s*\{\s*opacity:\s*1/);
+    });
+
+    it('keeps the Caps Lock hint on the warning scales, never brand blue (CARD-5)', () => {
+      const hint = [block(card, '.capsHint {'), block(card, '.capsIcon {')].join('\n');
+      expect(hint).toMatch(/--mantine-color-(yellow|orange)-/);
+      expect(hint).not.toMatch(/studrada|primary|anchor/);
     });
   });
 

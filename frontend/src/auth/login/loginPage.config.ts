@@ -71,6 +71,20 @@ export const loginPageConfig = {
     fieldStaggerMs: 80,
     /** CARD-7: horizontal shake on a failed sign-in (at most 400 ms). */
     shakeMs: 400,
+    /** CARD-7: horizontal amplitude of the shake. */
+    shakeDistancePx: 8,
+    /** CARD-7: fade-in of the error message. */
+    errorFadeMs: 250,
+    /** CARD-3: label moving above the field on focus / when filled. */
+    labelFloatMs: 160,
+    /** CARD-4: accent glow and underline of the focused field. */
+    focusGlowMs: 220,
+    /** CARD-6: hover lift of the submit button and the light sweep across it. */
+    buttonLiftPx: 2,
+    buttonLiftMs: 160,
+    shineMs: 700,
+    /** CARD-1: blur of the glass card background. */
+    glassBlurPx: 18,
   },
   intro: {
     /** TR-1: logo hold on the dark screen, then the reveal; total at most 1600 ms. */

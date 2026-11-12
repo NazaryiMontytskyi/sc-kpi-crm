@@ -10,7 +10,8 @@ import { LoginShell } from './LoginShell';
 
 function renderShell(now = () => new Date(2031, 0, 5, 14, 0)) {
   return renderWithProviders(
-    <LoginShell cardTitle="card title" cardSubtitle="card subtitle" now={now}>
+    <LoginShell now={now}>
+      <h2>card title</h2>
       <input aria-label="field" />
     </LoginShell>,
   );
@@ -31,7 +32,7 @@ describe('LoginShell', () => {
 
   it('uses the current year by default', () => {
     renderWithProviders(
-      <LoginShell cardTitle="t" cardSubtitle="s">
+      <LoginShell>
         <span />
       </LoginShell>,
     );
@@ -54,7 +55,7 @@ describe('LoginShell', () => {
 
   it('renders the background before the shell when given', () => {
     renderWithProviders(
-      <LoginShell cardTitle="t" cardSubtitle="s" background={<div data-testid="bg" />}>
+      <LoginShell background={<div data-testid="bg" />}>
         <span />
       </LoginShell>,
     );
