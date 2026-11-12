@@ -9,6 +9,8 @@ import { SESSION_KEY } from './AuthProvider';
 import { AuthLayout } from './AuthLayout';
 import { loginRequest } from './authApi';
 import { useAuth } from './CurrentUser';
+// Puts the sign-in photos into the build (avif/webp variants, ADR-0009); the background that renders them comes later.
+import './login/slideshowImages';
 
 export function LoginPage() {
   const { t } = useTranslation();
