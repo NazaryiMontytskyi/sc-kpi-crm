@@ -811,7 +811,7 @@ Planner decisions (apply to all increments):
 - **Notes:** about 8 MB of binaries enter plain git without LFS (confirmed by the user). Because the files are renamed, new photos added later may use any name; the `image_<n>` convention is only for the initial set.
 
 #### INC-057 — Slideshow engine and background layer (crossfade, overlay, grain, aurora fallback)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login` (hooks, `components`), `auth/LoginPage.tsx`, `auth/AuthLayout.tsx`
 - **Depends on:** INC-056
 - **Absorbs:** former INC-057 (engine hook) + former INC-058 (background layer)
