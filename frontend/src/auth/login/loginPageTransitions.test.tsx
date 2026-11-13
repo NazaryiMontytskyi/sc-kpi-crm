@@ -84,6 +84,23 @@ function endAnimation(element: Element) {
   });
 }
 
+/** Records whether the intro splash was ever in the DOM. */
+function watchIntro() {
+  let seen = false;
+  const check = () => {
+    if (document.querySelector('[data-testid="login-intro"]')) seen = true;
+  };
+  const observer = new MutationObserver(check);
+  observer.observe(document.body, { subtree: true, childList: true });
+  return {
+    seen: () => {
+      check();
+      observer.disconnect();
+      return seen;
+    },
+  };
+}
+
 /** Records whether any element ever carried the exiting phase (TR-4: there must be none). */
 function watchExitingPhase() {
   let seen = false;
@@ -254,12 +271,22 @@ describe('already signed in (TR-4)', { timeout: 20000 }, () => {
     expect(screen.getByText('change password page')).toBeInTheDocument();
   });
 
-  it('never shows the intro', async () => {
+  it('never shows the intro, not even while /auth/me is loading, and keeps the session flag unused', async () => {
     sessionStorage.clear();
-    vi.mocked(authApi.fetchSession).mockResolvedValue(session());
+    let release!: (value: authApi.Session) => void;
+    vi.mocked(authApi.fetchSession).mockReturnValue(new Promise((resolve) => (release = resolve)));
+    const intro = watchIntro();
     renderLogin();
     await settle();
+    // The bootstrap is still running: nothing is decided yet.
     expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
+    expect(sessionStorage.getItem(INTRO_KEY)).toBeNull();
+
+    release(session());
+    await settle();
+    expect(screen.getByText('home page')).toBeInTheDocument();
+    expect(intro.seen()).toBe(false);
+    expect(sessionStorage.getItem(INTRO_KEY)).toBeNull();
   });
 });
 
@@ -275,6 +302,7 @@ describe('intro splash (TR-1, TR-2)', { timeout: 20000 }, () => {
 
   it('shows on the first mount of the session, sets the flag, and not on the next mount (spec §9.10)', async () => {
     const first = renderLogin();
+    await settle();
     expect(screen.getByTestId('login-intro')).toBeInTheDocument();
     expect(sessionStorage.getItem(INTRO_KEY)).not.toBeNull();
     first.unmount();
@@ -340,8 +368,25 @@ describe('intro splash (TR-1, TR-2)', { timeout: 20000 }, () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it('uses the white logo mark through BrandLogo, without a chip', () => {
+  it('waits for the session bootstrap before it is decided, then shows for an anonymous user', async () => {
+    let release!: (value: null) => void;
+    vi.mocked(authApi.fetchSession).mockReturnValue(new Promise((resolve) => (release = resolve)));
     renderLogin();
+    await settle();
+    expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
+    expect(sessionStorage.getItem(INTRO_KEY)).toBeNull();
+    // The form is there meanwhile.
+    expect(screen.getByLabelText(/Логін/)).toBeInTheDocument();
+
+    release(null);
+    await settle();
+    expect(screen.getByTestId('login-intro')).toBeInTheDocument();
+    expect(sessionStorage.getItem(INTRO_KEY)).not.toBeNull();
+  });
+
+  it('uses the white logo mark through BrandLogo, without a chip', async () => {
+    renderLogin();
+    await settle();
     const intro = screen.getByTestId('login-intro');
     const logo = intro.querySelector('img');
     if (logo) {
@@ -361,15 +406,17 @@ describe('intro splash (TR-1, TR-2)', { timeout: 20000 }, () => {
     expect(sessionStorage.getItem(INTRO_KEY)).toBeNull();
   });
 
-  it('is skipped while the user has paused motion', () => {
+  it('is skipped while the user has paused motion', async () => {
     localStorage.setItem(PAUSE_KEY, 'true');
     renderLogin();
+    await settle();
     expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
   });
 
-  it('disappears at once if reduced motion is switched on while it plays', () => {
+  it('disappears at once if reduced motion is switched on while it plays', async () => {
     media = stubMediaQueries([]);
     renderLogin();
+    await settle();
     expect(screen.getByTestId('login-intro')).toBeInTheDocument();
     act(() => media!.set(REDUCED_MOTION_QUERY, true));
     expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
@@ -377,7 +424,7 @@ describe('intro splash (TR-1, TR-2)', { timeout: 20000 }, () => {
     expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
   });
 
-  it('is skipped, without crashing, when sessionStorage throws (documented choice)', () => {
+  it('is skipped, without crashing, when sessionStorage throws (documented choice)', async () => {
     const getItem = Storage.prototype.getItem;
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key: string) {
       if (this === window.sessionStorage) throw new Error('SecurityError');
@@ -385,6 +432,7 @@ describe('intro splash (TR-1, TR-2)', { timeout: 20000 }, () => {
     });
     expect(introPending()).toBe(false);
     renderLogin();
+    await settle();
     expect(screen.queryByTestId('login-intro')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Увійти' })).toBeInTheDocument();
   });

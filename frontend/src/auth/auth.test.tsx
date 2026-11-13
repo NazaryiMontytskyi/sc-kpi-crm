@@ -31,7 +31,7 @@ const session = (over: Partial<authApi.Session> = {}, perms: string[] = []): aut
 
 /**
  * The success transition (TR-3) is skipped under reduced motion; the sign-in tests use that so they do not wait for
- * it. Its own timing is covered in login/successTransition.test.tsx.
+ * it. Its own timing is covered in login/loginPageTransitions.test.tsx.
  */
 function withReducedMotion() {
   const media = stubMediaQueries([REDUCED_MOTION_QUERY]);
@@ -70,7 +70,8 @@ describe('sign-in', { timeout: 20000 }, () => {
 
   it('redirects anonymous users to the sign-in page', async () => {
     setup('/');
-    expect(await screen.findByRole('button', { name: 'Увійти' })).toBeInTheDocument();
+    // Explicit timeout: the first render of the whole app is slow while the full suite runs in parallel.
+    expect(await screen.findByRole('button', { name: 'Увійти' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText('Інформаційна система Студентської ради КПІ')).toBeInTheDocument();
   });
 

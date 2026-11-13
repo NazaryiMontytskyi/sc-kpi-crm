@@ -48,6 +48,14 @@
   color: var(--mantine-color-white);
 }
 
+/*
+ * §7 visible focus on the dark overlay: Mantine draws the switch's ring in the primary shade (6 light / 5 dark), which
+ * has < 3:1 on the dark overlay; shade 2 is used in both schemes, like the other overlay controls.
+ */
+.switchRoot input:focus-visible + .switchLabel {
+  --segmented-control-outline: 2px solid var(--mantine-color-studrada-2) !important;
+}
+
 .main {
   flex: 1;
   display: grid;

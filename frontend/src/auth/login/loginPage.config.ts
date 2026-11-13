@@ -31,9 +31,12 @@ export const loginPageConfig = {
     /**
      * BG-6: strength (0..1) of the dark layer over the photos, in both colour schemes. The gradient runs from
      * `topOpacity` to `bottomOpacity`; the vignette darkens the corners up to `vignetteOpacity`.
+     * §7 contrast: `topOpacity` is the weakest point of the overlay and must keep white text at >= 4.5:1 over the
+     * brightest region of every photo (needs >= 0.57 for the current set, see scripts/overlay-contrast.test.mjs,
+     * `npm run check:contrast`); `bottomOpacity` keeps the shade-2 focus rings of the indicator at >= 3:1.
      */
-    topOpacity: 0.45,
-    bottomOpacity: 0.7,
+    topOpacity: 0.6,
+    bottomOpacity: 0.75,
     vignetteOpacity: 0.55,
     /** BG-7: opacity of the static film grain over the overlay. */
     grainOpacity: 0.08,

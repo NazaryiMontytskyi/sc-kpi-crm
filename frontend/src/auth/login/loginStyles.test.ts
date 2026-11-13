@@ -495,6 +495,37 @@ describe('sign-in page styles', () => {
     });
   });
 
+  describe('hardening: contrast and focus on the overlay (INC-062)', () => {
+    const overlayText = [
+      'components/HeroPanel.module.css',
+      'components/LoginShell.module.css',
+      'components/MotionToggle.module.css',
+      'components/PhotoCaption.module.css',
+      'components/SlideIndicator.module.css',
+      'components/RotatingTagline.module.css',
+      'components/StaggeredHeadline.module.css',
+    ];
+
+    it('uses studrada shade 2 on the overlay only for the decorative pin, never for text (§7, overlay-contrast test)', () => {
+      const shade2Selectors: string[] = [];
+      for (const path of overlayText) {
+        for (const [, selector, body] of stripComments(styles[path]).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+          if (/(?:^|[;\s])color\s*:\s*var\(--mantine-color-studrada-2\)/.test(body)) {
+            shade2Selectors.push(`${path} ${selector.trim()}`);
+          }
+        }
+      }
+      expect(shade2Selectors).toEqual(['components/PhotoCaption.module.css .pin']);
+    });
+
+    it('draws the language switch focus ring in shade 2 on the dark overlay, in both schemes', () => {
+      const shell = stripComments(styles['components/LoginShell.module.css']);
+      expect(shell).toMatch(
+        /\.switchRoot input:focus-visible \+ \.switchLabel\s*\{\s*--segmented-control-outline:\s*2px solid var\(--mantine-color-studrada-2\) !important;/,
+      );
+    });
+  });
+
   describe('scanner', () => {
     it('detects forbidden properties', () => {
       expect(transitionedProperties('.a { transition: width 1s, opacity var(--x, 1s) ease; }')).toEqual([

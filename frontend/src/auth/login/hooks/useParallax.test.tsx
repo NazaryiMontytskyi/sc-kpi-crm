@@ -1,8 +1,11 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { MantineProvider } from '@mantine/core';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Profiler } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLanguage } from '../../../i18n';
 import { renderWithProviders } from '../../../test/render';
+import { cssVariablesResolver, theme } from '../../../theme/theme';
 import { LoginCard } from '../components/LoginCard';
 import { LoginShell } from '../components/LoginShell';
 import { FINE_POINTER_QUERY } from '../layoutQueries';
@@ -230,6 +233,46 @@ describe('mouse parallax and cursor light (AMB-1, AMB-3)', { timeout: 20000 }, (
 
     fireEvent.pointerLeave(card);
     expect(card).not.toHaveAttribute('data-light');
+  });
+
+  it('freezes the offsets when the success transition starts instead of snapping back (TR-3)', () => {
+    media = stubMediaQueries([FINE_POINTER_QUERY]);
+    const frames = stubAnimationFrames();
+    const windowRemove = vi.spyOn(window, 'removeEventListener');
+    // Same provider tree on every render, so `rerender` only changes the phase.
+    const shell = (phase: 'idle' | 'exiting') => (
+      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+        <MemoryRouter>
+          <LoginShell background={<div data-testid="bg" />} phase={phase}>
+            <LoginCard form={form} />
+          </LoginShell>
+        </MemoryRouter>
+      </MantineProvider>
+    );
+    const view = render(shell('idle'));
+    const layer = screen.getByTestId('bg').parentElement!;
+    const hero = screen.getByTestId('login-hero');
+    pointerMove(window, window.innerWidth, window.innerHeight);
+    frames.flush(400);
+    pointerMove(window, 0, 0);
+    frames.flush(2);
+    const offset = layer.style.getPropertyValue('--login-parallax-x');
+    const heroOffset = hero.style.getPropertyValue('--login-parallax-x');
+    expect(parseFloat(offset)).toBeLessThan(0);
+    const [pending] = frames.pending();
+    expect(pending).toBeDefined();
+
+    view.rerender(shell('exiting'));
+    // Same offsets, no running loop, no pointer listener.
+    expect(layer.style.getPropertyValue('--login-parallax-x')).toBe(offset);
+    expect(hero.style.getPropertyValue('--login-parallax-x')).toBe(heroOffset);
+    expect(frames.cancel).toHaveBeenCalledWith(pending);
+    expect(frames.pending()).toEqual([]);
+    expect(windowRemove.mock.calls.map((call) => call[0])).toContain('pointermove');
+    frames.request.mockClear();
+    pointerMove(window, 200, 200);
+    expect(frames.request).not.toHaveBeenCalled();
+    expect(layer.style.getPropertyValue('--login-parallax-x')).toBe(offset);
   });
 
   it('turns everything off as soon as the user pauses motion', () => {

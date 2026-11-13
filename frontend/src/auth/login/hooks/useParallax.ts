@@ -20,15 +20,27 @@ function clear(element: HTMLElement | null) {
  * 6 px). A `pointermove` listener only records the target; a requestAnimationFrame loop lerps towards it and writes
  * CSS custom properties straight onto the elements, so moving the pointer never re-renders React. The loop sleeps
  * once settled and while the tab is hidden. With `enabled` false (touch / coarse pointer, reduced motion, the user's
- * pause) nothing is registered at all. Everything is removed on unmount.
+ * pause) nothing is registered at all and the offsets are reset. With `frozen` (the success transition, TR-3) the
+ * loop and listeners stop but the current offsets stay, so the background does not snap back while it zooms and
+ * blurs. Everything is removed on unmount.
  */
 export function useParallax(
   background: RefObject<HTMLElement | null>,
   hero: RefObject<HTMLElement | null>,
   enabled: boolean,
+  frozen = false,
 ) {
+  const active = enabled && !frozen;
+
+  // Turning the parallax off (not freezing it) puts both layers back in place.
   useEffect(() => {
-    if (!enabled) return;
+    if (enabled) return;
+    clear(background.current);
+    clear(hero.current);
+  }, [background, hero, enabled]);
+
+  useEffect(() => {
+    if (!active) return;
     const backgroundElement = background.current;
     const heroElement = hero.current;
     let current: ParallaxOffsets = { ...ZERO_OFFSETS };
@@ -68,8 +80,7 @@ export function useParallax(
       document.removeEventListener('visibilitychange', onVisibilityChange);
       if (frame !== null) cancelAnimationFrame(frame);
       frame = null;
-      clear(backgroundElement);
-      clear(heroElement);
+      // The offsets are left as they are: frozen during the exit, reset by the effect above when disabled.
     };
-  }, [background, hero, enabled]);
+  }, [background, hero, active]);
 }

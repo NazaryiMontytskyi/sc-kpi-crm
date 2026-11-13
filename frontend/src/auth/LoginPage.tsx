@@ -13,7 +13,8 @@ import { useSuccessTransition } from './login/hooks/useSuccessTransition';
  * Sign-in page. After a successful sign-in on this page the success transition (TR-3) plays for at most
  * `success.transitionMs` before navigating; under reduced motion or the user's pause it navigates at once. A user who
  * arrives already signed in is redirected in the same render with no animation (TR-4). The intro splash (TR-1/2)
- * plays once per browser session on top of the already rendered, focusable form.
+ * plays once per browser session on top of the already rendered, focusable form, and only for a user who is not
+ * signed in (it is decided once the session bootstrap has answered).
  */
 export function LoginPage() {
   usePageTitle('auth.signIn');
@@ -23,7 +24,8 @@ export function LoginPage() {
   const authenticated = form.status === 'authenticated';
   const exiting = authenticated && form.signedInByForm && !motionReduced;
   const transition = useSuccessTransition(exiting);
-  const intro = useIntroSplash(!authenticated && !motionReduced);
+  // Decided only once /auth/me has answered, so a signed-in user never sees (or consumes) the splash.
+  const intro = useIntroSplash(!authenticated && !motionReduced, form.status !== 'loading');
 
   if (authenticated && (!exiting || transition.done)) {
     const from = (location.state as { from?: string } | null)?.from;

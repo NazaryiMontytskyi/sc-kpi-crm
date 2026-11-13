@@ -59,7 +59,8 @@ export function LoginShell({ background, children, now = () => new Date(), phase
   const { motionReduced } = useMotionPreference();
   const backgroundLayer = useRef<HTMLDivElement>(null);
   const hero = useRef<HTMLElement>(null);
-  useParallax(backgroundLayer, hero, finePointer && !motionReduced && !exiting);
+  // Frozen, not reset, during the exit: the zooming background keeps its offset instead of snapping back (TR-3).
+  useParallax(backgroundLayer, hero, finePointer && !motionReduced, exiting);
   const year = now().getFullYear();
   const [captionCompact, setCaptionCompact] = useState<HTMLElement | null>(null);
   const [captionWide, setCaptionWide] = useState<HTMLElement | null>(null);

@@ -4,11 +4,12 @@ import { createLazyBackground, LoginBackground } from './LoginBackground';
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('LoginBackground (lazy chunk)', () => {
+describe('LoginBackground (lazy chunk)', { timeout: 20000 }, () => {
   it('loads the background chunk; without encoded photos (unit tests) it shows the aurora', async () => {
     const consoleError = vi.spyOn(console, 'error');
     const { container } = render(<LoginBackground />);
-    expect(await screen.findByTestId('login-background')).toBeInTheDocument();
+    // Explicit timeout: the first dynamic import of the chunk is slow while the full suite runs in parallel.
+    expect(await screen.findByTestId('login-background', {}, { timeout: 10000 })).toBeInTheDocument();
     expect(screen.getByTestId('login-aurora')).toBeInTheDocument();
     expect(screen.queryByTestId('login-background-placeholder')).not.toBeInTheDocument();
     expect(container.querySelectorAll('img')).toHaveLength(0);
@@ -21,7 +22,7 @@ describe('LoginBackground (lazy chunk)', () => {
     const Broken = createLazyBackground(() => Promise.reject(new Error('chunk load failed')));
     render(<Broken />);
     // The boundary has caught the failed import once React reports it.
-    await waitFor(() => expect(consoleError).toHaveBeenCalled());
+    await waitFor(() => expect(consoleError).toHaveBeenCalled(), { timeout: 5000 });
     expect(screen.getByTestId('login-background-placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('login-background')).not.toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 /*
- * HERO-4: rotating tagline over the dark overlay (studrada shade 2 text, never shade 6). All phrases share one grid
+ * HERO-4: rotating tagline over the dark overlay (white text: 4.5:1 on every photo, §7). All phrases share one grid
  * cell, so the height is that of the tallest phrase and never changes. `motion`: the outgoing phrase's words slide
  * up and fade, the incoming ones slide up from below, one after another. `fade` (reduced motion): opacity only.
  * Only opacity and transform are animated; timings come from loginPage.config.ts (`tagline`).
@@ -11,7 +11,7 @@
   font-size: var(--mantine-font-size-md);
   font-weight: 500;
   line-height: 1.4;
-  color: var(--mantine-color-studrada-2);
+  color: var(--mantine-color-white);
 }
 
 .phrase {
