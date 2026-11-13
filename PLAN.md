@@ -909,7 +909,7 @@ Planner decisions (apply to all increments):
 - **Notes:** Captions are placeholders pending the human; the tagline phrases are final (user-supplied).
 
 #### INC-061 — Success transition, intro splash, parallax, cursor light, particles (+ optional seasonal snow)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/LoginPage.tsx`, `auth/login` (components, hooks), config
 - **Depends on:** INC-060, INC-058
 - **Absorbs:** former INC-065 + INC-066 + INC-067 + INC-068 + INC-070
