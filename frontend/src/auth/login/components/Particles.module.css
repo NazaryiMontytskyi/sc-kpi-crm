@@ -1,0 +1,102 @@
+/*
+ * AMB-2 / SEA-1 particle layer inside the background (z-index 0, below the sign-in frame). Each particle travels
+ * across the screen (outer span) while its dot sways sideways (inner span); both animate transform only, the travel
+ * also fades the dot in and out with opacity. Slow and low-contrast: nothing flashes (spec §7). Colours only through
+ * Mantine variables. --p-* come from Particles.tsx (values from loginPage.config.ts).
+ */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.particle {
+  position: absolute;
+  top: 100%;
+  left: var(--p-left);
+  width: var(--p-size);
+  height: var(--p-size);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: loginParticleRise var(--p-duration) linear var(--p-delay) infinite;
+}
+
+.dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-image: radial-gradient(
+    circle,
+    var(--mantine-color-white) 0%,
+    color-mix(in srgb, var(--mantine-color-white) 45%, transparent) 45%,
+    transparent 72%
+  );
+  animation: loginParticleSway var(--p-sway-duration) ease-in-out var(--p-delay) infinite alternate;
+}
+
+/* SEA-1: snowflakes start above the screen and fall. */
+.root[data-variant='snow'] .particle {
+  top: auto;
+  bottom: 100%;
+  animation-name: loginParticleFall;
+}
+
+/* Hidden tab: freeze where they are (spec §6.2). */
+.root[data-running='false'] .particle,
+.root[data-running='false'] .dot {
+  animation-play-state: paused;
+}
+
+@keyframes loginParticleRise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  12% {
+    opacity: var(--p-opacity);
+  }
+  85% {
+    opacity: var(--p-opacity);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -110vh, 0);
+  }
+}
+
+@keyframes loginParticleFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    opacity: var(--p-opacity);
+  }
+  90% {
+    opacity: var(--p-opacity);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 110vh, 0);
+  }
+}
+
+@keyframes loginParticleSway {
+  from {
+    transform: translateX(calc(var(--p-sway) * -1));
+  }
+  to {
+    transform: translateX(var(--p-sway));
+  }
+}
+
+/* §6.3: the component renders nothing under reduced motion; belt and braces. */
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    display: none;
+  }
+}

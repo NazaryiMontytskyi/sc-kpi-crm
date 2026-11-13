@@ -1,14 +1,19 @@
-import { Center, Paper, SegmentedControl, Stack, Text, Title } from '@mantine/core';
+import { Center, Paper, Stack, Text, Title } from '@mantine/core';
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { BrandLogo } from '../brand/BrandLogo';
-import { changeLanguage, isLanguage } from '../i18n';
-import { useAuth } from './CurrentUser';
+import { LanguageSwitch } from './LanguageSwitch';
 
-/** Centered card shared by the sign-in and forced change-password screens. Works from 375 px. */
-export function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
-  const { t, i18n } = useTranslation();
-  const { changeLocale, status } = useAuth();
+interface AuthLayoutProps {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}
+
+/**
+ * Centered card of the forced change-password screen. Works from 375 px. The sign-in page has its own layout over
+ * the photo background (`login/components/LoginShell.tsx`).
+ */
+export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <Center mih="100dvh" p="md">
       <Stack w="100%" maw={420} gap="md">
@@ -26,18 +31,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             {children}
           </Stack>
         </Paper>
-        <SegmentedControl
-          aria-label={t('common.language')}
-          value={isLanguage(i18n.language) ? i18n.language : 'uk'}
-          onChange={(v) => {
-            if (!isLanguage(v)) return;
-            void (status === 'authenticated' ? changeLocale(v) : changeLanguage(v));
-          }}
-          data={[
-            { value: 'uk', label: t('common.languageUk') },
-            { value: 'en', label: t('common.languageEn') },
-          ]}
-        />
+        <LanguageSwitch />
       </Stack>
     </Center>
   );

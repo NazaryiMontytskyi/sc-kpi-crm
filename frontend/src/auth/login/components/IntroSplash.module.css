@@ -1,0 +1,75 @@
+/*
+ * TR-1 intro splash over the whole page. The dark "screen" is one large disc (150vmax covers any viewport diagonal)
+ * that shrinks to nothing after the logo hold: a scaled circular element, transform only (no clip-path). The white
+ * logo mark fades in, then grows and fades out with the reveal. Only transform and opacity are animated; the
+ * timings come from loginPage.config.ts through the --login-intro-* variables (IntroSplash.tsx). Same dark tone as
+ * the background placeholder in both colour schemes.
+ */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.disc {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150vmax;
+  height: 150vmax;
+  margin: -75vmax 0 0 -75vmax;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--mantine-color-studrada-9) 55%, var(--mantine-color-black));
+  will-change: transform;
+  animation: loginIntroReveal var(--login-intro-reveal) cubic-bezier(0.65, 0, 0.35, 1) var(--login-intro-hold) forwards;
+}
+
+.logo {
+  position: relative;
+  animation:
+    loginIntroLogoIn var(--login-intro-logo-in) ease-out both,
+    loginIntroLogoOut var(--login-intro-reveal) ease-in var(--login-intro-hold) forwards;
+}
+
+@keyframes loginIntroReveal {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0);
+  }
+}
+
+@keyframes loginIntroLogoIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes loginIntroLogoOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--login-intro-logo-scale));
+  }
+}
+
+/* §6.3: the component is never rendered under reduced motion; belt and braces if the preference flips mid-way. */
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    display: none;
+  }
+}

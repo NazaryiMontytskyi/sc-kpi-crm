@@ -1,0 +1,31 @@
+/*
+ * FT-3: small round pause/play button over the dark overlay, in both colour schemes: white icon on a translucent
+ * dark disc, studrada shade 2 focus ring (never shade 6 on dark). 32 px target.
+ */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--mantine-color-white) 35%, transparent);
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--mantine-color-black) 45%, transparent);
+  color: var(--mantine-color-white);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background-color: color-mix(in srgb, var(--mantine-color-black) 65%, transparent);
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--mantine-color-studrada-2);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--mantine-color-studrada-2);
+  outline-offset: 2px;
+}

@@ -90,7 +90,33 @@
   "auth": {
     "subtitle": "Information system of the KPI Student Council",
     "signIn": "Sign in",
-    "login": "Login",
+    "loginLabel": "Login",
+    "login": {
+      "greeting": {
+        "morning": "Good morning",
+        "day": "Good afternoon",
+        "evening": "Good evening",
+        "night": "Good night"
+      },
+      "title": "Student Council of Igor Sikorsky Kyiv Polytechnic Institute",
+      "subtitle": "Student Council internal system",
+      "footer": "© {{year}} Student Council of Igor Sikorsky Kyiv Polytechnic Institute",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "capsLock": "Caps Lock is on",
+      "taglines": [
+        "On the same wave with a student",
+        "The voice of a student of KPI",
+        "Making KPI better together"
+      ],
+      "motion": {
+        "pause": "Pause background animation"
+      },
+      "indicator": {
+        "label": "Campus photos",
+        "goTo": "Photo {{index}} of {{count}}"
+      }
+    },
     "password": "Password",
     "changePassword": {
       "title": "Change password",

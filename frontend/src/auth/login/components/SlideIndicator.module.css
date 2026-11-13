@@ -1,0 +1,89 @@
+/*
+ * CAP-3 / CAP-4: thin "stories" bar over the dark overlay. Tracks are translucent white, fills white; keyboard focus
+ * uses studrada shade 2 (never shade 6 on dark). Each segment button is 24 px tall for touch, with a 3 px bar.
+ * Only `transform: scaleX` is animated, over --login-indicator-duration (loginPage.config.ts).
+ */
+.segments,
+.line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+}
+
+.segment {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mantine-radius-xs);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.segment:focus-visible {
+  outline: 2px solid var(--mantine-color-studrada-2);
+  outline-offset: 2px;
+}
+
+.track {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--mantine-color-white) 35%, transparent);
+}
+
+.segment:hover .track {
+  background-color: color-mix(in srgb, var(--mantine-color-white) 55%, transparent);
+}
+
+/* Segments of photos already shown in this cycle stay full. */
+.segment[data-state='done'] .track {
+  background-color: var(--mantine-color-white);
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  background-color: var(--mantine-color-white);
+  transform-origin: left center;
+}
+
+.filling {
+  transform: scaleX(0);
+  animation: loginIndicatorFill var(--login-indicator-duration) linear forwards;
+}
+
+/* Frozen while paused, while the tab is hidden or while the photo loads (CAP-3, BG-9). */
+.filling[data-running='false'] {
+  animation-play-state: paused;
+}
+
+.full {
+  transform: none;
+}
+
+@keyframes loginIndicatorFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filling {
+    animation: none;
+    transform: none;
+  }
+}

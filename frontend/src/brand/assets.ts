@@ -9,7 +9,7 @@ const files = import.meta.glob('../../../assets/brand/**/*.{svg,png}', {
   import: 'default',
 }) as Record<string, string>;
 
-export type BrandAsset = 'logo-full' | 'logo-full-light' | 'logo-mark';
+export type BrandAsset = 'logo-full' | 'logo-full-light' | 'logo-mark' | 'logo-full-white' | 'logo-mark-white';
 
 const PATHS: Record<BrandAsset, string[]> = {
   // *-blue.png are the files supplied so far (blue brand artwork, meant for light surfaces).
@@ -17,6 +17,10 @@ const PATHS: Record<BrandAsset, string[]> = {
   // Variant made for dark backgrounds; absent today, so dark theme shows the blue file on a light chip.
   'logo-full-light': ['logo/logo-full-light.svg', 'logo/logo-full-light.png'],
   'logo-mark': ['logo/logo-mark.svg', 'logo/logo-mark.png', 'logo/logo-mark-blue.png'],
+  // White artwork supplied for the dark photo overlay of the sign-in page (and the intro splash). Kept apart from
+  // `logo-full-light` on purpose: the app shell and ChangePasswordPage keep the blue artwork (on a chip in dark theme).
+  'logo-full-white': ['logo/logo-full-white.svg', 'logo/logo-full-white.png'],
+  'logo-mark-white': ['logo/logo-mark-white.svg', 'logo/logo-mark-white.png'],
 };
 
 export function resolveBrandAsset(

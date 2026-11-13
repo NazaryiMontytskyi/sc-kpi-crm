@@ -1,0 +1,11 @@
+/*
+ * Placeholder of the sign-in background while its lazy chunk loads or if it fails to load: the same dark base as
+ * the aurora, so there is never a white flash behind the form. Static, no animation.
+ */
+.placeholder {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: color-mix(in srgb, var(--mantine-color-studrada-9) 55%, var(--mantine-color-black));
+}

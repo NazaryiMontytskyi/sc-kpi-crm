@@ -1,0 +1,26 @@
+/*
+ * HERO-5: staggered word reveal of the hero headline, opacity + transform only. Timings from loginPage.config.ts
+ * (`headline`) through --login-headline-* variables.
+ */
+.word {
+  display: inline-block;
+  animation: loginHeadlineWord var(--login-headline-word) ease-out both;
+  animation-delay: calc(var(--login-headline-index, 0) * var(--login-headline-step));
+}
+
+@keyframes loginHeadlineWord {
+  from {
+    opacity: 0;
+    transform: translateY(var(--login-headline-rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word {
+    animation: none;
+  }
+}

@@ -1,76 +1,43 @@
-import { Alert, Button, PasswordInput, Stack, TextInput } from '@mantine/core';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router-dom';
-import { problemMessage } from '../api/problem';
 import { usePageTitle } from '../layout/pageTitle';
-import { SESSION_KEY } from './AuthProvider';
-import { AuthLayout } from './AuthLayout';
-import { loginRequest } from './authApi';
-import { useAuth } from './CurrentUser';
+import { IntroSplash } from './login/components/IntroSplash';
+import { LoginBackground } from './login/components/LoginBackground';
+import { LoginCard } from './login/components/LoginCard';
+import { LoginShell } from './login/components/LoginShell';
+import { useIntroSplash } from './login/hooks/useIntroSplash';
+import { useLoginForm } from './login/hooks/useLoginForm';
+import { useMotionPreference } from './login/hooks/useMotionPreference';
+import { useSuccessTransition } from './login/hooks/useSuccessTransition';
 
+/**
+ * Sign-in page. After a successful sign-in on this page the success transition (TR-3) plays for at most
+ * `success.transitionMs` before navigating; under reduced motion or the user's pause it navigates at once. A user who
+ * arrives already signed in is redirected in the same render with no animation (TR-4). The intro splash (TR-1/2)
+ * plays once per browser session on top of the already rendered, focusable form, and only for a user who is not
+ * signed in (it is decided once the session bootstrap has answered).
+ */
 export function LoginPage() {
-  const { t } = useTranslation();
   usePageTitle('auth.signIn');
-  const { status, mustChangePassword } = useAuth();
+  const form = useLoginForm();
   const location = useLocation();
-  const queryClient = useQueryClient();
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const mutation = useMutation({
-    mutationFn: () => loginRequest(login.trim(), password),
-    onSuccess: (session) => queryClient.setQueryData(SESSION_KEY, session),
-  });
+  const { motionReduced } = useMotionPreference();
+  const authenticated = form.status === 'authenticated';
+  const exiting = authenticated && form.signedInByForm && !motionReduced;
+  const transition = useSuccessTransition(exiting);
+  // Decided only once /auth/me has answered, so a signed-in user never sees (or consumes) the splash.
+  const intro = useIntroSplash(!authenticated && !motionReduced, form.status !== 'loading');
 
-  if (status === 'authenticated') {
+  if (authenticated && (!exiting || transition.done)) {
     const from = (location.state as { from?: string } | null)?.from;
-    return <Navigate to={mustChangePassword ? '/change-password' : (from ?? '/')} replace />;
+    return <Navigate to={form.mustChangePassword ? '/change-password' : (from ?? '/')} replace />;
   }
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!login.trim() || !password) return;
-    mutation.mutate();
-  };
-  const problem = mutation.error ? problemMessage(mutation.error) : null;
-
   return (
-    <AuthLayout title={t('app.name')} subtitle={t('auth.subtitle')}>
-      <form onSubmit={submit} noValidate>
-        <Stack gap="sm">
-          {problem && (
-            <Alert color="red" role="alert" data-testid="login-error">
-              {t(problem.key, problem.params)}
-            </Alert>
-          )}
-          <TextInput
-            label={t('auth.login')}
-            autoComplete="username"
-            value={login}
-            onChange={(e) => setLogin(e.currentTarget.value)}
-            size="md"
-            required
-          />
-          <PasswordInput
-            label={t('auth.password')}
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.currentTarget.value)}
-            size="md"
-            required
-          />
-          <Button
-            type="submit"
-            size="md"
-            fullWidth
-            loading={mutation.isPending || status === 'loading'}
-            disabled={status === 'loading' || !login.trim() || !password}
-          >
-            {t('auth.signIn')}
-          </Button>
-        </Stack>
-      </form>
-    </AuthLayout>
+    <>
+      <LoginShell background={<LoginBackground />} phase={exiting ? 'exiting' : 'idle'} onExitEnd={transition.finish}>
+        <LoginCard form={form} />
+      </LoginShell>
+      {intro.visible && <IntroSplash onDone={intro.dismiss} />}
+    </>
   );
 }

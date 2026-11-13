@@ -3,9 +3,25 @@ import { ApiSession } from './api';
 import type { Actor } from './data';
 import { ADMIN } from './env';
 
-async function prepareContext(context: BrowserContext): Promise<void> {
+/** sessionStorage flag of the sign-in intro splash (loginPage.config.ts `intro.sessionStorageKey`). */
+export const INTRO_PLAYED_KEY = 'sc-kpi.login.introPlayed';
+
+/**
+ * Context setup shared by every scenario. Unless `intro` is true the sign-in intro splash is marked as played, so it
+ * never covers the page or slows a scenario down; the intro itself is covered in auth.spec.ts.
+ */
+export async function prepareContext(context: BrowserContext, { intro = false } = {}): Promise<void> {
   // Scenarios assert on English labels; the profile language of every fake member is "en" as well.
   await context.addInitScript(() => window.localStorage.setItem('crm.language', 'en'));
+  if (!intro) {
+    await context.addInitScript((key) => {
+      try {
+        window.sessionStorage.setItem(key, '1');
+      } catch {
+        // Documents without storage (about:blank, opaque origins) simply skip it.
+      }
+    }, INTRO_PLAYED_KEY);
+  }
 }
 
 /** Opens the login page; the form itself keeps submit disabled until the session/CSRF bootstrap is done. */
