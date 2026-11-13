@@ -1,6 +1,6 @@
 import { MEMBER_PASSWORD } from '../support/env';
 import { createActor } from '../support/data';
-import { expect, openLogin, signIn, test } from '../support/fixtures';
+import { expect, openLogin, prepareContext, signIn, test } from '../support/fixtures';
 
 test('a new member signs in with the temporary password and must set their own', async ({ page, admin }) => {
   const member = await createActor(admin, 'newbie', { activate: false });
@@ -57,4 +57,59 @@ test('submitting right after navigation while /auth/me is slow still signs in', 
   // Clicking waits for the button to become enabled, i.e. for the bootstrap to finish.
   await submit.click();
   await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible();
+});
+
+test.describe('sign-in intro splash', () => {
+  test('plays on the first visit of a browser session only and never blocks the form', async ({
+    browser,
+    baseURL,
+    viewport,
+    isMobile,
+    hasTouch,
+    locale,
+    timezoneId,
+  }) => {
+    const context = await browser.newContext({ baseURL, viewport, isMobile, hasTouch, locale, timezoneId });
+    await prepareContext(context, { intro: true });
+    const page = await context.newPage();
+    try {
+      await page.goto('/login');
+      await expect(page.getByTestId('login-intro')).toBeAttached();
+      // The form is rendered underneath from the start.
+      await expect(page.getByLabel(/^Login/)).toBeVisible();
+      // It ends on its own within 1.6 s.
+      await expect(page.getByTestId('login-intro')).toHaveCount(0, { timeout: 5_000 });
+
+      await page.reload();
+      await expect(page.getByLabel(/^Login/)).toBeVisible();
+      expect(await page.getByTestId('login-intro').count()).toBe(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('is skipped by any key and never shown with reduced motion', async ({ browser, baseURL, viewport, locale }) => {
+    const context = await browser.newContext({ baseURL, viewport, locale });
+    await prepareContext(context, { intro: true });
+    const page = await context.newPage();
+    try {
+      await page.goto('/login');
+      await expect(page.getByTestId('login-intro')).toBeAttached();
+      await page.keyboard.press('Shift');
+      await expect(page.getByTestId('login-intro')).toHaveCount(0, { timeout: 500 });
+    } finally {
+      await context.close();
+    }
+
+    const reduced = await browser.newContext({ baseURL, viewport, locale, reducedMotion: 'reduce' });
+    await prepareContext(reduced, { intro: true });
+    const calm = await reduced.newPage();
+    try {
+      await calm.goto('/login');
+      await expect(calm.getByLabel(/^Login/)).toBeVisible();
+      expect(await calm.getByTestId('login-intro').count()).toBe(0);
+    } finally {
+      await reduced.close();
+    }
+  });
 });

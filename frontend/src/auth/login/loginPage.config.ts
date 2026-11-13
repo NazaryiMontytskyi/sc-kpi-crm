@@ -107,15 +107,31 @@ export const loginPageConfig = {
     glassBlurPx: 18,
   },
   intro: {
-    /** TR-1: logo hold on the dark screen, then the reveal; total at most 1600 ms. */
+    /** TR-1: logo hold on the dark screen (the logo fades in during `logoFadeInMs` of it), then the reveal. */
     logoHoldMs: 800,
+    logoFadeInMs: 300,
     revealMs: 700,
+    /** TR-1: the logo grows by this factor and fades while the dark disc shrinks away during the reveal. */
+    revealLogoScale: 1.15,
     /** TR-2: sessionStorage flag set once the intro has played. */
     sessionStorageKey: 'sc-kpi.login.introPlayed',
   },
   success: {
-    /** TR-3: card fade + background zoom/blur + full-screen fade before navigating. */
+    /**
+     * TR-3: hard upper bound (at most 900 ms) after a successful sign-in; navigation happens when the full-screen
+     * fade ends or at this moment, whichever comes first, never later.
+     */
     transitionMs: 900,
+    /** TR-3: card scale-down + fade. */
+    cardMs: 450,
+    cardScale: 0.92,
+    /** TR-3: background zoom + blur, running through the whole visible transition. */
+    backgroundMs: 800,
+    backgroundScale: 1.08,
+    backgroundBlurPx: 6,
+    /** TR-3: full-screen fade into the app; `fadeDelayMs + fadeMs` must stay within `transitionMs`. */
+    fadeDelayMs: 350,
+    fadeMs: 450,
   },
   parallax: {
     /** AMB-1: maximum offset of the background (opposite to the cursor) and of the hero (with it). */
@@ -123,12 +139,50 @@ export const loginPageConfig = {
     heroMaxPx: 6,
     /** Smoothing factor of the rAF lerp (0..1, higher follows the cursor faster). */
     smoothing: 0.08,
+    /** The loop sleeps once every offset is closer than this to its target. */
+    settlePx: 0.05,
+  },
+  cursorLight: {
+    /** AMB-3: diameter and strength (0..1) of the soft highlight that follows the pointer over the card. */
+    sizePx: 320,
+    strength: 0.18,
+    /** AMB-3: fade of the highlight when the pointer enters or leaves the card. */
+    fadeMs: 300,
   },
   particles: {
     /** AMB-2: particle count range on desktop; halved on phones. */
     minCount: 15,
     maxCount: 30,
+    /** AMB-2: desktop count (clamped to minCount..maxCount). */
+    count: 24,
     phoneFactor: 0.5,
+    /** AMB-2: phones get the halved count (below 48em = 768 px, or any coarse pointer). */
+    phoneMaxWidthEm: 47.99,
+    /**
+     * AMB-2: dot diameter, one trip across the screen, sideways sway (amplitude and period range) and peak opacity of
+     * the default variant. Slow on purpose: nothing may flash (spec §7).
+     */
+    default: {
+      minSizePx: 2,
+      maxSizePx: 6,
+      minDurationMs: 16000,
+      maxDurationMs: 28000,
+      swayPx: 18,
+      minSwayMs: 3000,
+      maxSwayMs: 6000,
+      maxOpacity: 0.45,
+    },
+    /** SEA-1: light snowfall (falls instead of rising, a little larger, more sway). */
+    snow: {
+      minSizePx: 3,
+      maxSizePx: 8,
+      minDurationMs: 12000,
+      maxDurationMs: 22000,
+      swayPx: 30,
+      minSwayMs: 2500,
+      maxSwayMs: 5000,
+      maxOpacity: 0.7,
+    },
   },
   indicator: {
     /** CAP-3: above this number of photos a single continuous progress line replaces the segments. */
@@ -139,8 +193,10 @@ export const loginPageConfig = {
     pauseStorageKey: 'sc-kpi.login.motionPaused',
   },
   seasonal: {
-    /** SEA-2: feature flag for seasonal accents (snowfall Dec-Feb). */
+    /** SEA-2: feature flag for seasonal accents (snowfall Dec-Feb); false always uses the default particles. */
     enabled: true,
+    /** SEA-1: months (0 = January) with the snow variant. */
+    snowMonths: [11, 0, 1] as readonly number[],
   },
 } as const;
 

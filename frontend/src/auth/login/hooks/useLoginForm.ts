@@ -22,6 +22,11 @@ export interface LoginFormState {
   disabled: boolean;
   /** Number of failed attempts since mount; changes on every failure (drives the shake, CARD-7). */
   failureCount: number;
+  /**
+   * This form's own request is in flight or has succeeded. Together with `status === 'authenticated'` it means the
+   * user has just signed in here (TR-3 success transition), as opposed to arriving with a session (TR-4, no animation).
+   */
+  signedInByForm: boolean;
 }
 
 /**
@@ -63,5 +68,6 @@ export function useLoginForm(): LoginFormState {
     pending: mutation.isPending || status === 'loading',
     disabled,
     failureCount,
+    signedInByForm: mutation.isPending || mutation.isSuccess,
   };
 }

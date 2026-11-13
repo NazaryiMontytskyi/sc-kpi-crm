@@ -37,6 +37,23 @@ describe('loginPageConfig', () => {
     expect(indicator.maxSegments).toBe(10);
     expect(typeof loginPageConfig.seasonal.enabled).toBe('boolean');
   });
+
+  it('keeps the INC-061 effects within the spec (TR-1, TR-3, AMB-1..3, SEA-1)', () => {
+    expect(intro.logoHoldMs).toBeGreaterThanOrEqual(700);
+    expect(intro.logoHoldMs).toBeLessThanOrEqual(900);
+    expect(intro.logoFadeInMs).toBeLessThan(intro.logoHoldMs);
+    expect(success.fadeDelayMs + success.fadeMs).toBeLessThanOrEqual(success.transitionMs);
+    expect(success.cardMs).toBeLessThanOrEqual(success.transitionMs);
+    expect(success.backgroundMs).toBeLessThanOrEqual(success.transitionMs);
+    expect(success.cardScale).toBeLessThan(1);
+    expect(success.backgroundScale).toBeGreaterThan(1);
+    expect(parallax.smoothing).toBeGreaterThan(0);
+    expect(parallax.smoothing).toBeLessThan(1);
+    expect(particles.count).toBeGreaterThanOrEqual(particles.minCount);
+    expect(particles.count).toBeLessThanOrEqual(particles.maxCount);
+    expect(loginPageConfig.cursorLight.strength).toBeLessThanOrEqual(0.3);
+    expect([...loginPageConfig.seasonal.snowMonths].sort((a, b) => a - b)).toEqual([0, 1, 11]);
+  });
 });
 
 describe('sign-in page timings', () => {

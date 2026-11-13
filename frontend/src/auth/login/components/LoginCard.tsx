@@ -1,8 +1,11 @@
 import { ActionIcon, Alert, Button, Text, Title } from '@mantine/core';
-import { useId, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useCursorLight } from '../hooks/useCursorLight';
+import { useMediaQueryMatch } from '../hooks/useMediaQueryMatch';
 import { useMotionPreference } from '../hooks/useMotionPreference';
 import type { LoginFormState } from '../hooks/useLoginForm';
+import { FINE_POINTER_QUERY } from '../layoutQueries';
 import { loginPageConfig } from '../loginPage.config';
 import { FloatingField } from './FloatingField';
 import { LoginAlternativesSlot } from './LoginAlternativesSlot';
@@ -22,6 +25,7 @@ const {
   shineMs,
   glassBlurPx,
 } = loginPageConfig.card;
+const cursorLight = loginPageConfig.cursorLight;
 
 /** Timings of loginPage.config.ts handed to the CSS module. */
 export const LOGIN_CARD_STYLE = {
@@ -37,6 +41,9 @@ export const LOGIN_CARD_STYLE = {
   '--login-lift': `${buttonLiftMs}ms`,
   '--login-shine': `${shineMs}ms`,
   '--login-glass-blur': `${glassBlurPx}px`,
+  '--login-light-size': `${cursorLight.sizePx}px`,
+  '--login-light-strength': `${Math.round(cursorLight.strength * 100)}%`,
+  '--login-light-fade': `${cursorLight.fadeMs}ms`,
 } as CSSProperties;
 
 const itemStyle = (index: number) => ({ '--login-item': index }) as CSSProperties;
@@ -84,6 +91,11 @@ export function LoginCard({ form, alternatives }: LoginCardProps) {
   const capsId = `${ids}-caps`;
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
+  // AMB-3: cursor-follow light, desktop pointer only and never with reduced motion or the user's pause.
+  const card = useRef<HTMLElement>(null);
+  const finePointer = useMediaQueryMatch(FINE_POINTER_QUERY);
+  const light = finePointer && !motionReduced;
+  useCursorLight(card, light);
 
   const { problem, failureCount } = form;
   // Two identical keyframes alternate so that every failure restarts the animation (CARD-7); none when reduced.
@@ -100,7 +112,12 @@ export function LoginCard({ form, alternatives }: LoginCardProps) {
       data-shake={shakeClass ? 'on' : undefined}
       data-motion={motionReduced ? 'off' : 'on'}
     >
-      <section className={classes.card} aria-labelledby={titleId}>
+      <section ref={card} className={classes.card} aria-labelledby={titleId}>
+        {light && (
+          <span className={classes.light} aria-hidden="true" data-testid="login-card-light">
+            <span className={classes.lightSpot} />
+          </span>
+        )}
         <header className={classes.header}>
           <Title order={2} size="h4" id={titleId} className={classes.title}>
             {t('app.name')}

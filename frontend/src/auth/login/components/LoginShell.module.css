@@ -141,3 +141,95 @@
     gap: var(--mantine-spacing-xl);
   }
 }
+
+/*
+ * Background frame (AMB-1, TR-3): a fixed, clipped box; inside it the success zoom/blur layer and, inside that, the
+ * parallax layer, larger than the viewport by the maximum parallax offset (--login-parallax-bleed) so the photo
+ * edges never show. The background's own fixed layers are positioned against the transformed parallax layer.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--mantine-color-black);
+}
+
+.successLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.parallaxLayer {
+  position: absolute;
+  inset: calc(var(--login-parallax-bleed) * -1);
+  /* AMB-1: written by useParallax (opposite to the pointer, at most the bleed); 0 when it is off. */
+  transform: translate3d(var(--login-parallax-x, 0px), var(--login-parallax-y, 0px), 0);
+}
+
+/* TR-3: the card scales down and fades. */
+.shell[data-phase='exiting'] .cardColumn {
+  animation: loginSuccessCard var(--login-success-card) ease-in forwards;
+}
+
+/* TR-3: the photo zooms in and blurs (the one-off filter animation allowed by spec §6.2). */
+.backdrop[data-phase='exiting'] .successLayer {
+  will-change: transform, filter;
+  animation: loginSuccessBackdrop var(--login-success-bg) ease-out forwards;
+}
+
+/* TR-3: full-screen fade into the app's surface colour; its end triggers the navigation. */
+.successFade {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  background-color: var(--mantine-color-body);
+  opacity: 0;
+  animation: loginSuccessFade var(--login-success-fade) ease-in var(--login-success-fade-delay) forwards;
+}
+
+@keyframes loginSuccessCard {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--login-success-card-scale));
+  }
+}
+
+@keyframes loginSuccessBackdrop {
+  from {
+    transform: scale(1);
+    filter: blur(0);
+  }
+  to {
+    transform: scale(var(--login-success-bg-scale));
+    filter: blur(var(--login-success-blur));
+  }
+}
+
+@keyframes loginSuccessFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* §6.3: the page navigates at once under reduced motion; belt and braces. */
+@media (prefers-reduced-motion: reduce) {
+  .shell[data-phase='exiting'] .cardColumn,
+  .backdrop[data-phase='exiting'] .successLayer,
+  .successFade {
+    animation: none;
+  }
+
+  .parallaxLayer {
+    transform: none;
+  }
+}

@@ -11,6 +11,8 @@
   text-align: center;
   color: var(--mantine-color-white);
   text-shadow: 0 1px 3px color-mix(in srgb, var(--mantine-color-black) 60%, transparent);
+  /* AMB-1: follows the pointer by up to 6 px; the offsets are written by useParallax (0 when it is off). */
+  transform: translate3d(var(--login-parallax-x, 0px), var(--login-parallax-y, 0px), 0);
 }
 
 .logo {

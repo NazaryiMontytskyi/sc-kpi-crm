@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { App } from '../App';
 import { ApiProblemError } from '../api/problem';
 import { emitSessionEvent } from '../api/sessionEvents';
@@ -9,6 +9,8 @@ import { changeLanguage } from '../i18n';
 import { renderWithProviders } from '../test/render';
 import { AuthProvider } from './AuthProvider';
 import * as authApi from './authApi';
+import { REDUCED_MOTION_QUERY } from './login/hooks/usePrefersReducedMotion';
+import { stubMediaQueries } from './login/testing/mediaStub';
 import { usePermission } from './CurrentUser';
 
 vi.mock('./authApi', async (orig) => ({
@@ -26,6 +28,17 @@ const session = (over: Partial<authApi.Session> = {}, perms: string[] = []): aut
   mustChangePassword: false,
   ...over,
 });
+
+/**
+ * The success transition (TR-3) is skipped under reduced motion; the sign-in tests use that so they do not wait for
+ * it. Its own timing is covered in login/successTransition.test.tsx.
+ */
+function withReducedMotion() {
+  const media = stubMediaQueries([REDUCED_MOTION_QUERY]);
+  onTestFinished(() => {
+    media.restore();
+  });
+}
 
 function setup(route = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -76,6 +89,7 @@ describe('sign-in', { timeout: 20000 }, () => {
   });
 
   it('signs in, applies the profile locale and opens the app', async () => {
+    withReducedMotion();
     vi.mocked(authApi.loginRequest).mockResolvedValue(session({ locale: 'en' }));
     setup('/login');
     await fillAndSubmit();
@@ -85,6 +99,7 @@ describe('sign-in', { timeout: 20000 }, () => {
 
 describe('sign-in racing the initial session bootstrap', { timeout: 20000 }, () => {
   it('keeps submit disabled until /auth/me has answered, then sends the login', async () => {
+    withReducedMotion();
     let release!: (value: null) => void;
     vi.mocked(authApi.fetchSession).mockReturnValue(new Promise((resolve) => (release = resolve)));
     vi.mocked(authApi.loginRequest).mockResolvedValue(session({ locale: 'en' }));

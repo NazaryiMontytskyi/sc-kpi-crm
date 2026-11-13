@@ -58,6 +58,7 @@ function fakeForm(over: Partial<LoginFormState> = {}): LoginFormState {
     pending: false,
     disabled: true,
     failureCount: 0,
+    signedInByForm: false,
     ...over,
   };
 }

@@ -51,6 +51,46 @@
   }
 }
 
+/*
+ * AMB-3: soft brand-tinted light following the pointer over the card (desktop pointer only; the element exists only
+ * then). Clipped to the card, behind its content, moved with transform; fades in and out with opacity.
+ */
+.light {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--login-light-fade) ease-out;
+}
+
+.card[data-light='on'] .light {
+  opacity: 1;
+}
+
+.lightSpot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--login-light-size);
+  height: var(--login-light-size);
+  margin: calc(var(--login-light-size) / -2) 0 0 calc(var(--login-light-size) / -2);
+  border-radius: 50%;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--mantine-primary-color-filled) var(--login-light-strength), transparent) 0%,
+    transparent 70%
+  );
+  transform: translate3d(var(--login-light-x, 0px), var(--login-light-y, 0px), 0);
+}
+
+/* Content above the light (positioned siblings paint in DOM order, the light comes first). */
+.header,
+.form {
+  position: relative;
+}
+
 .header {
   display: flex;
   flex-direction: column;
@@ -269,6 +309,13 @@
   }
 
   .submit::after {
+    display: none;
+  }
+}
+
+/* §6.3: no cursor light under reduced motion (the component does not render it either). */
+@media (prefers-reduced-motion: reduce) {
+  .light {
     display: none;
   }
 }

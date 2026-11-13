@@ -116,6 +116,8 @@ describe('sign-in page styles', () => {
         'components/SlideIndicator.module.css',
         'components/RotatingTagline.module.css',
         'components/StaggeredHeadline.module.css',
+        'components/IntroSplash.module.css',
+        'components/Particles.module.css',
       ]),
     );
   });
@@ -376,6 +378,120 @@ describe('sign-in page styles', () => {
           expect(value).toMatch(/var\(--mantine-color-studrada-2\)/);
         }
       }
+    });
+  });
+
+  describe('success transition, intro, parallax, cursor light, particles (INC-061)', () => {
+    const shell = stripComments(styles['components/LoginShell.module.css']);
+    const hero = stripComments(styles['components/HeroPanel.module.css']);
+    const card = stripComments(styles['components/LoginCard.module.css']);
+    const intro = stripComments(styles['components/IntroSplash.module.css']);
+    const particles = stripComments(styles['components/Particles.module.css']);
+
+    /** Body of every keyframes block, keyed by name. */
+    function keyframeBodies(css: string): Record<string, string> {
+      const out: Record<string, string> = {};
+      for (const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+        let depth = 1;
+        let i = (match.index ?? 0) + match[0].length;
+        const start = i;
+        while (i < css.length && depth > 0) {
+          if (css[i] === '{') depth++;
+          if (css[i] === '}') depth--;
+          i++;
+        }
+        out[match[1]] = css.slice(start, i - 1);
+      }
+      return out;
+    }
+    const propsOf = (body: string) => [...new Set(keyframeProperties(`@keyframes k {${body}}`))].sort();
+    /** Declarations of the first rule whose selector is exactly `selector`. */
+    function rule(css: string, selector: string): string {
+      const escaped = selector.replace(/[.*+?^$(){}|[\]\\]/g, (ch) => `\\${ch}`);
+      const match = new RegExp(String.raw`(?:^|\})\s*` + escaped + String.raw`\s*\{([^}]*)\}`).exec(css);
+      return match ? match[1] : '';
+    }
+
+    it('never uses clip-path anywhere on the sign-in page (the reveal is a scaled circle)', () => {
+      for (const [path, css] of entries) expect(stripComments(css), path).not.toMatch(/clip-path/);
+    });
+
+    it('animates `filter` only in the one-off success zoom/blur of the background (spec §6.2)', () => {
+      const withFilter = entries.flatMap(([path, css]) =>
+        Object.entries(keyframeBodies(stripComments(css)))
+          .filter(([, body]) => propsOf(body).includes('filter'))
+          .map(([name]) => `${path}#${name}`),
+      );
+      expect(withFilter).toEqual(['components/LoginShell.module.css#loginSuccessBackdrop']);
+      for (const [, css] of entries) {
+        expect(transitionedProperties(css)).not.toContain('filter');
+      }
+    });
+
+    it('scales and fades the card, zooms and blurs the background and fades the screen (TR-3)', () => {
+      const frames = keyframeBodies(shell);
+      expect(propsOf(frames.loginSuccessCard)).toEqual(['opacity', 'transform']);
+      expect(frames.loginSuccessCard).toMatch(/scale\(var\(--login-success-card-scale\)\)/);
+      expect(propsOf(frames.loginSuccessBackdrop)).toEqual(['filter', 'transform']);
+      expect(frames.loginSuccessBackdrop).toMatch(/blur\(var\(--login-success-blur\)\)/);
+      expect(propsOf(frames.loginSuccessFade)).toEqual(['opacity']);
+      expect(shell).toMatch(/\.shell\[data-phase='exiting'\] \.cardColumn\s*\{[^}]*animation:\s*loginSuccessCard var\(--login-success-card\)/);
+      expect(shell).toMatch(/\.backdrop\[data-phase='exiting'\] \.successLayer\s*\{[^}]*animation:\s*loginSuccessBackdrop var\(--login-success-bg\)/);
+      expect(rule(shell, '.successFade')).toMatch(/animation:\s*loginSuccessFade var\(--login-success-fade\) \S+ var\(--login-success-fade-delay\)/);
+      expect(rule(shell, '.successFade')).toMatch(/background-color:\s*var\(--mantine-color-body\)/);
+    });
+
+    it('reveals the intro with a scaled circular disc and fades the logo, transform/opacity only (TR-1)', () => {
+      const frames = keyframeBodies(intro);
+      expect(Object.keys(frames).sort()).toEqual(['loginIntroLogoIn', 'loginIntroLogoOut', 'loginIntroReveal']);
+      for (const body of Object.values(frames)) {
+        for (const prop of propsOf(body)) expect(['opacity', 'transform']).toContain(prop);
+      }
+      expect(frames.loginIntroReveal).toMatch(/scale\(1\)[\s\S]*scale\(0\)/);
+      const disc = rule(intro, '.disc');
+      expect(disc).toMatch(/border-radius:\s*50%/);
+      expect(disc).toMatch(/animation:\s*loginIntroReveal var\(--login-intro-reveal\) .* var\(--login-intro-hold\)/);
+      expect(rule(intro, '.root')).toMatch(/position:\s*fixed/);
+      expect(intro).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.root\s*\{\s*display:\s*none/);
+    });
+
+    it('moves the background layer and the hero only with transform from the parallax variables (AMB-1)', () => {
+      const layer = rule(shell, '.parallaxLayer');
+      expect(layer).toMatch(/transform:\s*translate3d\(var\(--login-parallax-x, 0px\), var\(--login-parallax-y, 0px\), 0\)/);
+      // The layer is larger than the viewport by the maximum offset, so the photo edges never show.
+      expect(layer).toMatch(/inset:\s*calc\(var\(--login-parallax-bleed\) \* -1\)/);
+      expect(rule(shell, '.backdrop')).toMatch(/overflow:\s*hidden/);
+      expect(rule(shell, '.backdrop')).toMatch(/pointer-events:\s*none/);
+      expect(rule(hero, '.hero')).toMatch(/transform:\s*translate3d\(var\(--login-parallax-x, 0px\), var\(--login-parallax-y, 0px\), 0\)/);
+    });
+
+    it('moves the cursor light with transform and fades it with opacity only (AMB-3)', () => {
+      expect(rule(card, '.lightSpot')).toMatch(/transform:\s*translate3d\(var\(--login-light-x, 0px\), var\(--login-light-y, 0px\), 0\)/);
+      const light = rule(card, '.light');
+      expect(light).toMatch(/pointer-events:\s*none/);
+      expect(transitionedProperties(`.a {${light}}`)).toEqual(['opacity']);
+      expect(rule(card, ".card[data-light='on'] .light")).toMatch(/opacity:\s*1/);
+    });
+
+    it('keeps the particles decorative, below the frame, token-coloured and transform/opacity only (AMB-2)', () => {
+      const root = rule(particles, '.root');
+      expect(root).toMatch(/pointer-events:\s*none/);
+      expect(root).toMatch(/position:\s*fixed/);
+      // Below the sign-in frame (z-index 1), inside the background.
+      const z = Number(/z-index:\s*(\d+)/.exec(root)?.[1]);
+      const shellZ = Number(/z-index:\s*(\d+)/.exec(rule(shell, '.shell'))?.[1]);
+      expect(z).toBeLessThan(shellZ);
+      for (const body of Object.values(keyframeBodies(particles))) {
+        for (const prop of propsOf(body)) expect(['opacity', 'transform']).toContain(prop);
+      }
+      const colours = [...particles.matchAll(/var\(--mantine-color-([\w-]+)\)/g)].map(([, name]) => name);
+      expect(colours.length).toBeGreaterThan(0);
+      expect(new Set(colours)).toEqual(new Set(['white']));
+      expect(particles).toMatch(
+        /\.root\[data-running='false'\] \.particle,\s*\.root\[data-running='false'\] \.dot\s*\{\s*animation-play-state:\s*paused/,
+      );
+      expect(particles).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.root\s*\{\s*display:\s*none/);
+      expect(particles).toMatch(/\.root\[data-variant='snow'\] \.particle\s*\{[^}]*animation-name:\s*loginParticleFall/);
     });
   });
 
