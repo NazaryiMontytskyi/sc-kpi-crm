@@ -1,7 +1,7 @@
 # ADR-0009: Sign-in photo pipeline (vite-imagetools)
 
-- Status: Proposed (draft by INC-056, to be accepted with the plan "Main page (animated login)")
-- Date: 2026-11-12
+- Status: Accepted (proposed by INC-056 on 2026-11-12; accepted with INC-062, the `vite-imagetools` pipeline stays)
+- Date: 2026-11-13
 
 ## Context
 The animated sign-in page (MAIN_PAGE_FEATURE.md §5.1, §6.1, §8) shows campus photos as a full-screen slideshow.
@@ -50,6 +50,15 @@ through `import.meta.glob` on `../assets/brand` (INC-050).
   git-ignored `frontend/.generated/` with a manifest. It stays the documented fallback if `vite-imagetools` ever
   breaks with a Vite or Node upgrade; it must keep the same `SlideImage` contract so `slideshowImages.ts` consumers
   do not change. Committed hand-made copies and serving the folder from Spring Boot were rejected (spec §6.1).
+
+- **Budgets and contrast (INC-062).** `npm run check:login-budget` (`frontend/scripts/check-login-budget.mjs`)
+  builds the app in memory and fails when the sign-in code (every module of `src/auth/login/**` and
+  `LoginPage.tsx`, wherever it is bundled) plus its CSS modules exceed 30 KB gzip, when the lazy background chunk
+  exceeds it, or when the entry chunk holds the slideshow glob / photo metadata. `npm run check:contrast`
+  (`frontend/scripts/overlay-contrast.test.mjs`, also part of `npm test`) reads every photo with the same `sharp`,
+  takes its brightest region and asserts white overlay text >= 4.5:1 at the weakest overlay opacity
+  (`loginPage.config.ts` `overlay.topOpacity`). Adding a much brighter photo can therefore fail `npm test` until the
+  overlay is tuned there.
 
 ## Consequences
 - A cold build (Docker always builds cold) spends about one minute encoding AVIF/WebP for the current 11 photos;
