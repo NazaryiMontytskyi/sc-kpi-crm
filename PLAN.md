@@ -940,7 +940,7 @@ Planner decisions (apply to all increments):
 - **Notes:** Risks: double navigation or a stuck state after login (hence the hard timeout fallback). Items (1)-(4) are P1; item (5) is P2 and may be dropped by the human. If the increment proves too big for one review pass, the implementator reports and the orchestrator may split it at the (1)+(2) / (3)+(4)+(5) boundary.
 
 #### INC-062 — Hardening: accessibility, contrast, performance budgets, leak and network checks, e2e, ADR
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `auth/login`, `frontend/e2e`, `frontend/scripts`, `docs/adr/`
 - **Depends on:** INC-061
 - **Absorbs:** former INC-069
