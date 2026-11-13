@@ -968,3 +968,245 @@ All non-blocking; placeholders ship so no increment waits on them.
 - Applied deviations (not conflicts): spec path `resources/main_page/images/` -> `assets/main_page/images/` (files renamed `image_<n>`); spec folder `src/features/auth/login/` -> `frontend/src/auth/login/`; accent colours via the `studrada` tokens; tagline count is 3 (user decision) instead of the spec's 4-6.
 - Spec §9.6 "existing login tests pass unchanged": INC-055 changed the sign-in behaviour after the spec was written (submit disabled until `/auth/me`); the plan treats the current tests as the baseline.
 - Spec TR-1 suggests a "circular reveal" while §6.2 allows only `transform` / `opacity` / `filter`; the plan follows §6.2 (scaled element, no `clip-path`).
+
+---
+
+## Plan: Task tracking redesign
+Source: .claude/TASK_TRACKING_FEATURE.md (DRAFT, binding only for its §3 conflicts with CONTEXT.md; user-instructed) · Created: 2026-11-13 · Branch: `feature/task-tracking`
+
+### Overview
+Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks (`Task.parentTaskId`), `issuedAt`/`deadline`, `TaskArtifact`, configurable deadline reminders and a master/detail tracker UI. Phases: (1) data model + migration of existing resolutions into subtasks (INC-071..072); (2) backend assignees, subtasks, artifacts, reminders (INC-073..076); (3) frontend master/detail, inline editing, "My tasks" (INC-077..079); (4) switch search/analytics/members to tasks, then remove resolutions in the frontend and backend (INC-080..082); (5) hardening (INC-083). Data is migrated before anything is removed; legacy tables stay read-only (RR-6). The spec's A-G breakdown is refined into 13 slices so each fits one review pass. Numbering starts at INC-071 because INC-063..070 are recorded as absorbed in earlier increments. Latest migration is V24; new ones take the next free numbers from V25.
+
+### Increments
+
+#### INC-071 — ADR-0010 and task data model (schema, entity, permission `tasks.assign`)
+- **Status:** TODO
+- **Module(s):** backend `tasks`, `access` (permission catalog + migration only), `docs/adr/`
+- **Depends on:** —
+- **Scope:** ADR `docs/adr/0010-task-assignment-model-and-resolution-migration.md` (subtask depth 1, shared status, `tasks.assign`, migration mapping per spec §5.8, legacy table retention, per-assignee-state extension point). Migration V25+: `task` gets `creator_id`, `issued_at`, `parent_task_id` (FK, index), `deadline` (values preserved from `due_date`, indexed), `version` (optimistic locking); new tables `task_assignee` (`task_id`, `user_id`, `assigned_by`, `assigned_at`, `removed_at`; partial unique index on active `(task_id,user_id)`; index `(user_id, task_id)`), `task_artifact` (type FILE|LINK, `file_id`, `url`, `title`, added by/at, `archived_at`), `task_reminder` (task, user, threshold, deadline); backfill `creator_id` from `created_by`, `issued_at` from `created_at`. Task entity/DTOs expose `deadline`, `issuedAt`, `creatorId`, `parentId`, `version`. `Permission.TASKS_ASSIGN` in group Tasks; migration granting `tasks.assign` to every role holding `resolutions.create`; `TemplateRoleSeeder` updated (Advisor excluded). `resolutions.*` keys remain for now.
+- **Out of scope:** converting resolutions (INC-072), assignee/subtask/artifact endpoints, removing anything resolution-related.
+- **Acceptance criteria:**
+  1. ADR-0010 exists and records the decisions of spec §6.1.
+  2. Task API returns `deadline` (OpenAPI field) with pre-existing values unchanged; `issuedAt` and `creatorId` populated for existing rows (TM-1, TM-2).
+  3. `task_assignee`, `task_artifact`, `task_reminder` exist with the stated indexes; a duplicate active `(task,user)` assignee row is rejected by the DB (AS-1, §7).
+  4. `tasks.assign` exists in group Tasks, is granted by migration to every role that held `resolutions.create`, Admin has it, the Advisor seed lacks it (spec §9.10, §3).
+  5. A concurrent task update with a stale version returns 409 as RFC 7807 (§6.5).
+  6. V16/V23 unmodified (`git diff`); Flyway applies on an empty DB and on a DB with V24-era data.
+  7. Task create/update audit events include the new fields before/after (§6.4); OpenAPI updated, TS client regenerated and compiling.
+- **Tests required:** integration (Testcontainers: migration on pre-populated data, 409, permission grant), unit for any new rule class, existing tasks frontend tests adapted to `deadline`.
+- **Notes:** Shared-kernel touch limited to the permission catalog and its migration (spec §6.2). Frontend change here is the field rename only.
+
+#### INC-072 — Convert existing resolutions into subtasks (data migration)
+- **Status:** TODO
+- **Module(s):** backend `tasks` (migration + converter)
+- **Depends on:** INC-071
+- **Scope:** Flyway migration converting each `resolution` row into one subtask (spec §5.8): executor and co-executors -> `task_assignee` (`assigned_by` = author); author -> `creator_id`; instruction -> description; due date -> `deadline` (not clamped); state mapped to the first Space status of the target category (NEW -> TODO; IN_PROGRESS/REWORK/SUBMITTED -> IN_PROGRESS; ACCEPTED -> DONE; CANCELED/REDIRECTED -> CANCELED); completion note, rework comments and history -> comments on the subtask with original author and timestamps and a localized marker (SUBMITTED flagged); redirect chains flattened into sibling subtasks with a "Redirected from X" comment; `resolution_reminder` rows -> `task_reminder`. One transaction, deterministic. Mapping logic as a pure class (`ResolutionMigrationMapping`) where feasible.
+- **Out of scope:** removing resolution code/tables/endpoints; new UI; real data (tests use fake data only).
+- **Acceptance criteria:**
+  1. On fake data covering every old state, co-executors, redirect chains, completion notes and rework comments, the result has the mapped subtasks, assignees, deadlines and comments with original authors and timestamps (spec §9.9).
+  2. Counts match: subtasks == resolutions; assignees == executors + co-executors; comments == migrated notes/history entries.
+  3. Each subtask has the original task as `parent_task_id`, the parent's `space_id` and a status of the mapped category; a Space lacking a status of the category follows the documented fallback in ADR-0010.
+  4. Redirect chains produce flat siblings (no subtask of a subtask) plus the "Redirected from" comment (§5.8, ST-1).
+  5. Already-sent reminders produce `task_reminder` rows (spec §9.8).
+  6. Legacy tables still exist and are not modified; audit rows untouched; V16/V23 unmodified (RR-6, RR-7).
+  7. Mapping is deterministic (same input, same output in tests).
+- **Tests required:** unit (state mapping, marker text), integration (migration on fake data, counts and content).
+- **Notes:** [ASSUMPTION] state mapping (spec §8 Q7). Migrated subtask deadlines may exceed the parent's; ST-3 applies to new edits only.
+
+#### INC-073 — Assignees backend: endpoints, `TaskEditPolicy`, filters
+- **Status:** TODO
+- **Module(s):** backend `tasks`
+- **Depends on:** INC-071
+- **Scope:** `GET/POST/DELETE /api/v1/tasks/{id}/assignees`; rules AS-1..AS-5 (self-assign by creator with `tasks.create` or by `tasks.edit.any`; others need `tasks.assign`; archived/blocked users rejected through a public members/identity interface; removal sets `removedAt`); `TaskEditPolicy` extended so assignees may change status, comment and manage artifacts; list filters `assignee`, `creator`, `deadlineFrom/To`, `overdue` with pagination; saved filters renamed "My tasks", "Issued by me", "Overdue"; audit events for assign/unassign/deadline/status change; `TaskEvent` variants for assigned, unassigned, deadline changed, status changed (consumed in INC-076). OpenAPI + client regenerated.
+- **Out of scope:** subtasks, artifacts, notification delivery, UI.
+- **Acceptance criteria:**
+  1. A task can hold several active assignees; a second active row for the same user is rejected (AS-1).
+  2. Adding another user without `tasks.assign` returns 403; self-assign with `tasks.create` succeeds (spec §9.4).
+  3. Assigning an archived or blocked user returns an RFC 7807 error with an i18n message (AS-3).
+  4. Removal keeps the row with `removedAt`; the audit event holds before/after (AS-4).
+  5. An assignee can change status; a non-creator, non-assignee without `tasks.edit.any` cannot (AS-5), proven by `TaskEditPolicy` unit tests.
+  6. Filters `assignee`, `creator`, `deadlineFrom/To`, `overdue` return correct pages; "overdue" excludes DONE/CANCELED categories and archived tasks.
+  7. Assign/unassign/deadline/status change each emit an audit event and a domain event; a no-op change emits neither (§6.4).
+  8. `@PreAuthorize` with permission keys on every new endpoint; OpenAPI updated and client regenerated.
+- **Tests required:** unit (policy, assign rules), integration (API, 403/200 matrix, filters, audit).
+- **Notes:** Q9 default: any active user may be assigned.
+
+#### INC-074 — Subtasks backend: one level, deadline rules, suggest-close, cascade archive
+- **Status:** TODO
+- **Module(s):** backend `tasks`
+- **Depends on:** INC-073
+- **Scope:** `GET/POST /api/v1/tasks/{id}/subtasks` and list filter `parentId`; pure `SubtaskRules` (depth, deadline bound, conflicting-subtask list); creation rights (ST-2); `spaceId` inherited; archive/restore cascade parent -> subtasks (TM-4); pure `SuggestCloseRule` (successor of `SuggestDoneRule`) exposed as `suggestClose` in the task DTO plus open-subtask count; task detail returns task, assignees and subtasks in one response (§7). OpenAPI + client regenerated.
+- **Out of scope:** UI, notification delivery, deleting `SuggestDoneRule`/`ResolutionCascade` (INC-081).
+- **Acceptance criteria:**
+  1. A user with `tasks.create` who can view the parent can add a subtask for self; for another user `tasks.assign` is required, else 403 (ST-2, spec §9.5).
+  2. A subtask of a subtask is rejected with an RFC 7807 error (ST-1).
+  3. A subtask deadline later than the parent's is rejected; a parent without a deadline imposes no limit (ST-3).
+  4. Moving the parent deadline before an existing subtask deadline is rejected with an error naming the conflicting subtasks and changes nothing (ST-3).
+  5. Archiving a task archives its subtasks and restoring restores them, each with an audit event; no hard delete (TM-4).
+  6. `suggestClose` is true only when at least one non-archived, non-canceled subtask exists and all of them are in the DONE category; pure-function unit tests; the parent status never changes automatically (ST-4, spec §9.6).
+  7. Moving the parent to DONE with open subtasks is allowed; the DTO exposes the open count (ST-5).
+- **Tests required:** unit (SubtaskRules, SuggestCloseRule), integration (API, cascade, audit, 403 cases).
+- **Notes:** Edits that do not touch the deadline on migrated subtasks that violate ST-3 must not fail.
+
+#### INC-075 — Artifacts backend: files and links
+- **Status:** TODO
+- **Module(s):** backend `tasks` (uses `files` via public `FileService`)
+- **Depends on:** INC-071
+- **Scope:** `GET/POST/DELETE /api/v1/tasks/{id}/artifacts`; FILE (existing `FileObject`, ADR-0005 rules) and LINK (`url`, optional `title`); validation http/https only, max 2048 chars; add/remove rights (creator, assignees, `tasks.edit.any`); removal archives the record, file stays; migration copying `Task.attachmentIds` into FILE artifacts (idempotent); artifact DTO with name, type, added by/at included in task detail; audit events. OpenAPI + client regenerated.
+- **Out of scope:** UI; dropping the `attachmentIds` column; changes to file storage.
+- **Acceptance criteria:**
+  1. A file and an `https` link can be attached and removed; removal sets the archive timestamp and the file remains in storage (AR-1, AR-3, spec §9.7).
+  2. `javascript:`, `ftp:`, `data:` and over-length URLs are rejected with RFC 7807 errors (AR-2).
+  3. Users who are not creator, assignee or `tasks.edit.any` get 403 (AR-3).
+  4. Existing `attachmentIds` appear as FILE artifacts, with no duplicates on repeated runs (AR-4).
+  5. Task detail lists artifacts with name, type, adder and timestamp (AR-5).
+  6. Add/remove emit audit events with before/after; no access to `files` internals.
+- **Tests required:** unit (URL validator), integration (API, permissions, attachment migration, audit).
+- **Notes:** Old attachment endpoints remain until INC-082 moves the UI.
+
+#### INC-076 — Reminders and notifications on tasks
+- **Status:** TODO
+- **Module(s):** backend `notifications` (reads tasks via public `ActiveTaskQuery` in `tasks`)
+- **Depends on:** INC-073, INC-074
+- **Scope:** public `ActiveTaskQuery`; `DueDateReminderService` reworked to `crm.notifications.due-reminders.offsets` (default 3d,1d) through one `ReminderOffsetsProvider`; idempotency in `task_reminder` keyed by (task, user, threshold, deadline) so a changed deadline re-arms; most-urgent-only on first sight, overdue-only when past; recipients per NT-2; new `NotificationType` values `TASK_ASSIGNED`, `TASK_UNASSIGNED`, `TASK_DEADLINE_CHANGED`, `TASK_DUE_SOON`, `TASK_OVERDUE`, `SUBTASK_ADDED`, `TASK_STATUS_CHANGED`; listeners for `TaskEvent`; actors not notified of own actions; uk+en messages. `RESOLUTION_*` values stay (deprecated) and are no longer emitted.
+- **Out of scope:** per-user offsets [OPEN]; Telegram/email; frontend rendering (INC-082).
+- **Acceptance criteria:**
+  1. With offsets 3d and 1d and a fixed `Clock`, one run yields exactly one notification per assignee per offset; a second run yields none (NT-3, spec §9.8).
+  2. Changing the deadline re-arms the reminders (NT-3).
+  3. A task first seen inside the 1d window yields only the 1d notification; an overdue task yields exactly one `TASK_OVERDUE` (NT-4).
+  4. DONE/CANCELED-category and archived tasks yield none (NT-2).
+  5. The creator also gets overdue if not an assignee; a task without assignees notifies its creator (NT-2).
+  6. Assignment, unassignment, deadline change, subtask added to my task and status change (creator/assignees, Q5) notify the right recipients and never the actor (NT-6, NT-7).
+  7. No `RESOLUTION_*` notification is emitted; stored ones remain valid.
+  8. Offsets come from properties; messages exist in uk and en; one failing task does not stop the run (§7).
+  9. Reminders migrated by INC-072 prevent duplicates (spec §9.8).
+- **Tests required:** unit (threshold selection with fixed `Clock`, recipient rules), integration (service run, listeners).
+- **Notes:** [ASSUMPTION] offsets (Q1); extension point `ReminderOffsetsProvider`.
+
+#### INC-077 — Frontend: master/detail tracker, side panel and mobile sheet
+- **Status:** TODO
+- **Module(s):** frontend `tasks`, `layout` (route only)
+- **Depends on:** INC-073, INC-074, INC-075
+- **Scope:** `/tasks` master/detail with nested route `/tasks/:id` opening the panel in place; one panel component shown as right panel (>= 1024 px), overlay (tablet), full-screen sheet with back button (< 768 px) with focus trap and focus return; panel shows title, status selector, assignee avatars, issue date, deadline (overdue highlighted), description, artifacts and subtasks (read), comments (lazy); list and kanban cards open the same panel; browser back closes it; `TaskDetailPage` route redirects to the same URL; reduced motion; uk+en; tokens only; ARIA roles for list/detail; 409 shows a reload hint. Resolution UI remains untouched and working.
+- **Out of scope:** inline editing (INC-078), "My tasks" (INC-079), keyboard shortcuts (INC-083).
+- **Acceptance criteria:**
+  1. At >= 1024 px selecting a task in list or kanban opens the panel on `/tasks/:id` without a full page navigation, with all listed fields (UI-1, UI-2, UI-6, spec §9.2).
+  2. At 375 px the task opens in a full-screen sheet with back control, no horizontal scroll, focus moves in and returns on close, in light and dark (UI-3, UI-8, spec §9.3).
+  3. Opening a task needs one request for task + assignees + subtasks + artifacts; comments load lazily (§7).
+  4. `/tasks/:id` deep links work on cold load; browser back closes the panel.
+  5. Touch targets >= 44 px; animation off under `prefers-reduced-motion`; WCAG AA in both themes.
+  6. A 409 on edit shows a reload hint (§6.5).
+  7. All new strings in uk and en; no hardcoded colors; lint, test, build pass.
+- **Tests required:** frontend component tests (panel vs sheet by breakpoint, route sync, focus return), Playwright at desktop and 375 px (light/dark).
+- **Notes:** none.
+
+#### INC-078 — Frontend: inline subtasks, assignees, artifacts and quick actions
+- **Status:** TODO
+- **Module(s):** frontend `tasks`
+- **Depends on:** INC-077
+- **Scope:** in the panel: add subtask inline (for me / for someone, the latter only with `tasks.assign`), inline status toggle on subtasks, add/remove assignees, add/remove artifacts (upload and link), set deadline and status without a dialog; `SuggestCloseBanner` driven by `suggestClose` (one click, never automatic); warning when moving the parent to DONE with open subtasks; rule errors (ST-3) list the conflicting subtasks; controls follow the user's permissions.
+- **Out of scope:** My tasks overview, backend, removing old attachment components.
+- **Acceptance criteria:**
+  1. A user can add a subtask for self; "for someone" appears only with `tasks.assign` (ST-2, UI-5).
+  2. Assignees can be added/removed in the panel; a permission error renders an i18n message (AS-3).
+  3. A file and an `https` link can be added and removed; an invalid URL is rejected before submit (AR-1, AR-2).
+  4. The suggest-close banner shows when `suggestClose` is true and closes the parent only on click; a test proves the status is otherwise unchanged (ST-4, spec §9.6).
+  5. Moving the parent to DONE with open subtasks shows a warning (ST-5).
+  6. A rejected deadline lists the conflicting subtasks (ST-3).
+  7. 375 px, light/dark, uk+en, tokens only; lint/test/build pass.
+- **Tests required:** frontend tests per interaction; one Playwright journey: browse -> open -> comment -> change status -> add subtask.
+- **Notes:** none.
+
+#### INC-079 — Frontend: "My tasks" overview and "Issued by me"
+- **Status:** TODO
+- **Module(s):** frontend `tasks`
+- **Depends on:** INC-077, INC-073
+- **Scope:** default section of `/tasks`: groups Overdue, This week, Later, No deadline with counts plus an "Issued by me" tab, using the `assignee`/`creator`/`overdue` filters; grouping as a pure function in `taskLogic`; reuses the panel; component exported for the main-page widget (wired in INC-082); saved-filter labels renamed.
+- **Out of scope:** dashboard widget wiring, backend.
+- **Acceptance criteria:**
+  1. Groups and counts are computed by a pure, unit-tested function using `Europe/Kyiv` day boundaries (UI-4).
+  2. "Issued by me" lists tasks I created that are assigned to others (spec §3).
+  3. Selecting an item opens the panel; layout works at 375 px, light/dark; uk+en.
+  4. Lint/test/build pass.
+- **Tests required:** unit (grouping), frontend component tests.
+- **Notes:** none.
+
+#### INC-080 — Switch search, analytics and members to tasks
+- **Status:** TODO
+- **Module(s):** backend `search`, `analytics`, `members`, `tasks` (public query interfaces)
+- **Depends on:** INC-072, INC-073, INC-074
+- **Scope:** public `PersonalTaskSummary` and `MemberTaskCounts` in `tasks` (active/overdue by assignee); `DashboardService` ("My metrics" and "My tasks" payload) and the member-profile task counts/list consume them; `SearchIndexer` indexes tasks with assignee names and subtask titles; resolution documents removed from the index (reindex); old resolution interfaces stay until INC-081 but are unused. OpenAPI + client regenerated.
+- **Out of scope:** removing resolution classes/endpoints; frontend removal.
+- **Acceptance criteria:**
+  1. Search finds a task by assignee full name and by subtask title; no resolution documents are returned (RR-5, spec §9.10).
+  2. "My metrics" active/overdue come from tasks via assignees, excluding DONE/CANCELED and archived (RR-5).
+  3. Member profile active/overdue counts and list come from tasks (RR-5).
+  4. The index updates when assignees change, a task is archived or a subtask is added.
+  5. Each consumer has an integration test; modules interact only via public interfaces.
+- **Tests required:** integration (search, dashboard, members), unit for summaries.
+- **Notes:** Handover (v2) not planned; assignee queries are the extension point.
+
+#### INC-081 — Remove resolutions in the backend (endpoints, code, permission keys)
+- **Status:** TODO
+- **Module(s):** backend `tasks`, `access` (catalog + migration only), `audit`, `notifications`, `analytics`, `search`
+- **Depends on:** INC-072, INC-076, INC-080, INC-082
+- **Scope:** delete `Resolution*` classes, `ResolutionController`, `MemberResolutionController`, state machine, cascade, `SuggestDoneRule`, `ActiveResolutionQuery`, `ChildResolutionAccepted`, `ResolutionEvent`, `ResolutionText`, `PersonalResolutionSummary`, `MemberResolutionCounts`, `TaskResolutionSpecs`, listeners; remove `resolutions.create` and `resolutions.redirect` from `Permission` and the role builder, with a migration deleting both keys from role-permission rows (after `tasks.assign` was granted in INC-071); legacy audit entity types stay readable (RR-7); legacy tables retained, never written; OpenAPI regenerated without `/resolutions`.
+- **Out of scope:** dropping legacy tables (human decision), frontend, removing `NotificationType` values.
+- **Acceptance criteria:**
+  1. No `Resolution*`/`resolutions.*` class, endpoint or permission key remains in `src/` except migrations, deprecated `NotificationType` values and legacy audit labels (spec §9.1, RR-3, RR-4).
+  2. Old keys are removed from role-permission rows by a new migration; roles that held `resolutions.create` still hold `tasks.assign` (spec §9.10).
+  3. OpenAPI has no `/resolutions` paths (RR-2).
+  4. Legacy tables exist, are never written; past audit rows untouched (RR-6, RR-7).
+  5. `./mvnw verify` is green.
+- **Tests required:** integration (permission migration on seeded roles); obsolete resolution tests deleted, remaining suite green.
+- **Notes:** Runs after INC-082 so the frontend no longer calls removed endpoints.
+
+#### INC-082 — Remove resolutions in the frontend; widget, profile, notifications, routes
+- **Status:** TODO
+- **Module(s):** frontend `tasks`, `dashboard`, `members`, `notifications`, `search`, `layout`, `i18n`
+- **Depends on:** INC-078, INC-079, INC-080
+- **Scope:** delete `ResolutionsPanel`, `ResolutionChain`, `ResolutionDialogs`, `StateBadge`, `PersonalResolutionsPage`, `MemberResolutionList`, `MemberResolutionsSection`, `ResolutionRedirectPage`, related hooks/tests/i18n keys and superseded attachment components; `MyResolutionsWidget` becomes "My tasks" on the overview component; member profile section reads tasks; notification rendering for the new types (legacy `RESOLUTION_*` rendered generically); search labels; old resolution routes redirect to `/tasks`; audit UI renders unknown legacy entity types generically (RR-7); role-builder permission labels; TS client regenerated.
+- **Out of scope:** backend removal (INC-081).
+- **Acceptance criteria:**
+  1. No file, route, component, hook or i18n key named `Resolution*`/`resolutions.*` remains in `frontend/src` except generated legacy types if unavoidable (spec §9.1, RR-1).
+  2. Old resolution URLs redirect to `/tasks` (§7).
+  3. The main-page widget and member profile show tasks via assignees (RR-5, UI-4).
+  4. New notification types render in uk and en; legacy types still render (NT-6).
+  5. All new strings in uk and en (spec §9.10); the TS client compiles; lint/test/build pass.
+- **Tests required:** frontend tests (widget, profile, notifications, redirects), e2e navigation smoke.
+- **Notes:** The backend still serves the old endpoints at this point, so the app stays working.
+
+#### INC-083 — Hardening: performance, keyboard, full-journey e2e, docs, proposal
+- **Status:** TODO
+- **Module(s):** backend `tasks`, frontend `tasks`, `docs`
+- **Depends on:** INC-081, INC-082
+- **Scope:** list query/index check with a 2,000-task fixture; full-journey Playwright (assign, subtasks, artifacts, mobile 375 px, light/dark); a11y audit of panel and sheet; keyboard (Esc closes the panel, arrows in list; P2); README/commands update; ADR-0010 status Accepted; proposal in `docs/proposals/` listing the CONTEXT.md changes of spec §3 (CONTEXT.md itself is not edited).
+- **Out of scope:** dropping legacy tables; new features; removing deprecated `NotificationType` values (stored notifications must still render).
+- **Acceptance criteria:**
+  1. Task list with 2,000 tasks responds within 300 ms p95 in a documented integration benchmark using the INC-071 indexes (§7).
+  2. Full-journey e2e passes at desktop and 375 px, light and dark (spec §9.2, §9.3).
+  3. Esc closes the panel and arrows navigate the list (UI-7); the a11y check reports no serious violations on panel and sheet.
+  4. `docs/proposals/` covers every row of spec §3; ADR-0010 is Accepted.
+  5. `./mvnw verify`, `npm test`, `npm run lint`, `npm run build` are green.
+- **Tests required:** integration (benchmark), e2e, a11y.
+- **Notes:** none.
+
+### Open questions
+Non-blocking; spec §8 defaults are used.
+1. Reminder offsets 3d + 1d, no per-user override (INC-076).
+2. Shared status vs per-assignee status; default shared (INC-073).
+3. Subtask depth one level (INC-074).
+4. Subtask deadline <= parent deadline (INC-074).
+5. Notify creator when an assignee changes status; default yes (INC-076).
+6. Auto-close parent; default suggest only (INC-074/078).
+7. Old-state mapping, SUBMITTED -> IN_PROGRESS flagged by comment (INC-072).
+8. Legacy tables kept one release, then a human-approved drop (INC-081/083).
+9. Restricting who can be assigned; default any active user (INC-073).
+10. Watchers: not in this feature.
+11. Handover (v2) transfer of assignee and/or creator: not planned here.
+Planner-raised: a Space without a status in the target category during migration (INC-072) needs a fallback recorded in ADR-0010 and human confirmation.
+
+### Conflicts
+- The spec is a DRAFT in `.claude/`; planned as binding for its §3 only, per the user's instruction. CONTEXT.md still holds the resolution text (§3, §4, §5.2, §5.3, §5.9); INC-083 produces a proposal for a human.
+- Spec §10 suggests 5-7 increments; this plan has 13 for review-size reasons (A -> 071/072, B -> 073/074, C -> 075, D -> 076, E -> 077/078/079, F -> 080/082/081, G -> 083). Numbering starts at INC-071 since INC-063..070 are recorded as absorbed.
+- The API field rename `dueDate` -> `deadline` is breaking for the TS client; handled in INC-071.
