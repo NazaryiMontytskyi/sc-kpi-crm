@@ -33,6 +33,9 @@ cd frontend
 npm ci
 npm run dev             # http://localhost:5173, proxies /api to http://localhost:8080
 npm run build | npm run lint | npm test
+npm run check:images        # after build: sign-in photo variants and the phone budget (<= 250 KB)
+npm run check:login-budget  # sign-in page JS + CSS <= 30 KB gzip, photo metadata only in the lazy chunk
+npm run check:contrast      # white overlay text >= 4.5:1 over the brightest region of every sign-in photo
 npm run api:generate    # regenerate the typed client from the pinned frontend/openapi/openapi.json
 npm run api:generate:live   # refresh openapi.json from a running backend (dev profile), then regenerate
 ```
@@ -79,3 +82,16 @@ E2E_RESET=1 bash deploy/e2e.sh                      # start from an empty databa
 E2E_BASE_URL=http://localhost:8081 npm run e2e      # from frontend/: run against a stack that is already up (nothing is started)
 ```
 `deploy/e2e.sh` uses its own compose project (`E2E_PROJECT`, default `crme2e`, nginx on `E2E_HTTP_PORT`, default 8081), so it never touches a normal `crm` stack. The stack is stopped afterwards with its volumes kept (`E2E_KEEP_STACK=1` leaves it running). No env file is read or created: the script passes fake, throw-away values (database password, bootstrap Admin `e2e.admin`) through the process environment, and the suite creates its own uniquely named fake members, roles, spaces and articles through the API and UI, so it can be re-run any number of times. Report and traces of failures are written to `frontend/e2e/.output/` (git-ignored). Vitest (`npm test`) does not pick up the e2e specs.
+
+## Sign-in page budgets (manual check)
+The animated sign-in page (MAIN_PAGE_FEATURE.md §8) has budgets that only a real browser can measure. Run them against the production build, never the dev server:
+```bash
+cd frontend && npm run build && npm run preview -- --port 4173   # serves dist/ on http://localhost:4173
+```
+The preview has no backend, so `/api/v1/auth/me` fails and the form stays in its signed-out state; that is enough for these checks (or point the same steps at a running compose stack, e.g. `http://localhost:8081/login`). Use a fresh incognito Chrome window (no extensions) and record every number in the validation report.
+1. **Lighthouse (mobile):** DevTools > Lighthouse > Mode "Navigation", Device "Mobile", categories Performance + Accessibility, URL `/login` (or `npx lighthouse http://localhost:4173/login --form-factor=mobile --only-categories=performance,accessibility --output=json`). Target: Performance >= 85, Accessibility >= 95. Also note CLS from the same report: target < 0.05.
+2. **Form interactive on Fast 3G:** DevTools > Network throttling "Fast 3G" (Performance tab, CPU 4x slowdown), cache disabled, reload `/login`, record the time until the Login field accepts typing (Performance panel: the first frame where the card is painted and no long task blocks the main thread; or Lighthouse "Time to Interactive" under the same throttling). Target <= 2.5 s; the first photo may still be loading (the aurora is shown meanwhile).
+3. **60 fps / long tasks:** desktop Chrome, Performance panel, record 10 s on `/login` while moving the mouse over the page (parallax, cursor light) and across one slide change; FPS meter (Rendering > Frame rendering stats) stays at about 60 fps, no long task > 50 ms comes from the sign-in code.
+4. **Light/dark, 375 px:** device toolbar at 375 x 667, both colour schemes (Rendering > Emulate `prefers-color-scheme`), and with Rendering > Emulate `prefers-reduced-motion: reduce`.
+
+A missed target is not waived: it becomes a follow-up increment in `PLAN.md`.

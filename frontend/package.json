@@ -11,6 +11,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "check:images": "node scripts/check-images.mjs",
+    "check:login-budget": "node scripts/check-login-budget.mjs",
+    "check:contrast": "vitest run scripts/overlay-contrast.test.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
