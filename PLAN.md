@@ -1014,7 +1014,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** [ASSUMPTION] state mapping (spec §8 Q7). Migrated subtask deadlines may exceed the parent's; ST-3 applies to new edits only.
 
 #### INC-073 — Assignees backend: endpoints, `TaskEditPolicy`, filters
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-071
 - **Scope:** `GET/POST/DELETE /api/v1/tasks/{id}/assignees`; rules AS-1..AS-5 (self-assign by creator with `tasks.create` or by `tasks.edit.any`; others need `tasks.assign`; archived/blocked users rejected through a public members/identity interface; removal sets `removedAt`); `TaskEditPolicy` extended so assignees may change status, comment and manage artifacts; list filters `assignee`, `creator`, `deadlineFrom/To`, `overdue` with pagination; saved filters renamed "My tasks", "Issued by me", "Overdue"; audit events for assign/unassign/deadline/status change; `TaskEvent` variants for assigned, unassigned, deadline changed, status changed (consumed in INC-076). OpenAPI + client regenerated.
