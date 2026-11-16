@@ -77,7 +77,7 @@ const TASK: tasksApi.Task = {
   title: 'Фейкова задача',
   statusId: 's1',
   priority: 'NORMAL',
-  dueDate: null,
+  deadline: null,
   labels: [],
   attachmentCount: 0,
   authorId: 'alice',

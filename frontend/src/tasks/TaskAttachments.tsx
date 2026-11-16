@@ -12,7 +12,7 @@ function inputOf(task: Task): TaskInput {
     title: task.title,
     description: task.description ?? undefined,
     priority: task.priority,
-    dueDate: task.dueDate ?? undefined,
+    deadline: task.deadline ?? undefined,
     labels: task.labels,
     customFieldValues: task.customFieldValues,
   };

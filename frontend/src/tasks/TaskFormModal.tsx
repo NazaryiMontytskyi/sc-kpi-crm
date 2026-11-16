@@ -39,7 +39,7 @@ export function TaskFormModal({ task, spaces, defaultSpaceId, onClose, onSaved }
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState<RichDoc | undefined>(task?.description ?? undefined);
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'NORMAL');
-  const [dueDate, setDueDate] = useState(task?.dueDate ?? '');
+  const [deadline, setDeadline] = useState(task?.deadline ?? '');
   const [labels, setLabels] = useState<string[]>(task?.labels ?? []);
   const [draft, setDraft] = useState<FieldDraft | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -48,7 +48,7 @@ export function TaskFormModal({ task, spaces, defaultSpaceId, onClose, onSaved }
   const fields = activeFields(space.data);
   // Custom values are seeded from the task once the space is loaded; changing the space starts from empty.
   const values: FieldDraft = draft ?? draftFromValues(fields, task && task.spaceId === spaceId ? task.customFieldValues : {});
-  const formErrors = validateTaskForm({ title, priority, dueDate, labels });
+  const formErrors = validateTaskForm({ title, priority, deadline, labels });
   const fieldErrors = validateFieldDrafts(fields, values);
   const valid = Object.keys(formErrors).length === 0 && Object.keys(fieldErrors).length === 0 && !!spaceId && !!space.data;
   const serverErrors = fieldErrorMap(failure);
@@ -63,7 +63,7 @@ export function TaskFormModal({ task, spaces, defaultSpaceId, onClose, onSaved }
       title: title.trim(),
       description,
       priority,
-      dueDate: dueDate || undefined,
+      deadline: deadline || undefined,
       labels: normalizeLabels(labels),
       customFieldValues: valuesFromDraft(fields, values),
     };
@@ -121,9 +121,9 @@ export function TaskFormModal({ task, spaces, defaultSpaceId, onClose, onSaved }
           <TextInput
             label={t('tasks.fields.dueDate')}
             type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.currentTarget.value)}
-            error={show('dueDate')}
+            value={deadline}
+            onChange={(e) => setDeadline(e.currentTarget.value)}
+            error={show('deadline')}
             size="md"
           />
           <TagsInput

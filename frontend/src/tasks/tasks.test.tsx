@@ -86,7 +86,7 @@ const TASK: api.Task = {
   title: 'Фейкова задача',
   statusId: 's1',
   priority: 'HIGH',
-  dueDate: '2031-03-05',
+  deadline: '2031-03-05',
   labels: ['тест'],
   attachmentCount: 0,
   authorId: 'author',
@@ -148,11 +148,11 @@ describe('task logic', () => {
   });
 
   it('validates the task form', () => {
-    expect(validateTaskForm({ title: ' ', priority: 'NORMAL', dueDate: '', labels: [] }).title).toBeDefined();
-    expect(validateTaskForm({ title: 'a'.repeat(301), priority: 'NORMAL', dueDate: '', labels: [] }).title).toBeDefined();
-    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', dueDate: '2031-13-01', labels: [] }).dueDate).toBeDefined();
-    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', dueDate: '', labels: ['x'.repeat(51)] }).labels).toBeDefined();
-    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', dueDate: '2031-03-05', labels: ['x'] })).toEqual({});
+    expect(validateTaskForm({ title: ' ', priority: 'NORMAL', deadline: '', labels: [] }).title).toBeDefined();
+    expect(validateTaskForm({ title: 'a'.repeat(301), priority: 'NORMAL', deadline: '', labels: [] }).title).toBeDefined();
+    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', deadline: '2031-13-01', labels: [] }).deadline).toBeDefined();
+    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', deadline: '', labels: ['x'.repeat(51)] }).labels).toBeDefined();
+    expect(validateTaskForm({ title: 'a', priority: 'NORMAL', deadline: '2031-03-05', labels: ['x'] })).toEqual({});
   });
 
   it('normalizes labels, reorders items and counts filters', () => {
@@ -263,7 +263,7 @@ describe('TaskFormModal edit', () => {
     expect(id).toBe("t1");
     expect(related).toEqual(["rel1"]);
     expect(attachments).toEqual(["att1", "att2"]);
-    expect(input).toMatchObject({ title: "Фейкова задача", priority: "HIGH", dueDate: "2031-03-05", labels: ["тест"], customFieldValues: { f1: "значення" } });
+    expect(input).toMatchObject({ title: "Фейкова задача", priority: "HIGH", deadline: "2031-03-05", labels: ["тест"], customFieldValues: { f1: "значення" } });
   });
 });
 

@@ -51,7 +51,7 @@ export interface TaskSummary {
   title: string;
   statusId: string;
   priority: TaskPriority;
-  dueDate: string | null;
+  deadline: string | null;
   labels: string[];
   attachmentCount: number;
   authorId: string;
@@ -75,7 +75,7 @@ export interface TaskInput {
   title: string;
   description?: RichDoc;
   priority: TaskPriority;
-  dueDate?: string;
+  deadline?: string;
   labels: string[];
   customFieldValues: CustomFieldValues;
 }
@@ -130,7 +130,7 @@ export interface SavedFilter {
   criteria: FilterCriteria;
 }
 
-export type TaskSortField = 'createdAt' | 'updatedAt' | 'dueDate' | 'title';
+export type TaskSortField = 'createdAt' | 'updatedAt' | 'deadline' | 'title';
 export type SortDirection = 'asc' | 'desc';
 
 export interface TaskQuery {
@@ -210,7 +210,7 @@ function toTaskSummary(t: Schemas['TaskSummaryResponse']): TaskSummary {
     title: t.title ?? '',
     statusId: t.statusId ?? '',
     priority: t.priority ?? 'NORMAL',
-    dueDate: t.dueDate ?? null,
+    deadline: t.deadline ?? null,
     labels: t.labels ?? [],
     attachmentCount: t.attachmentCount ?? 0,
     authorId: t.authorId ?? '',

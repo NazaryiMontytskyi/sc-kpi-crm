@@ -37,7 +37,7 @@ const task = (over: Partial<api.TaskSummary>): api.TaskSummary => ({
   title: 'Фейкова задача',
   statusId: 's1',
   priority: 'NORMAL',
-  dueDate: null,
+  deadline: null,
   labels: [],
   attachmentCount: 0,
   authorId: 'a',
@@ -45,7 +45,7 @@ const task = (over: Partial<api.TaskSummary>): api.TaskSummary => ({
   createdAt: '2031-01-01T10:00:00Z',
   ...over,
 });
-const T1 = task({ id: 't1', title: 'Перша', dueDate: '2000-01-01', labels: ['мітка'] });
+const T1 = task({ id: 't1', title: 'Перша', deadline: '2000-01-01', labels: ['мітка'] });
 const T2 = task({ id: 't2', title: 'Друга', statusId: 's2' });
 
 function renderBoard() {

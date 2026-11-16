@@ -39,7 +39,7 @@ export interface paths {
         get: operations["get"];
         /**
          * Edit a task (replaces all editable fields)
-         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived. The relatedTaskIds list is the complete new set of symmetric links.
+         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links.
          */
         put: operations["update"];
         post?: never;
@@ -402,14 +402,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)
-         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.
+         * Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)
+         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, compared with the deadline). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.
          */
         get: operations["list"];
         put?: never;
         /**
          * Create a task
-         * @description The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the author.
+         * @description The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the creator and issuedAt is the creation time.
          */
         post: operations["create"];
         delete?: never;
@@ -450,7 +450,7 @@ export interface paths {
         put?: never;
         /**
          * Change the status of a task
-         * @description Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422).
+         * @description Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version.
          */
         post: operations["changeStatus"];
         delete?: never;
@@ -2230,6 +2230,8 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         UpdateTaskRequest: {
+            /** Format: int64 */
+            expectedVersion?: number;
             title: string;
             description?: {
                 [key: string]: unknown;
@@ -2237,7 +2239,7 @@ export interface components {
             /** @enum {string} */
             priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
             /** Format: date */
-            dueDate?: string;
+            deadline?: string;
             labels?: string[];
             customFieldValues?: {
                 [key: string]: unknown;
@@ -2258,6 +2260,8 @@ export interface components {
             id?: string;
             /** Format: uuid */
             spaceId?: string;
+            /** Format: uuid */
+            parentId?: string;
             title?: string;
             description?: {
                 [key: string]: unknown;
@@ -2267,7 +2271,11 @@ export interface components {
             /** @enum {string} */
             priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
             /** Format: date */
-            dueDate?: string;
+            deadline?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: uuid */
+            creatorId?: string;
             labels?: string[];
             customFieldValues?: {
                 [key: string]: unknown;
@@ -2280,6 +2288,8 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
             suggestDone?: boolean;
+            /** Format: int64 */
+            version?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2696,7 +2706,7 @@ export interface components {
             /** @enum {string} */
             priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
             /** Format: date */
-            dueDate?: string;
+            deadline?: string;
             labels?: string[];
             customFieldValues?: {
                 [key: string]: unknown;
@@ -2753,6 +2763,8 @@ export interface components {
         ChangeTaskStatusRequest: {
             /** Format: uuid */
             statusId: string;
+            /** Format: int64 */
+            expectedVersion?: number;
         };
         CreateSpaceRequest: {
             name: string;
@@ -3044,13 +3056,19 @@ export interface components {
             id?: string;
             /** Format: uuid */
             spaceId?: string;
+            /** Format: uuid */
+            parentId?: string;
             title?: string;
             /** Format: uuid */
             statusId?: string;
             /** @enum {string} */
             priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
             /** Format: date */
-            dueDate?: string;
+            deadline?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: uuid */
+            creatorId?: string;
             labels?: string[];
             /** Format: int32 */
             attachmentCount?: number;
@@ -3062,6 +3080,8 @@ export interface components {
             /** Format: date-time */
             archivedAt?: string;
             suggestDone?: boolean;
+            /** Format: int64 */
+            version?: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

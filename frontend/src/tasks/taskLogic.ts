@@ -100,8 +100,8 @@ export function todayKyiv(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
 
-export function isOverdue(task: Pick<TaskSummary, 'dueDate' | 'archived'>, today: string): boolean {
-  return !!task.dueDate && !task.archived && task.dueDate < today;
+export function isOverdue(task: Pick<TaskSummary, 'deadline' | 'archived'>, today: string): boolean {
+  return !!task.deadline && !task.archived && task.deadline < today;
 }
 
 export function isRealDate(value: string): boolean {
@@ -173,11 +173,11 @@ export function valuesFromDraft(fields: CustomField[], draft: FieldDraft): Custo
 export interface TaskFormValues {
   title: string;
   priority: string;
-  dueDate: string;
+  deadline: string;
   labels: string[];
 }
 
-export type TaskFormErrors = Partial<Record<'title' | 'dueDate' | 'labels', string>>;
+export type TaskFormErrors = Partial<Record<'title' | 'deadline' | 'labels', string>>;
 
 /** Returns i18n keys per invalid field. */
 export function validateTaskForm(v: TaskFormValues): TaskFormErrors {
@@ -185,7 +185,7 @@ export function validateTaskForm(v: TaskFormValues): TaskFormErrors {
   const title = v.title.trim();
   if (title === '') errors.title = 'tasks.validation.titleRequired';
   else if (title.length > MAX_TITLE) errors.title = 'tasks.validation.titleTooLong';
-  if (v.dueDate !== '' && !isRealDate(v.dueDate)) errors.dueDate = 'tasks.validation.dueDateInvalid';
+  if (v.deadline !== '' && !isRealDate(v.deadline)) errors.deadline = 'tasks.validation.dueDateInvalid';
   if (v.labels.length > MAX_LABELS || v.labels.some((l) => l.trim().length > MAX_LABEL_LENGTH)) {
     errors.labels = 'tasks.validation.labelsInvalid';
   }

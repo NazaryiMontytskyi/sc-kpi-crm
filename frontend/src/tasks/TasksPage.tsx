@@ -25,8 +25,8 @@ import { useSpaceDetails, useSpaces, useTaskList } from './useTasks';
 const SORTS: { value: `${TaskSortField}:${SortDirection}`; key: string }[] = [
   { value: 'createdAt:desc', key: 'newest' },
   { value: 'createdAt:asc', key: 'oldest' },
-  { value: 'dueDate:asc', key: 'dueSoon' },
-  { value: 'dueDate:desc', key: 'dueLate' },
+  { value: 'deadline:asc', key: 'dueSoon' },
+  { value: 'deadline:desc', key: 'dueLate' },
   { value: 'title:asc', key: 'titleAsc' },
   { value: 'title:desc', key: 'titleDesc' },
   { value: 'updatedAt:desc', key: 'updated' },
@@ -62,9 +62,9 @@ export function TaskCard({ task, space }: { task: TaskSummary; space: Space | un
             </Text>
           )}
         </Group>
-        {task.dueDate && (
+        {task.deadline && (
           <Text size="sm" c={overdue ? 'red' : 'dimmed'}>
-            {t('tasks.due', { date: formatDate(task.dueDate) })}
+            {t('tasks.due', { date: formatDate(task.deadline) })}
             {overdue ? ` · ${t('tasks.overdue')}` : ''}
           </Text>
         )}

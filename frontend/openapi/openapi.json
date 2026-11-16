@@ -139,7 +139,7 @@
           "Tasks"
         ],
         "summary": "Edit a task (replaces all editable fields)",
-        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived. The relatedTaskIds list is the complete new set of symmetric links.",
+        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links.",
         "operationId": "update",
         "parameters": [
           {
@@ -1233,8 +1233,8 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)",
-        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.",
+        "summary": "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
+        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, compared with the deadline). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.",
         "operationId": "list",
         "parameters": [
           {
@@ -1389,7 +1389,7 @@
           "Tasks"
         ],
         "summary": "Create a task",
-        "description": "The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the author.",
+        "description": "The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the creator and issuedAt is the creation time.",
         "operationId": "create",
         "requestBody": {
           "content": {
@@ -1523,7 +1523,7 @@
           "Tasks"
         ],
         "summary": "Change the status of a task",
-        "description": "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422).",
+        "description": "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version.",
         "operationId": "changeStatus",
         "parameters": [
           {
@@ -5995,6 +5995,11 @@
       "UpdateTaskRequest": {
         "type": "object",
         "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "title": {
             "type": "string",
             "maxLength": 300,
@@ -6013,7 +6018,7 @@
               "URGENT"
             ]
           },
-          "dueDate": {
+          "deadline": {
             "type": "string",
             "format": "date"
           },
@@ -6076,6 +6081,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "title": {
             "type": "string"
           },
@@ -6096,9 +6105,17 @@
               "URGENT"
             ]
           },
-          "dueDate": {
+          "deadline": {
             "type": "string",
             "format": "date"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creatorId": {
+            "type": "string",
+            "format": "uuid"
           },
           "labels": {
             "type": "array",
@@ -6136,6 +6153,10 @@
           },
           "suggestDone": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           },
           "createdAt": {
             "type": "string",
@@ -7376,7 +7397,7 @@
               "URGENT"
             ]
           },
-          "dueDate": {
+          "deadline": {
             "type": "string",
             "format": "date"
           },
@@ -7561,6 +7582,11 @@
           "statusId": {
             "type": "string",
             "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         },
         "required": [
@@ -8417,6 +8443,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "title": {
             "type": "string"
           },
@@ -8433,9 +8463,17 @@
               "URGENT"
             ]
           },
-          "dueDate": {
+          "deadline": {
             "type": "string",
             "format": "date"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creatorId": {
+            "type": "string",
+            "format": "uuid"
           },
           "labels": {
             "type": "array",
@@ -8464,6 +8502,10 @@
           },
           "suggestDone": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           },
           "createdAt": {
             "type": "string",

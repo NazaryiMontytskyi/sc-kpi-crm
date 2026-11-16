@@ -114,7 +114,7 @@ function TaskBody({ task }: { task: Task }) {
             )}
           </Group>
           <Text size="sm">
-            {t('tasks.fields.dueDate')}: {task.dueDate ? formatDate(task.dueDate) : t('tasks.notSet')}
+            {t('tasks.fields.dueDate')}: {task.deadline ? formatDate(task.deadline) : t('tasks.notSet')}
           </Text>
           {task.labels.length > 0 && (
             <Group gap={4}>

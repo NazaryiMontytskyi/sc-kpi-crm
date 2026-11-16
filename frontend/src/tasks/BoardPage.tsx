@@ -41,9 +41,9 @@ function BoardCard({ task, columns, today, onMove }: CardProps) {
           <Badge variant="light" color={priorityColor(task.priority)} size="xs">
             {t(`tasks.priority.${task.priority}`)}
           </Badge>
-          {task.dueDate && (
+          {task.deadline && (
             <Text size="xs" c={overdue ? 'red' : 'dimmed'} data-testid={overdue ? 'board-overdue' : undefined}>
-              {t('tasks.due', { date: formatDate(task.dueDate) })}
+              {t('tasks.due', { date: formatDate(task.deadline) })}
               {overdue ? ` · ${t('tasks.overdue')}` : ''}
             </Text>
           )}

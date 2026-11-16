@@ -31,7 +31,7 @@ const TASK: Task = {
   title: 'Фейкова задача',
   statusId: 's1',
   priority: 'HIGH',
-  dueDate: '2031-03-05',
+  deadline: '2031-03-05',
   labels: ['тест'],
   attachmentCount: 2,
   authorId: 'author',
@@ -139,7 +139,7 @@ describe('TaskAttachments', () => {
     expect(id).toBe('t1');
     expect(related).toEqual(['rel1']);
     expect(attachments).toEqual(['a1', 'a2', 'a3']);
-    expect(input).toMatchObject({ title: 'Фейкова задача', priority: 'HIGH', dueDate: '2031-03-05', labels: ['тест'], customFieldValues: { f1: 'значення' } });
+    expect(input).toMatchObject({ title: 'Фейкова задача', priority: 'HIGH', deadline: '2031-03-05', labels: ['тест'], customFieldValues: { f1: 'значення' } });
   });
 
   it('shows the localized rejection message and does not attach a rejected file', async () => {
