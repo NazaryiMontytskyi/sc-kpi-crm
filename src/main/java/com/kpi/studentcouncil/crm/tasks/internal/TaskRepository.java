@@ -27,4 +27,7 @@ interface TaskRepository extends ArchivableRepository<Task, UUID> {
 
 	List<Task> findByIdIn(Collection<UUID> ids);
 
+	/** Flushes pending changes so the incremented {@code version} is visible before the response is built. */
+	void flush();
+
 }

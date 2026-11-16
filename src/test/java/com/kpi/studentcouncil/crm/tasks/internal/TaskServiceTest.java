@@ -64,6 +64,7 @@ class TaskServiceTest {
 		when(spaces.lockById(spaceId)).thenReturn(Optional.of(space));
 		when(statuses.findBySpaceIdAndArchivedAtIsNullOrderByPositionAscIdAsc(spaceId)).thenReturn(List.of(todo, done));
 		when(fields.findBySpaceIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(spaceId)).thenReturn(List.of());
+		when(actors.currentActorId()).thenReturn(author);
 		when(tasks.save(any(Task.class))).thenAnswer(inv -> {
 			Task t = inv.getArgument(0);
 			if (t.getId() == null) {
@@ -83,8 +84,8 @@ class TaskServiceTest {
 	}
 
 	private Task existingTask() {
-		Task task = new Task(spaceId, "Title", null, todo.getId(), TaskPriority.NORMAL, null, Set.of(), List.of(),
-				Map.of());
+		Task task = new Task(spaceId, author, java.time.Instant.parse("2026-01-01T10:00:00Z"), "Title", null,
+				todo.getId(), TaskPriority.NORMAL, null, Set.of(), List.of(), Map.of());
 		ReflectionTestUtils.setField(task, "id", UUID.randomUUID());
 		ReflectionTestUtils.setField(task, "createdBy", author);
 		when(tasks.lockById(task.getId())).thenReturn(Optional.of(task));
@@ -154,7 +155,7 @@ class TaskServiceTest {
 	void updateByANonAuthorIsForbiddenAndChangesNothing() {
 		Task task = existingTask();
 		doThrow(new ForbiddenException("TASK_EDIT_FORBIDDEN")).when(editPolicy).assertCanEdit(task);
-		assertThatThrownBy(() -> service.update(task.getId(), "New", null, null, null, null, null, null, null))
+		assertThatThrownBy(() -> service.update(task.getId(), null, "New", null, null, null, null, null, null, null))
 				.isInstanceOf(ForbiddenException.class);
 		assertThat(task.getTitle()).isEqualTo("Title");
 		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
@@ -163,33 +164,82 @@ class TaskServiceTest {
 	@Test
 	void updateAuditsBeforeAndAfterAndPublishesTaskUpdated() {
 		Task task = existingTask();
-		service.update(task.getId(), "New title", null, TaskPriority.HIGH, null, List.of("x"), null, null, null);
+		service.update(task.getId(), 0L, "New title", null, TaskPriority.HIGH, java.time.LocalDate.of(2031, 3, 5),
+				List.of("x"), null, null, null);
 		ArgumentCaptor<Object> before = ArgumentCaptor.forClass(Object.class);
 		ArgumentCaptor<Object> after = ArgumentCaptor.forClass(Object.class);
 		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(task.getId()), before.capture(), after.capture());
 		assertThat(((Map<?, ?>) before.getValue()).get("title")).isEqualTo("Title");
 		assertThat(((Map<?, ?>) after.getValue()).get("title")).isEqualTo("New title");
 		assertThat(((Map<?, ?>) after.getValue()).get("priority")).isEqualTo("HIGH");
+		assertThat(((Map<?, ?>) before.getValue()).get("deadline")).isNull();
+		assertThat(((Map<?, ?>) after.getValue()).get("deadline")).isEqualTo("2031-03-05");
+		for (Object snapshot : List.of(before.getValue(), after.getValue())) {
+			assertThat(snapshotOf(snapshot)).containsEntry("creatorId", author.toString())
+					.containsEntry("issuedAt", "2026-01-01T10:00:00Z").containsEntry("parentId", null)
+					.containsKey("version").doesNotContainKey("dueDate");
+		}
+		verify(tasks).flush();
 		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
 		verify(events).publishEvent(event.capture());
 		assertThat(((TaskEvent) event.getValue()).kind()).isEqualTo(TaskEvent.Kind.UPDATED);
 	}
 
 	@Test
+	void createSetsTheCreatorAndTheIssueDateAndAuditsTheNewFields() {
+		TaskService.TaskView view = create(null);
+		assertThat(view.task().getCreatorId()).isEqualTo(author);
+		assertThat(view.task().getAuthorId()).isEqualTo(author);
+		assertThat(view.task().getIssuedAt()).isNotNull();
+		assertThat(view.task().getParentTaskId()).isNull();
+		ArgumentCaptor<Object> after = ArgumentCaptor.forClass(Object.class);
+		verify(audit).publish(eq(AuditAction.CREATE), eq("Task"), eq(view.task().getId()), eq(null), after.capture());
+		assertThat(snapshotOf(after.getValue())).containsEntry("creatorId", author.toString())
+				.containsEntry("issuedAt", view.task().getIssuedAt().toString()).containsEntry("deadline", null)
+				.containsEntry("parentId", null).containsEntry("version", 0L);
+	}
+
+	@Test
+	void updateWithAStaleVersionIsAConflictAndChangesNothing() {
+		Task task = existingTask();
+		ReflectionTestUtils.setField(task, "version", 3L);
+		assertThatThrownBy(() -> service.update(task.getId(), 2L, "New", null, null, null, null, null, null, null))
+				.isInstanceOfSatisfying(DomainException.class, e -> {
+					assertThat(e.getCode()).isEqualTo("TASK_VERSION_CONFLICT");
+					assertThat(e.getStatus().value()).isEqualTo(409);
+					assertThat(e.getArgs()).containsExactly(3L);
+				});
+		assertThat(task.getTitle()).isEqualTo("Title");
+		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
+		service.update(task.getId(), 3L, "New", null, null, null, null, null, null, null);
+		assertThat(task.getTitle()).isEqualTo("New");
+	}
+
+	@Test
+	void changeStatusWithAStaleVersionIsAConflict() {
+		Task task = existingTask();
+		ReflectionTestUtils.setField(task, "version", 1L);
+		assertThatThrownBy(() -> service.changeStatus(task.getId(), 0L, done.getId()))
+				.isInstanceOfSatisfying(DomainException.class,
+						e -> assertThat(e.getCode()).isEqualTo("TASK_VERSION_CONFLICT"));
+		assertThat(task.getStatusId()).isEqualTo(todo.getId());
+	}
+
+	@Test
 	void updateOfAnArchivedTaskIsAConflict() {
 		Task task = existingTask();
 		task.archive(author, java.time.Instant.now());
-		assertThatThrownBy(() -> service.update(task.getId(), "New", null, null, null, null, null, null, null))
+		assertThatThrownBy(() -> service.update(task.getId(), null, "New", null, null, null, null, null, null, null))
 				.isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.getCode()).isEqualTo("TASK_ARCHIVED"));
 	}
 
 	@Test
 	void changeStatusRequiresAStatusOfTheSameSpace() {
 		Task task = existingTask();
-		assertThatThrownBy(() -> service.changeStatus(task.getId(), UUID.randomUUID()))
+		assertThatThrownBy(() -> service.changeStatus(task.getId(), null, UUID.randomUUID()))
 				.isInstanceOfSatisfying(DomainException.class,
 						e -> assertThat(e.getCode()).isEqualTo("TASK_STATUS_NOT_IN_SPACE"));
-		service.changeStatus(task.getId(), done.getId());
+		service.changeStatus(task.getId(), null, done.getId());
 		assertThat(task.getStatusId()).isEqualTo(done.getId());
 		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(task.getId()), any(), any());
 	}
@@ -197,7 +247,7 @@ class TaskServiceTest {
 	@Test
 	void changeToTheSameStatusIsANoOp() {
 		Task task = existingTask();
-		service.changeStatus(task.getId(), todo.getId());
+		service.changeStatus(task.getId(), null, todo.getId());
 		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
 		verify(events, never()).publishEvent(any());
 	}
@@ -206,7 +256,7 @@ class TaskServiceTest {
 	void changeStatusByANonAuthorIsForbidden() {
 		Task task = existingTask();
 		doThrow(new ForbiddenException("TASK_EDIT_FORBIDDEN")).when(editPolicy).assertCanChangeStatus(task);
-		assertThatThrownBy(() -> service.changeStatus(task.getId(), done.getId())).isInstanceOf(ForbiddenException.class);
+		assertThatThrownBy(() -> service.changeStatus(task.getId(), null, done.getId())).isInstanceOf(ForbiddenException.class);
 		assertThat(task.getStatusId()).isEqualTo(todo.getId());
 	}
 
@@ -247,6 +297,11 @@ class TaskServiceTest {
 		assertThat(two.getStatusId()).isEqualTo(done.getId());
 		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(one.getId()), any(), any());
 		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(two.getId()), any(), any());
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> snapshotOf(Object value) {
+		return (Map<String, Object>) value;
 	}
 
 }

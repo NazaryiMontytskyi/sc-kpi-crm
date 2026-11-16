@@ -71,8 +71,8 @@ class SuggestDoneIntegrationTests {
 
 	private UUID task(UUID status) {
 		UUID id = UUID.randomUUID();
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at) values (?, ?,"
-				+ " 'Fixture', ?, 'NORMAL', now(), now())", id, space, status);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
+				+ " 'Fixture', ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", id, space, status);
 		tasks.add(id);
 		return id;
 	}

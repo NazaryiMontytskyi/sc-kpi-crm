@@ -29,6 +29,8 @@ public enum Permission {
 	TASKS_CREATE("tasks.create", PermissionGroup.TASKS),
 	TASKS_EDIT_ANY("tasks.edit.any", PermissionGroup.TASKS),
 	TASKS_ARCHIVE("tasks.archive", PermissionGroup.TASKS),
+	/** Assign tasks and subtasks to other users (ADR-0010); working for oneself needs only tasks.create. */
+	TASKS_ASSIGN("tasks.assign", PermissionGroup.TASKS),
 	SPACES_MANAGE("spaces.manage", PermissionGroup.TASKS),
 
 	RESOLUTIONS_CREATE("resolutions.create", PermissionGroup.RESOLUTIONS),

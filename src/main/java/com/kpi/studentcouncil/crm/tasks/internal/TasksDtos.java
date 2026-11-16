@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -72,21 +73,26 @@ final class TasksDtos {
 
 	/**
 	 * {@code statusId} defaults to the first TODO status of the space, {@code priority} to NORMAL. {@code description}
-	 * is a rich-text (TipTap) JSON document. {@code customFieldValues} is keyed by custom field id.
+	 * is a rich-text (TipTap) JSON document. {@code customFieldValues} is keyed by custom field id. {@code deadline} is
+	 * due at the end of that day in Europe/Kyiv.
 	 */
 	record CreateTaskRequest(@NotNull UUID spaceId, @NotBlank @Size(max = 300) String title,
-			Map<String, Object> description, UUID statusId, TaskPriority priority, LocalDate dueDate,
+			Map<String, Object> description, UUID statusId, TaskPriority priority, LocalDate deadline,
 			List<String> labels, Map<String, Object> customFieldValues, List<UUID> attachmentIds,
 			List<UUID> relatedTaskIds) {
 	}
 
-	/** Replaces every editable field (the space and the status are not changed here). */
-	record UpdateTaskRequest(@NotBlank @Size(max = 300) String title, Map<String, Object> description,
-			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
-			List<UUID> attachmentIds, List<UUID> relatedTaskIds) {
+	/**
+	 * Replaces every editable field (the space and the status are not changed here). {@code expectedVersion} is
+	 * optional: when given it must equal the current {@code version}, otherwise 409 TASK_VERSION_CONFLICT.
+	 */
+	record UpdateTaskRequest(@Min(0) Long expectedVersion, @NotBlank @Size(max = 300) String title,
+			Map<String, Object> description, TaskPriority priority, LocalDate deadline, List<String> labels,
+			Map<String, Object> customFieldValues, List<UUID> attachmentIds, List<UUID> relatedTaskIds) {
 	}
 
-	record ChangeTaskStatusRequest(@NotNull UUID statusId) {
+	/** {@code expectedVersion}: optional optimistic-locking guard, as for {@link UpdateTaskRequest}. */
+	record ChangeTaskStatusRequest(@NotNull UUID statusId, @Min(0) Long expectedVersion) {
 	}
 
 	record AttachmentResponse(UUID id, String fileName, String mimeType, long size) {
@@ -97,15 +103,23 @@ final class TasksDtos {
 	 * {@code suggestDone}: computed hint that every resolution of the task is accepted (see SuggestDoneRule); the task
 	 * is never moved automatically.
 	 */
-	record TaskSummaryResponse(UUID id, UUID spaceId, String title, UUID statusId, TaskPriority priority,
-			LocalDate dueDate, List<String> labels, int attachmentCount, int relatedCount, UUID authorId,
-			boolean archived, Instant archivedAt, boolean suggestDone, Instant createdAt, Instant updatedAt) {
+	/**
+	 * {@code deadline} is due at the end of that day (Europe/Kyiv); {@code issuedAt} is the issue instant (UTC);
+	 * {@code creatorId} issued the task ({@code authorId} is the same user, kept for compatibility); {@code parentId}
+	 * is set for a subtask; {@code version} is the optimistic-locking version to send back as {@code expectedVersion}.
+	 */
+	record TaskSummaryResponse(UUID id, UUID spaceId, UUID parentId, String title, UUID statusId,
+			TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId, List<String> labels,
+			int attachmentCount, int relatedCount, UUID authorId, boolean archived, Instant archivedAt,
+			boolean suggestDone, long version, Instant createdAt, Instant updatedAt) {
 	}
 
-	record TaskResponse(UUID id, UUID spaceId, String title, Map<String, Object> description, UUID statusId,
-			TaskPriority priority, LocalDate dueDate, List<String> labels, Map<String, Object> customFieldValues,
-			List<AttachmentResponse> attachments, List<UUID> relatedTaskIds, UUID authorId, boolean archived,
-			Instant archivedAt, boolean suggestDone, Instant createdAt, Instant updatedAt) {
+	/** Field meanings as in {@link TaskSummaryResponse}. */
+	record TaskResponse(UUID id, UUID spaceId, UUID parentId, String title, Map<String, Object> description,
+			UUID statusId, TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId,
+			List<String> labels, Map<String, Object> customFieldValues, List<AttachmentResponse> attachments,
+			List<UUID> relatedTaskIds, UUID authorId, boolean archived, Instant archivedAt, boolean suggestDone,
+			long version, Instant createdAt, Instant updatedAt) {
 	}
 
 	// ---- saved filters ----

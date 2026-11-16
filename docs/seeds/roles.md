@@ -29,6 +29,7 @@ authenticated user, so Advisor = view only.
 | `tasks.create` | x | x | x | x | x | x | |
 | `tasks.edit.any` | x | x | x | x | | | |
 | `tasks.archive` | x | x | x | | | | |
+| `tasks.assign` (ADR-0010) | x | x | x | x | x | x | |
 | `spaces.manage` | x | x | x | | | | |
 | `resolutions.create` | x | x | x | x | x | x | |
 | `resolutions.redirect` | x | x | x | x | x | x | |

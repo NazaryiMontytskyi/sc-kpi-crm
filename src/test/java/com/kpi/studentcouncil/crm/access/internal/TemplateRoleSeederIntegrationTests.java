@@ -55,8 +55,16 @@ class TemplateRoleSeederIntegrationTests {
 
 	@Test
 	void advisorAndHrPermissions() {
-		assertThat(permissionsOf("Advisor")).doesNotContain("resolutions.create", "voting.cast")
+		assertThat(permissionsOf("Advisor")).doesNotContain("resolutions.create", "voting.cast", "tasks.assign")
 				.hasSize(TemplateRoleSeeder.VIEW.size());
+		// every template role holding resolutions.create also holds tasks.assign (ADR-0010)
+		for (String name : NAMES) {
+			assertThat(permissionsOf(name).contains("tasks.assign")).as(name)
+					.isEqualTo(permissionsOf(name).contains("resolutions.create"));
+		}
+		for (String name : List.of("Head", "Deputy Head", "Head of Department", "Head of Division", "Member", "HR")) {
+			assertThat(permissionsOf(name)).as(name).contains("tasks.assign");
+		}
 		assertThat(permissionsOf("HR")).contains("members.create", "members.edit", "members.archive",
 				"members.activity.set");
 		for (String name : List.of("Head", "Deputy Head", "Head of Department")) {

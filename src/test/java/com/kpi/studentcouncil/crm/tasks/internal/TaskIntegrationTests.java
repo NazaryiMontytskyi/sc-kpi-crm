@@ -239,13 +239,13 @@ class TaskIntegrationTests {
 		UUID space = space();
 		Account author = account("tasks.view", "tasks.create");
 		UUID task = createTask(author.session(), space, ",\"description\":{\"type\":\"doc\",\"content\":[]},"
-				+ "\"labels\":[\" Urgent \",\"urgent\",\"Finance\"],\"dueDate\":\"2026-12-01\",\"priority\":\"HIGH\"");
+				+ "\"labels\":[\" Urgent \",\"urgent\",\"Finance\"],\"deadline\":\"2026-12-01\",\"priority\":\"HIGH\"");
 
 		read(admin, "/tasks/" + task).andExpect(status().isOk())
 				.andExpect(jsonPath("$.spaceId").value(space.toString()))
 				.andExpect(jsonPath("$.statusId").value(statusId(space, "TODO").toString()))
 				.andExpect(jsonPath("$.priority").value("HIGH"))
-				.andExpect(jsonPath("$.dueDate").value("2026-12-01"))
+				.andExpect(jsonPath("$.deadline").value("2026-12-01"))
 				.andExpect(jsonPath("$.description.type").value("doc"))
 				.andExpect(jsonPath("$.labels[0]").value("finance")).andExpect(jsonPath("$.labels", hasSize(2)))
 				.andExpect(jsonPath("$.authorId").value(author.id().toString()))
@@ -411,6 +411,72 @@ class TaskIntegrationTests {
 	}
 
 	@Test
+	void theApiExposesDeadlineIssueDateCreatorParentAndVersion() throws Exception {
+		UUID space = space();
+		Account creator = account("tasks.view", "tasks.create");
+		UUID task = createTask(creator.session(), space, ",\"deadline\":\"2031-03-05\"");
+
+		String json = body(read(admin, "/tasks/" + task).andExpect(status().isOk())
+				.andExpect(jsonPath("$.deadline").value("2031-03-05"))
+				.andExpect(jsonPath("$.creatorId").value(creator.id().toString()))
+				.andExpect(jsonPath("$.authorId").value(creator.id().toString()))
+				.andExpect(jsonPath("$.parentId").doesNotExist()).andExpect(jsonPath("$.version").value(0))
+				.andExpect(jsonPath("$.dueDate").doesNotExist()));
+		String issuedAt = JsonPath.read(json, "$.issuedAt");
+		assertThat(issuedAt).isNotBlank();
+		read(admin, "/tasks?spaceId=" + space).andExpect(status().isOk())
+				.andExpect(jsonPath("$.content[0].deadline").value("2031-03-05"))
+				.andExpect(jsonPath("$.content[0].issuedAt").value(issuedAt))
+				.andExpect(jsonPath("$.content[0].creatorId").value(creator.id().toString()))
+				.andExpect(jsonPath("$.content[0].version").value(0));
+
+		assertThat(jdbc.queryForObject("select after_state ->> 'creatorId' from audit_log where entity_id = ? and"
+				+ " action = 'CREATE'", String.class, task)).isEqualTo(creator.id().toString());
+		assertThat(jdbc.queryForObject("select after_state ->> 'deadline' from audit_log where entity_id = ? and"
+				+ " action = 'CREATE'", String.class, task)).isEqualTo("2031-03-05");
+		assertThat(jdbc.queryForObject("select after_state ->> 'issuedAt' from audit_log where entity_id = ? and"
+				+ " action = 'CREATE'", String.class, task)).isNotBlank();
+
+		// an update moves the deadline, bumps the version and records both in the audit before/after
+		putJson(creator.session(), "/tasks/" + task, "{\"expectedVersion\":0,\"title\":\"Moved\","
+				+ "\"deadline\":\"2031-04-01\"}").andExpect(status().isOk())
+				.andExpect(jsonPath("$.deadline").value("2031-04-01")).andExpect(jsonPath("$.version").value(1))
+				.andExpect(jsonPath("$.issuedAt").value(issuedAt));
+		assertThat(jdbc.queryForList("select (before_state ->> 'deadline') || '>' || (after_state ->> 'deadline')"
+				+ " || '|' || (before_state ->> 'version') || '>' || (after_state ->> 'version') from audit_log"
+				+ " where entity_id = ? and action = 'UPDATE'", String.class, task)).containsExactly("2031-03-05>2031-04-01|0>1");
+		send(creator.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "DONE")
+				+ "\",\"expectedVersion\":1}").andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
+	}
+
+	@Test
+	void aStaleVersionIsRejectedWith409AsAProblem() throws Exception {
+		UUID space = space();
+		Account creator = account("tasks.view", "tasks.create");
+		UUID task = createTask(creator.session(), space);
+		// two clients read version 0; the first save wins
+		putJson(creator.session(), "/tasks/" + task, "{\"expectedVersion\":0,\"title\":\"First\"}")
+				.andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+		putJson(creator.session(), "/tasks/" + task, "{\"expectedVersion\":0,\"title\":\"Second\"}")
+				.andExpect(status().isConflict())
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+						.contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+				.andExpect(jsonPath("$.status").value(409)).andExpect(jsonPath("$.code").value("TASK_VERSION_CONFLICT"))
+				.andExpect(jsonPath("$.type").value("urn:crm:problem:task-version-conflict"))
+				.andExpect(jsonPath("$.title").value("Task was changed by someone else"))
+				.andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("version 1")));
+		send(creator.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "DONE")
+				+ "\",\"expectedVersion\":0}").andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("TASK_VERSION_CONFLICT"));
+		read(admin, "/tasks/" + task).andExpect(jsonPath("$.title").value("First"))
+				.andExpect(jsonPath("$.statusId").value(statusId(space, "TODO").toString()))
+				.andExpect(jsonPath("$.version").value(1));
+		assertThat(audit("Task", task, "UPDATE")).isEqualTo(1);
+		putJson(creator.session(), "/tasks/" + task, "{\"expectedVersion\":-1,\"title\":\"Bad\"}")
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	void archiveAndRestoreHideAndShowTasksAndAuditThem() throws Exception {
 		UUID space = space();
 		Account archiver = account("tasks.view", "tasks.create", "tasks.archive");
@@ -456,9 +522,9 @@ class TaskIntegrationTests {
 		UUID space = space();
 		UUID otherSpace = space();
 		UUID done = statusId(space, "DONE");
-		UUID t1 = createTask(admin, space, ",\"labels\":[\"alpha\"],\"dueDate\":\"2026-11-01\"");
-		UUID t2 = createTask(admin, space, ",\"labels\":[\"beta\",\"gamma\"],\"dueDate\":\"2026-11-15\"");
-		UUID t3 = createTask(admin, space, ",\"labels\":[\"beta\"],\"dueDate\":\"2026-12-01\",\"statusId\":\"" + done + "\"");
+		UUID t1 = createTask(admin, space, ",\"labels\":[\"alpha\"],\"deadline\":\"2026-11-01\"");
+		UUID t2 = createTask(admin, space, ",\"labels\":[\"beta\",\"gamma\"],\"deadline\":\"2026-11-15\"");
+		UUID t3 = createTask(admin, space, ",\"labels\":[\"beta\"],\"deadline\":\"2026-12-01\",\"statusId\":\"" + done + "\"");
 		createTask(admin, otherSpace, ",\"labels\":[\"alpha\"]");
 
 		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&size=50"))).containsExactlyInAnyOrder(t1, t2, t3);
@@ -471,10 +537,10 @@ class TaskIntegrationTests {
 		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&dueFrom=2026-11-15"))).containsExactlyInAnyOrder(t2, t3);
 		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&labels=beta&dueTo=2026-11-30"))).containsExactly(t2);
 
-		read(admin, "/tasks?spaceId=" + space + "&size=2&page=0&sort=dueDate,asc")
+		read(admin, "/tasks?spaceId=" + space + "&size=2&page=0&sort=deadline,asc")
 				.andExpect(jsonPath("$.content", hasSize(2))).andExpect(jsonPath("$.content[0].id").value(t1.toString()))
 				.andExpect(jsonPath("$.totalElements").value(3));
-		read(admin, "/tasks?spaceId=" + space + "&size=2&page=1&sort=dueDate,asc")
+		read(admin, "/tasks?spaceId=" + space + "&size=2&page=1&sort=deadline,asc")
 				.andExpect(jsonPath("$.content", hasSize(1))).andExpect(jsonPath("$.content[0].id").value(t3.toString()));
 		read(admin, "/tasks?sort=bogus,asc").andExpect(status().isUnprocessableContent());
 	}

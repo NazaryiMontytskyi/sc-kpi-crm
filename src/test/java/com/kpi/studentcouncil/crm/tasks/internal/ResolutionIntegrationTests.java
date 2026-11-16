@@ -125,8 +125,8 @@ class ResolutionIntegrationTests {
 		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
 				+ " values (?, ?, 'Todo', 'TODO', 0, now(), now())", status, space);
 		task = UUID.randomUUID();
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at) values (?, ?,"
-				+ " 'Fixture', ?, 'NORMAL', now(), now())", task, space, status);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
+				+ " 'Fixture', ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", task, space, status);
 	}
 
 	private void actAs(UUID user) {

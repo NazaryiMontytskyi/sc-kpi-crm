@@ -97,7 +97,7 @@ class TaskService {
 
 	@Transactional
 	TaskView create(UUID spaceId, String title, Map<String, Object> description, UUID statusId, TaskPriority priority,
-			LocalDate dueDate, Collection<String> labels, Map<String, Object> customFieldValues,
+			LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
 			Collection<UUID> attachmentIds, Collection<UUID> relatedTaskIds) {
 		Space space = spaces.lockById(spaceId).orElseThrow(() -> new NotFoundException(SpaceService.SPACE, spaceId));
 		if (space.isArchived()) {
@@ -112,8 +112,9 @@ class TaskService {
 		assertLinkable(related);
 		Set<String> normalizedLabels = TaskRules.normalizeLabels(labels);
 
-		Task saved = tasks.save(new Task(spaceId, title.strip(), description, status,
-				priority == null ? TaskPriority.NORMAL : priority, dueDate, normalizedLabels, attachments, values));
+		Task saved = tasks.save(new Task(spaceId, actors.currentActorId(), clock.instant(), title.strip(), description,
+				status, priority == null ? TaskPriority.NORMAL : priority, deadline, normalizedLabels, attachments,
+				values));
 		Map<UUID, Set<UUID>> counterpartsBefore = relatedOfAll(related);
 		related.forEach(other -> links.save(new TaskLink(TaskLinkId.of(saved.getId(), other))));
 		audit.publish(AuditAction.CREATE, TASK, saved.getId(), null, saved.auditSnapshot(related));
@@ -122,13 +123,17 @@ class TaskService {
 		return view(saved, related);
 	}
 
-	/** Replaces the editable fields. Author or Admin only ({@link TaskEditPolicy}). */
+	/**
+	 * Replaces the editable fields. Author or Admin only ({@link TaskEditPolicy}). {@code expectedVersion} (optional) is
+	 * the version the caller edited; a different current version is a conflict (409 {@code TASK_VERSION_CONFLICT}).
+	 */
 	@Transactional
-	TaskView update(UUID id, String title, Map<String, Object> description, TaskPriority priority, LocalDate dueDate,
-			Collection<String> labels, Map<String, Object> customFieldValues, Collection<UUID> attachmentIds,
-			Collection<UUID> relatedTaskIds) {
+	TaskView update(UUID id, Long expectedVersion, String title, Map<String, Object> description,
+			TaskPriority priority, LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
+			Collection<UUID> attachmentIds, Collection<UUID> relatedTaskIds) {
 		Task task = lockActive(id);
 		editPolicy.assertCanEdit(task);
+		task.assertVersion(expectedVersion);
 
 		Map<String, Object> values = new LinkedHashMap<>(TaskRules.validateCustomFields(fieldRules(task.getSpaceId()),
 				customFieldValues, users::exists));
@@ -149,9 +154,10 @@ class TaskService {
 		Set<String> normalizedLabels = TaskRules.normalizeLabels(labels);
 
 		Map<String, Object> before = task.auditSnapshot(currentRelated);
-		task.update(title.strip(), description, priority == null ? TaskPriority.NORMAL : priority, dueDate,
+		task.update(title.strip(), description, priority == null ? TaskPriority.NORMAL : priority, deadline,
 				normalizedLabels, attachments, values);
 		Task saved = tasks.save(task);
+		tasks.flush(); // the new version is part of the audit snapshot and of the response
 
 		Set<UUID> touched = new LinkedHashSet<>(related);
 		touched.addAll(currentRelated);
@@ -164,13 +170,14 @@ class TaskService {
 		return view(saved, related);
 	}
 
-	/** Moves the task to another status of its space. Same rule as editing. */
+	/** Moves the task to another status of its space. Same rule as editing; same optional version check. */
 	@Transactional
-	TaskView changeStatus(UUID id, UUID statusId) {
+	TaskView changeStatus(UUID id, Long expectedVersion, UUID statusId) {
 		UUID spaceId = require(id).getSpaceId();
 		spaces.lockById(spaceId).orElseThrow(() -> new NotFoundException(SpaceService.SPACE, spaceId));
 		Task task = lockActive(id);
 		editPolicy.assertCanChangeStatus(task);
+		task.assertVersion(expectedVersion);
 		SpaceStatus target = statuses.findBySpaceIdAndArchivedAtIsNullOrderByPositionAscIdAsc(task.getSpaceId())
 				.stream().filter(s -> s.getId().equals(statusId)).findFirst()
 				.orElseThrow(() -> new BusinessRuleException("TASK_STATUS_NOT_IN_SPACE"));
@@ -179,6 +186,7 @@ class TaskService {
 			Map<String, Object> before = task.auditSnapshot(related);
 			task.changeStatus(target.getId());
 			tasks.save(task);
+			tasks.flush();
 			audit.publish(AuditAction.UPDATE, TASK, id, before, task.auditSnapshot(related));
 			publish(TaskEvent.Kind.UPDATED, task);
 		}
@@ -192,6 +200,7 @@ class TaskService {
 		Map<String, Object> before = task.auditSnapshot(related);
 		task.archive(actors.currentActorId(), clock.instant());
 		Task saved = tasks.save(task);
+		tasks.flush();
 		audit.publish(AuditAction.ARCHIVE, TASK, id, before, saved.auditSnapshot(related));
 		publish(TaskEvent.Kind.ARCHIVED, saved);
 		return view(saved, related);
@@ -212,6 +221,7 @@ class TaskService {
 		Map<String, Object> before = task.auditSnapshot(related);
 		task.restore();
 		Task saved = tasks.save(task);
+		tasks.flush();
 		audit.publish(AuditAction.RESTORE, TASK, id, before, saved.auditSnapshot(related));
 		publish(TaskEvent.Kind.RESTORED, saved);
 		return view(saved, related);
@@ -238,10 +248,10 @@ class TaskService {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("statusId"), filter.statusId()));
 		}
 		if (filter.dueFrom() != null) {
-			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.<LocalDate>get("dueDate"), filter.dueFrom()));
+			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.<LocalDate>get("deadline"), filter.dueFrom()));
 		}
 		if (filter.dueTo() != null) {
-			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.<LocalDate>get("dueDate"), filter.dueTo()));
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.<LocalDate>get("deadline"), filter.dueTo()));
 		}
 		Set<String> labels = filter.labels() == null || filter.labels().isEmpty() ? Set.of()
 				: TaskRules.normalizeLabels(filter.labels());
@@ -279,6 +289,7 @@ class TaskService {
 			Map<String, Object> before = task.auditSnapshot(related);
 			task.changeStatus(toStatusId);
 			Task saved = tasks.save(task);
+			tasks.flush();
 			audit.publish(AuditAction.UPDATE, TASK, task.getId(), before, saved.auditSnapshot(related));
 			publish(TaskEvent.Kind.UPDATED, saved);
 		}

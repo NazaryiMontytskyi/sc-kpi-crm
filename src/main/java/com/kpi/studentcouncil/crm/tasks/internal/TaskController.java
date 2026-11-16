@@ -43,7 +43,7 @@ import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.UpdateTaskRequest;
 @Tag(name = "Tasks")
 class TaskController {
 
-	private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "dueDate", "title");
+	private static final Set<String> SORTABLE = Set.of("createdAt", "updatedAt", "deadline", "title");
 	private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
 
 	private final TaskService service;
@@ -54,9 +54,10 @@ class TaskController {
 
 	@GetMapping("/tasks")
 	@PreAuthorize("hasAuthority('tasks.view')")
-	@Operation(summary = "Tasks (paginated, sortable by createdAt, updatedAt, dueDate, title; default newest first)",
+	@Operation(summary = "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
 			description = "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat "
-					+ "the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates). "
+					+ "the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, "
+					+ "compared with the deadline). "
 						+ "Resolution filters executorId (executor or co-executor), authorId, resolutionState and view "
 						+ "(MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a "
 						+ "non-archived resolution that satisfies all of them at once.")
@@ -86,10 +87,11 @@ class TaskController {
 	@Operation(summary = "Create a task",
 			description = "The status must belong to the space (default: its first TODO status); custom field values "
 					+ "are validated by type against the space definition (422); attachments are ids of uploaded "
-					+ "files; related tasks must exist and not be archived. The caller becomes the author.")
+					+ "files; related tasks must exist and not be archived. The caller becomes the creator and "
+					+ "issuedAt is the creation time.")
 	ResponseEntity<TaskResponse> create(@Valid @RequestBody CreateTaskRequest request) {
 		TaskView created = service.create(request.spaceId(), request.title(), request.description(), request.statusId(),
-				request.priority(), request.dueDate(), request.labels(), request.customFieldValues(),
+				request.priority(), request.deadline(), request.labels(), request.customFieldValues(),
 				request.attachmentIds(), request.relatedTaskIds());
 		return ResponseEntity.status(HttpStatus.CREATED).location(URI.create("/api/v1/tasks/" + created.task().getId()))
 				.body(detail(created));
@@ -98,20 +100,23 @@ class TaskController {
 	@PutMapping("/tasks/{id}")
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Edit a task (replaces all editable fields)",
-			description = "Only the task author or an Admin (403 otherwise). 409 when the task is archived. The "
-					+ "relatedTaskIds list is the complete new set of symmetric links.")
+			description = "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 "
+					+ "TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. "
+					+ "The relatedTaskIds list is the complete new set of symmetric links.")
 	TaskResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTaskRequest request) {
-		return detail(service.update(id, request.title(), request.description(), request.priority(), request.dueDate(),
-				request.labels(), request.customFieldValues(), request.attachmentIds(), request.relatedTaskIds()));
+		return detail(service.update(id, request.expectedVersion(), request.title(), request.description(),
+				request.priority(), request.deadline(), request.labels(), request.customFieldValues(),
+				request.attachmentIds(), request.relatedTaskIds()));
 	}
 
 	@PostMapping("/tasks/{id}/status")
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Change the status of a task",
 			description = "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active "
-					+ "status of the task's space (422).")
+					+ "status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and "
+					+ "differs from the current version.")
 	TaskResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody ChangeTaskStatusRequest request) {
-		return detail(service.changeStatus(id, request.statusId()));
+		return detail(service.changeStatus(id, request.expectedVersion(), request.statusId()));
 	}
 
 	@PostMapping("/tasks/{id}/archive")
@@ -133,17 +138,19 @@ class TaskController {
 		List<AttachmentResponse> attachments = view.attachments() == null ? List.of()
 				: view.attachments().stream()
 						.map(f -> new AttachmentResponse(f.id(), f.fileName(), f.mimeType(), f.size())).toList();
-		return new TaskResponse(t.getId(), t.getSpaceId(), t.getTitle(), t.getDescription(), t.getStatusId(),
-				t.getPriority(), t.getDueDate(), t.getLabels().stream().sorted().toList(), t.getCustomFieldValues(),
-				attachments, view.relatedTaskIds().stream().sorted().toList(), t.getAuthorId(), t.isArchived(),
-				t.getArchivedAt(), view.suggestDone(), t.getCreatedAt(), t.getUpdatedAt());
+		return new TaskResponse(t.getId(), t.getSpaceId(), t.getParentTaskId(), t.getTitle(), t.getDescription(),
+				t.getStatusId(), t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
+				t.getLabels().stream().sorted().toList(), t.getCustomFieldValues(), attachments,
+				view.relatedTaskIds().stream().sorted().toList(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(),
+				view.suggestDone(), t.getVersion(), t.getCreatedAt(), t.getUpdatedAt());
 	}
 
 	private static TaskSummaryResponse summary(TaskView view) {
 		Task t = view.task();
-		return new TaskSummaryResponse(t.getId(), t.getSpaceId(), t.getTitle(), t.getStatusId(), t.getPriority(),
-				t.getDueDate(), t.getLabels().stream().sorted().toList(), t.getAttachmentIds().size(),
-				view.relatedTaskIds().size(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(), view.suggestDone(),
+		return new TaskSummaryResponse(t.getId(), t.getSpaceId(), t.getParentTaskId(), t.getTitle(), t.getStatusId(),
+				t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
+				t.getLabels().stream().sorted().toList(), t.getAttachmentIds().size(), view.relatedTaskIds().size(),
+				t.getAuthorId(), t.isArchived(), t.getArchivedAt(), view.suggestDone(), t.getVersion(),
 				t.getCreatedAt(), t.getUpdatedAt());
 	}
 

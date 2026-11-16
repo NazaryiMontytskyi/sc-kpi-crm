@@ -11,7 +11,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crm.access.Permission;
@@ -26,12 +25,8 @@ class TaskEditPolicyTest {
 
 	private final UUID author = UUID.randomUUID();
 	private final UUID stranger = UUID.randomUUID();
-	private final Task task = new Task(UUID.randomUUID(), "T", null, UUID.randomUUID(), TaskPriority.NORMAL, null,
-			Set.of(), java.util.List.of(), java.util.Map.of());
-
-	TaskEditPolicyTest() {
-		ReflectionTestUtils.setField(task, "createdBy", author);
-	}
+	private final Task task = new Task(UUID.randomUUID(), author, java.time.Instant.now(), "T", null,
+			UUID.randomUUID(), TaskPriority.NORMAL, null, Set.of(), java.util.List.of(), java.util.Map.of());
 
 	@Test
 	void pureRuleAllowsTheAuthorAndAnAdminOnly() {

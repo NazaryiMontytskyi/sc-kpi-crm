@@ -137,8 +137,8 @@ class DashboardIntegrationTests {
 	private void resolution(String title, UUID author, UUID executor, String state, LocalDate due, boolean archived) {
 		UUID taskId = UUID.randomUUID();
 		tasks.add(taskId);
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at) values (?, ?,"
-				+ " ?, ?, 'NORMAL', now(), now())", taskId, space, title, statusId);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
+				+ " ?, ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", taskId, space, title, statusId);
 		jdbc.update("insert into resolution (id, task_id, author_id, executor_id, instruction, due_date, state,"
 				+ " created_at, updated_at, archived_at) values (?, ?, ?, ?, 'Do it', ?, ?, now(), now(), "
 				+ (archived ? "now()" : "null") + ")", UUID.randomUUID(), taskId, author, executor, due, state);

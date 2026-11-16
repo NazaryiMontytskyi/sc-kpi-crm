@@ -72,8 +72,8 @@ class NotificationIntegrationTests {
 		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
 				+ " values (?, ?, 'Todo', 'TODO', 0, now(), now())", statusId, space);
 		task = UUID.randomUUID();
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at) values (?, ?,"
-				+ " 'Fixture', ?, 'NORMAL', now(), now())", task, space, statusId);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
+				+ " 'Fixture', ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", task, space, statusId);
 	}
 
 	@AfterEach

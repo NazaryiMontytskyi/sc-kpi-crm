@@ -138,8 +138,8 @@ class TaskQuickViewIntegrationTests {
 	private UUID task(String title) {
 		UUID id = UUID.randomUUID();
 		tasks.add(id);
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at) values (?, ?,"
-				+ " ?, ?, 'NORMAL', now(), now())", id, space, title, statusId);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
+				+ " ?, ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", id, space, title, statusId);
 		return id;
 	}
 
