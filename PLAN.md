@@ -1065,7 +1065,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Old attachment endpoints remain until INC-082 moves the UI.
 
 #### INC-076 — Reminders and notifications on tasks
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `notifications` (reads tasks via public `ActiveTaskQuery` in `tasks`)
 - **Depends on:** INC-073, INC-074
 - **Scope:** public `ActiveTaskQuery`; `DueDateReminderService` reworked to `crm.notifications.due-reminders.offsets` (default 3d,1d) through one `ReminderOffsetsProvider`; idempotency in `task_reminder` keyed by (task, user, threshold, deadline) so a changed deadline re-arms; most-urgent-only on first sight, overdue-only when past; recipients per NT-2; new `NotificationType` values `TASK_ASSIGNED`, `TASK_UNASSIGNED`, `TASK_DEADLINE_CHANGED`, `TASK_DUE_SOON`, `TASK_OVERDUE`, `SUBTASK_ADDED`, `TASK_STATUS_CHANGED`; listeners for `TaskEvent`; actors not notified of own actions; uk+en messages. `RESOLUTION_*` values stay (deprecated) and are no longer emitted.
@@ -1084,7 +1084,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** [ASSUMPTION] offsets (Q1); extension point `ReminderOffsetsProvider`.
 
 #### INC-077 — Frontend: master/detail tracker, side panel and mobile sheet
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Module(s):** frontend `tasks`, `layout` (route only)
 - **Depends on:** INC-073, INC-074, INC-075
 - **Scope:** `/tasks` master/detail with nested route `/tasks/:id` opening the panel in place; one panel component shown as right panel (>= 1024 px), overlay (tablet), full-screen sheet with back button (< 768 px) with focus trap and focus return; panel shows title, status selector, assignee avatars, issue date, deadline (overdue highlighted), description, artifacts and subtasks (read), comments (lazy); list and kanban cards open the same panel; browser back closes it; `TaskDetailPage` route redirects to the same URL; reduced motion; uk+en; tokens only; ARIA roles for list/detail; 409 shows a reload hint. Resolution UI remains untouched and working.
