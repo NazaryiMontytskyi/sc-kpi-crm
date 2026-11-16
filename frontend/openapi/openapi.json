@@ -8711,7 +8711,14 @@
               "MENTION",
               "POLL_OPENED",
               "POLL_CLOSED",
-              "HANDOVER_STARTED"
+              "HANDOVER_STARTED",
+              "TASK_ASSIGNED",
+              "TASK_UNASSIGNED",
+              "TASK_DEADLINE_CHANGED",
+              "TASK_DUE_SOON",
+              "TASK_OVERDUE",
+              "SUBTASK_ADDED",
+              "TASK_STATUS_CHANGED"
             ]
           },
           "targetType": {

@@ -48,11 +48,12 @@ crm:
     root: ${CRM_FILES_ROOT:./data/files} # mount a persistent volume here in production
     max-size: 20MB
     # allowed-mime-types: [...]  # default list: PDF, png/jpeg/gif/webp, text/plain, csv, Office/OpenDocument, zip
-  # Due-date reminders (INC-044): hourly job (Europe/Kyiv); "due soon" is sent lead-time before the end of the due day.
+  # Deadline reminders (INC-044, INC-076): hourly job (Europe/Kyiv); TASK_DUE_SOON per offset, then TASK_OVERDUE.
   notifications:
     due-reminders:
       enabled: true
-      lead-time: 24h
+      # "Due soon" reminders this long before the end of the deadline day (Europe/Kyiv), one per offset [ASSUMPTION]
+      offsets: 3d,1d
       cron: "0 0 * * * *"
   # Seeders (INC-010): each runs once per environment (seed_history). DEV_ONLY seeders need the dev profile.
   seed:

@@ -1,5 +1,6 @@
 package com.kpi.studentcouncil.crm.tasks.internal;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.kpi.studentcouncil.crm.shared.domain.ArchivableRepository;
+import com.kpi.studentcouncil.crm.tasks.StatusCategory;
 
 interface TaskRepository extends ArchivableRepository<Task, UUID> {
 
@@ -37,6 +39,16 @@ interface TaskRepository extends ArchivableRepository<Task, UUID> {
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select t from Task t where t.parentTaskId = :parentId order by t.issuedAt, t.id")
 	List<Task> lockByParentTaskId(@Param("parentId") UUID parentId);
+
+	/**
+	 * Non-archived tasks with a deadline on or before {@code latest} whose status has none of the {@code closed}
+	 * categories, ordered by deadline then id (deadline reminders, {@code ActiveTaskQuery}).
+	 */
+	@Query("select t from Task t where t.archivedAt is null and t.deadline is not null and t.deadline <= :latest"
+			+ " and not exists (select s.id from SpaceStatus s where s.id = t.statusId and s.category in :closed)"
+			+ " order by t.deadline, t.id")
+	List<Task> findOpenWithDeadlineOnOrBefore(@Param("latest") LocalDate latest,
+			@Param("closed") Collection<StatusCategory> closed);
 
 	/** Flushes pending changes so the incremented {@code version} is visible before the response is built. */
 	void flush();

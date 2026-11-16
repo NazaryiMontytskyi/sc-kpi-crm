@@ -1,12 +1,14 @@
 package com.kpi.studentcouncil.crm.notifications.internal;
 
+import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -19,99 +21,103 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.kpi.studentcouncil.crm.notifications.NotificationTarget;
 import com.kpi.studentcouncil.crm.notifications.NotificationType;
-import com.kpi.studentcouncil.crm.tasks.ActiveResolutionQuery;
-import com.kpi.studentcouncil.crm.tasks.ActiveResolutionQuery.ActiveResolution;
+import com.kpi.studentcouncil.crm.notifications.internal.ReminderThresholds.Threshold;
+import com.kpi.studentcouncil.crm.tasks.ActiveTaskQuery;
+import com.kpi.studentcouncil.crm.tasks.ActiveTaskQuery.ActiveTask;
 
 /**
- * Sends "due soon" and "overdue" notifications for open resolutions.
+ * Sends {@code TASK_DUE_SOON} (one per configured offset) and {@code TASK_OVERDUE} notifications for open tasks
+ * (TASK_TRACKING_FEATURE NT-1..NT-5).
  *
- * <p>A resolution is due by the end of its due date in Europe/Kyiv, i.e. at the start of the next Kyiv day (DST-aware).
- * "Due soon" is sent once the remaining time is at most the lead time; "overdue" once the deadline has passed. If the
- * job first sees a resolution already overdue, only "overdue" is sent. Each (resolution, threshold, due date) is
- * recorded in {@code resolution_reminder} in the same transaction as the notifications, so a run is idempotent.
- *
- * <p>Recipients: executor and co-executors for both thresholds; the author additionally for "overdue" (the author
- * has to decide whether to wait, redirect or cancel). ACCEPTED, CANCELED and archived resolutions are never
- * considered ({@link ActiveResolutionQuery}).
+ * <p>Threshold selection and recipients are the pure rules of {@link ReminderThresholds}; offsets come only from
+ * {@link ReminderOffsetsProvider}. Each (task, recipient, threshold, deadline) is recorded in {@code task_reminder} in
+ * the same transaction as the notification, so a run is idempotent, a recipient added later still gets the current
+ * reminder, and a changed deadline re-arms every threshold. Reminders migrated from resolutions (V28, legacy keys
+ * {@code DUE_SOON}/{@code OVERDUE}) count as sent. Each task runs in its own transaction: a failure is logged and the
+ * run continues with the next task.
  */
 @Service
 class DueDateReminderService {
 
-	static final ZoneId ZONE = ZoneId.of("Europe/Kyiv");
-	static final String DUE_SOON = "DUE_SOON";
-	static final String OVERDUE = "OVERDUE";
+	static final String TARGET_TYPE = "TASK";
 
 	private static final Logger log = LoggerFactory.getLogger(DueDateReminderService.class);
 
-	private final ActiveResolutionQuery resolutions;
+	private static final String INSERT = "insert into task_reminder (task_id, user_id, threshold, deadline, sent_at)"
+			+ " values (?, ?, ?, ?, ?) on conflict do nothing";
+
+	/** Same insert, skipped when a legacy DUE_SOON row exists for the task, recipient and deadline. */
+	private static final String INSERT_UNLESS_LEGACY = "insert into task_reminder (task_id, user_id, threshold,"
+			+ " deadline, sent_at) select ?, ?, ?, ?, ? where not exists (select 1 from task_reminder where task_id = ?"
+			+ " and user_id = ? and deadline = ? and threshold = '" + ReminderThresholds.LEGACY_DUE_SOON + "')"
+			+ " on conflict do nothing";
+
+	private final ActiveTaskQuery tasks;
 	private final NotificationDispatcher dispatcher;
 	private final JdbcTemplate jdbc;
 	private final TransactionTemplate tx;
-	private final DueDateReminderProperties properties;
+	private final ReminderOffsetsProvider offsets;
 	private final Clock clock;
 
-	DueDateReminderService(ActiveResolutionQuery resolutions, NotificationDispatcher dispatcher, JdbcTemplate jdbc,
-			PlatformTransactionManager txManager, DueDateReminderProperties properties, Clock clock) {
-		this.resolutions = resolutions;
+	DueDateReminderService(ActiveTaskQuery tasks, NotificationDispatcher dispatcher, JdbcTemplate jdbc,
+			PlatformTransactionManager txManager, ReminderOffsetsProvider offsets, Clock clock) {
+		this.tasks = tasks;
 		this.dispatcher = dispatcher;
 		this.jdbc = jdbc;
 		this.tx = new TransactionTemplate(txManager);
-		this.properties = properties;
+		this.offsets = offsets;
 		this.clock = clock;
 	}
 
-	/** Runs one pass; returns the number of resolutions for which a reminder was sent. */
+	/** Runs one pass; returns the number of tasks for which at least one reminder was sent. */
 	int run() {
 		Instant now = clock.instant();
-		LocalDate latestDue = now.plus(properties.leadTime()).atZone(ZONE).toLocalDate();
+		List<Duration> configured = offsets.offsets();
 		int sent = 0;
-		for (ActiveResolution resolution : resolutions.findActiveDueOnOrBefore(latestDue)) {
-			String threshold = threshold(resolution.dueDate(), now);
-			if (threshold == null) {
+		for (ActiveTask task : tasks.findOpenDueOnOrBefore(ReminderThresholds.latestDeadlineToScan(now, configured))) {
+			Optional<Threshold> threshold = ReminderThresholds.select(task.deadline(), now, configured);
+			if (threshold.isEmpty()) {
 				continue;
 			}
 			try {
-				if (Boolean.TRUE.equals(tx.execute(status -> remind(resolution, threshold, now)))) {
+				if (Boolean.TRUE.equals(tx.execute(status -> remind(task, threshold.get(), now)))) {
 					sent++;
 				}
 			}
 			catch (RuntimeException e) {
-				log.warn("Due-date reminder failed for resolution {}", resolution.id(), e);
+				log.warn("Deadline reminder failed for task {}", task.id(), e);
 			}
 		}
 		return sent;
 	}
 
-	/** Which threshold applies at {@code now}, or null if none yet. */
-	String threshold(LocalDate dueDate, Instant now) {
-		Instant deadline = dueDate.plusDays(1).atStartOfDay(ZONE).toInstant();
-		if (!now.isBefore(deadline)) {
-			return OVERDUE;
+	private boolean remind(ActiveTask task, Threshold threshold, Instant now) {
+		Set<UUID> notify = new LinkedHashSet<>();
+		Timestamp sentAt = Timestamp.from(now);
+		for (UUID user : ReminderThresholds.recipients(task.creatorId(), task.assigneeIds(), threshold.isOverdue())) {
+			int inserted = threshold.coveredByLegacyDueSoon()
+					? jdbc.update(INSERT_UNLESS_LEGACY, task.id(), user, threshold.key(), task.deadline(), sentAt,
+							task.id(), user, task.deadline())
+					: jdbc.update(INSERT, task.id(), user, threshold.key(), task.deadline(), sentAt);
+			if (inserted > 0) {
+				notify.add(user);
+			}
 		}
-		return now.isBefore(deadline.minus(properties.leadTime())) ? null : DUE_SOON;
-	}
-
-	private boolean remind(ActiveResolution resolution, String threshold, Instant now) {
-		int inserted = jdbc.update("insert into resolution_reminder (resolution_id, threshold, due_date, sent_at)"
-				+ " values (?, ?, ?, ?) on conflict do nothing", resolution.id(), threshold, resolution.dueDate(),
-				java.sql.Timestamp.from(now));
-		if (inserted == 0) {
+		if (notify.isEmpty()) {
 			return false;
 		}
-		Set<UUID> recipients = new LinkedHashSet<>();
-		recipients.add(resolution.executorId());
-		recipients.addAll(resolution.coExecutorIds());
-		boolean overdue = OVERDUE.equals(threshold);
-		if (overdue) {
-			recipients.add(resolution.authorId());
-		}
 		Map<String, Object> payload = new LinkedHashMap<>();
-		payload.put("taskId", resolution.taskId().toString());
-		payload.put("resolutionId", resolution.id().toString());
-		payload.put("dueDate", resolution.dueDate().toString());
-		dispatcher.dispatch(recipients, null,
-				overdue ? NotificationType.RESOLUTION_OVERDUE : NotificationType.RESOLUTION_DUE_SOON,
-				new NotificationTarget("RESOLUTION", resolution.id()), payload);
+		payload.put("taskId", task.id().toString());
+		if (task.parentId() != null) {
+			payload.put("parentTaskId", task.parentId().toString());
+		}
+		payload.put("deadline", task.deadline().toString());
+		if (!threshold.isOverdue()) {
+			payload.put("offset", threshold.offset().toString());
+		}
+		// system-triggered: no actor to suppress
+		dispatcher.dispatch(notify, null, threshold.isOverdue() ? NotificationType.TASK_OVERDUE
+				: NotificationType.TASK_DUE_SOON, new NotificationTarget(TARGET_TYPE, task.id()), payload);
 		return true;
 	}
 
