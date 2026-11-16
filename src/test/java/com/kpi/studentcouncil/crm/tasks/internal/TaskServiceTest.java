@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,7 @@ import com.kpi.studentcouncil.crm.tasks.TaskEvent;
 class TaskServiceTest {
 
 	private final TaskRepository tasks = mock(TaskRepository.class);
+	private final TaskAssigneeRepository assignees = mock(TaskAssigneeRepository.class);
 	private final TaskLinkRepository links = mock(TaskLinkRepository.class);
 	private final SpaceRepository spaces = mock(SpaceRepository.class);
 	private final SpaceStatusRepository statuses = mock(SpaceStatusRepository.class);
@@ -73,7 +75,14 @@ class TaskServiceTest {
 			}
 			return t;
 		});
-		service = new TaskService(tasks, links, spaces, statuses, resolutions, fields, files, users, editPolicy, audit, actors,
+		when(assignees.saveAndFlush(any(TaskAssignee.class))).thenAnswer(inv -> {
+			TaskAssignee a = inv.getArgument(0);
+			if (a.getId() == null) {
+				ReflectionTestUtils.setField(a, "id", UUID.randomUUID());
+			}
+			return a;
+		});
+		service = new TaskService(tasks, assignees, links, spaces, statuses, resolutions, fields, files, users, editPolicy, audit, actors,
 				events, Clock.systemUTC());
 	}
 
@@ -181,8 +190,143 @@ class TaskServiceTest {
 		}
 		verify(tasks).flush();
 		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
+		verify(events, times(2)).publishEvent(event.capture());
+		assertThat(((TaskEvent) event.getAllValues().get(0)).kind()).isEqualTo(TaskEvent.Kind.UPDATED);
+		assertThat(event.getAllValues().get(1)).isInstanceOfSatisfying(TaskEvent.class, e -> {
+			assertThat(e.kind()).isEqualTo(TaskEvent.Kind.DEADLINE_CHANGED);
+			assertThat(e.previousDeadline()).isNull();
+			assertThat(e.deadline()).isEqualTo(java.time.LocalDate.of(2031, 3, 5));
+			assertThat(e.actorId()).isEqualTo(author);
+		});
+	}
+
+	@Test
+	void anEditThatKeepsTheDeadlinePublishesOnlyUpdated() {
+		Task task = existingTask();
+		service.update(task.getId(), null, "Renamed", null, null, null, null, null, null, null);
+		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
 		verify(events).publishEvent(event.capture());
 		assertThat(((TaskEvent) event.getValue()).kind()).isEqualTo(TaskEvent.Kind.UPDATED);
+	}
+
+	@Test
+	void aNoOpEditIsNeitherSavedNorAuditedNorPublished() {
+		Task task = existingTask();
+		service.update(task.getId(), 0L, " Title ", null, TaskPriority.NORMAL, null, List.of(), null, null, null);
+		verify(tasks, never()).save(any());
+		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
+		verify(events, never()).publishEvent(any());
+	}
+
+	@Test
+	void changeStatusPublishesStatusChangedWithThePreviousStatus() {
+		Task task = existingTask();
+		service.changeStatus(task.getId(), null, done.getId());
+		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
+		verify(events).publishEvent(event.capture());
+		assertThat(event.getValue()).isInstanceOfSatisfying(TaskEvent.class, e -> {
+			assertThat(e.kind()).isEqualTo(TaskEvent.Kind.STATUS_CHANGED);
+			assertThat(e.previousStatusId()).isEqualTo(todo.getId());
+			assertThat(e.statusId()).isEqualTo(done.getId());
+			assertThat(e.actorId()).isEqualTo(author);
+		});
+	}
+
+	// ---- assignees ----
+
+	@Test
+	void assignAddsAnActiveAssigneeAuditsAndPublishesAssigned() {
+		Task task = existingTask();
+		UUID user = UUID.randomUUID();
+		when(users.isActive(user)).thenReturn(true);
+		TaskAssignee saved = service.assign(task.getId(), user);
+		assertThat(saved.getUserId()).isEqualTo(user);
+		assertThat(saved.getAssignedBy()).isEqualTo(author);
+		assertThat(saved.isActive()).isTrue();
+		verify(editPolicy).assertCanManageAssignee(task, user);
+		ArgumentCaptor<Object> before = ArgumentCaptor.forClass(Object.class);
+		ArgumentCaptor<Object> after = ArgumentCaptor.forClass(Object.class);
+		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(task.getId()), before.capture(), after.capture());
+		assertThat(snapshotOf(before.getValue())).containsEntry("assignee", null);
+		assertThat(snapshotOf(after.getValue()).get("assignee")).isNotNull();
+		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
+		verify(events).publishEvent(event.capture());
+		assertThat(event.getValue()).isInstanceOfSatisfying(TaskEvent.class, e -> {
+			assertThat(e.kind()).isEqualTo(TaskEvent.Kind.ASSIGNED);
+			assertThat(e.assigneeId()).isEqualTo(user);
+			assertThat(e.actorId()).isEqualTo(author);
+		});
+	}
+
+	@Test
+	void assignRejectsInactiveUsersDuplicatesAndForbiddenCallersWithoutChanges() {
+		Task task = existingTask();
+		UUID blocked = UUID.randomUUID();
+		when(users.isActive(blocked)).thenReturn(false);
+		assertThatThrownBy(() -> service.assign(task.getId(), blocked)).isInstanceOfSatisfying(DomainException.class,
+				e -> {
+					assertThat(e.getCode()).isEqualTo("TASK_ASSIGNEE_INACTIVE");
+					assertThat(e.getStatus().value()).isEqualTo(422);
+				});
+
+		UUID twice = UUID.randomUUID();
+		when(users.isActive(twice)).thenReturn(true);
+		when(assignees.existsByTaskIdAndUserIdAndRemovedAtIsNull(task.getId(), twice)).thenReturn(true);
+		assertThatThrownBy(() -> service.assign(task.getId(), twice)).isInstanceOfSatisfying(DomainException.class,
+				e -> {
+					assertThat(e.getCode()).isEqualTo("TASK_ASSIGNEE_DUPLICATE");
+					assertThat(e.getStatus().value()).isEqualTo(409);
+				});
+
+		UUID other = UUID.randomUUID();
+		when(users.isActive(other)).thenReturn(true);
+		doThrow(new ForbiddenException("TASK_ASSIGN_FORBIDDEN")).when(editPolicy).assertCanManageAssignee(task, other);
+		assertThatThrownBy(() -> service.assign(task.getId(), other)).isInstanceOf(ForbiddenException.class);
+
+		verify(assignees, never()).saveAndFlush(any());
+		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
+		verify(events, never()).publishEvent(any());
+	}
+
+	@Test
+	void assignToAnArchivedTaskIsAConflict() {
+		Task task = existingTask();
+		task.archive(author, java.time.Instant.now());
+		assertThatThrownBy(() -> service.assign(task.getId(), author)).isInstanceOfSatisfying(DomainException.class,
+				e -> assertThat(e.getCode()).isEqualTo("TASK_ARCHIVED"));
+	}
+
+	@Test
+	void unassignKeepsTheRowWithRemovedAtAuditsBeforeAfterAndPublishesUnassigned() {
+		Task task = existingTask();
+		UUID user = UUID.randomUUID();
+		TaskAssignee row = new TaskAssignee(task.getId(), user, author, java.time.Instant.parse("2026-02-01T08:00:00Z"));
+		ReflectionTestUtils.setField(row, "id", UUID.randomUUID());
+		when(assignees.findByTaskIdAndUserIdAndRemovedAtIsNull(task.getId(), user)).thenReturn(Optional.of(row));
+
+		TaskAssignee removed = service.unassign(task.getId(), user);
+		assertThat(removed).isSameAs(row);
+		assertThat(row.isActive()).isFalse();
+		assertThat(row.getRemovedAt()).isNotNull();
+		assertThat(row.getRemovedBy()).isEqualTo(author);
+		verify(assignees, never()).delete(any());
+		ArgumentCaptor<Object> before = ArgumentCaptor.forClass(Object.class);
+		ArgumentCaptor<Object> after = ArgumentCaptor.forClass(Object.class);
+		verify(audit).publish(eq(AuditAction.UPDATE), eq("Task"), eq(task.getId()), before.capture(), after.capture());
+		assertThat(snapshotOf(snapshotOf(before.getValue()).get("assignee"))).containsEntry("removedAt", null);
+		assertThat(snapshotOf(snapshotOf(after.getValue()).get("assignee")).get("removedAt")).isNotNull();
+		ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
+		verify(events).publishEvent(event.capture());
+		assertThat(((TaskEvent) event.getValue()).kind()).isEqualTo(TaskEvent.Kind.UNASSIGNED);
+		assertThat(((TaskEvent) event.getValue()).assigneeId()).isEqualTo(user);
+	}
+
+	@Test
+	void unassignOfAUserWhoIsNotAnActiveAssigneeIsNotFoundAndEmitsNothing() {
+		Task task = existingTask();
+		assertThatThrownBy(() -> service.unassign(task.getId(), UUID.randomUUID())).isInstanceOf(NotFoundException.class);
+		verify(audit, never()).publish(any(AuditAction.class), any(), any(), any(), any());
+		verify(events, never()).publishEvent(any());
 	}
 
 	@Test

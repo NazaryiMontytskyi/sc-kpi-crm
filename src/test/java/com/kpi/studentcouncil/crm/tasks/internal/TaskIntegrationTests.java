@@ -108,6 +108,7 @@ class TaskIntegrationTests {
 					+ " or task_high in (select id from task where space_id = ?)", space, space);
 			jdbc.update("delete from task_label where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task_attachment where task_id in (select id from task where space_id = ?)", space);
+			jdbc.update("delete from task_assignee where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task where space_id = ?", space);
 			jdbc.update("delete from task_custom_field_option where field_id in"
 					+ " (select id from task_custom_field where space_id = ?)", space);
@@ -384,18 +385,23 @@ class TaskIntegrationTests {
 	}
 
 	@Test
-	void onlyTheAuthorOrAnAdminCanEdit() throws Exception {
+	void onlyTheAuthorOrAnAdminCanEditWhileTasksEditAnyMayChangeTheStatus() throws Exception {
 		UUID space = space();
 		Account author = account("tasks.view", "tasks.create");
 		Account other = account("tasks.view", "tasks.create", "tasks.edit.any", "tasks.archive");
+		Account stranger = account("tasks.view", "tasks.create", "tasks.assign", "tasks.archive");
 		UUID task = createTask(author.session(), space);
 		String edit = "{\"title\":\"Edited\"}";
 
 		putJson(other.session(), "/tasks/" + task, edit).andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.code").value("TASK_EDIT_FORBIDDEN"));
-		send(other.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "DONE") + "\"}")
-				.andExpect(status().isForbidden());
-		read(admin, "/tasks/" + task).andExpect(jsonPath("$.title").value(org.hamcrest.Matchers.startsWith("Task ")));
+		send(stranger.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "DONE") + "\"}")
+				.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("TASK_CONTRIBUTE_FORBIDDEN"));
+		read(admin, "/tasks/" + task).andExpect(jsonPath("$.title").value(org.hamcrest.Matchers.startsWith("Task ")))
+				.andExpect(jsonPath("$.statusId").value(statusId(space, "TODO").toString()));
+		// AS-5: tasks.edit.any may move the status
+		send(other.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "IN_PROGRESS")
+				+ "\"}").andExpect(status().isOk());
 
 		putJson(author.session(), "/tasks/" + task, edit).andExpect(status().isOk())
 				.andExpect(jsonPath("$.title").value("Edited"));
@@ -404,7 +410,7 @@ class TaskIntegrationTests {
 		send(author.session(), "/tasks/" + task + "/status", "{\"statusId\":\"" + statusId(space, "DONE") + "\"}")
 				.andExpect(status().isOk());
 
-		assertThat(audit("Task", task, "UPDATE")).isEqualTo(3);
+		assertThat(audit("Task", task, "UPDATE")).isEqualTo(4);
 		assertThat(jdbc.queryForObject("select before_state ->> 'title' from audit_log where entity_id = ? and action"
 				+ " = 'UPDATE' and after_state ->> 'title' = 'By admin' and before_state ->> 'title' <> 'By admin'",
 				String.class, task)).isEqualTo("Edited");
@@ -532,10 +538,10 @@ class TaskIntegrationTests {
 		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&labels=beta"))).containsExactlyInAnyOrder(t2, t3);
 		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&labels=Alpha&labels=gamma")))
 				.containsExactlyInAnyOrder(t1, t2);
-		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&dueFrom=2026-11-10&dueTo=2026-11-30")))
+		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&deadlineFrom=2026-11-10&deadlineTo=2026-11-30")))
 				.containsExactly(t2);
-		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&dueFrom=2026-11-15"))).containsExactlyInAnyOrder(t2, t3);
-		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&labels=beta&dueTo=2026-11-30"))).containsExactly(t2);
+		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&deadlineFrom=2026-11-15"))).containsExactlyInAnyOrder(t2, t3);
+		assertThat(ids(read(admin, "/tasks?spaceId=" + space + "&labels=beta&deadlineTo=2026-11-30"))).containsExactly(t2);
 
 		read(admin, "/tasks?spaceId=" + space + "&size=2&page=0&sort=deadline,asc")
 				.andExpect(jsonPath("$.content", hasSize(2))).andExpect(jsonPath("$.content[0].id").value(t1.toString()))

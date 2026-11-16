@@ -122,11 +122,26 @@ final class TasksDtos {
 			long version, Instant createdAt, Instant updatedAt) {
 	}
 
+	// ---- assignees ----
+
+	record AssignTaskRequest(@NotNull UUID userId) {
+	}
+
+	/** An assignment; {@code active} is false once removed ({@code removedAt}/{@code removedBy} set). */
+	record TaskAssigneeResponse(UUID id, UUID taskId, UUID userId, UUID assignedBy, Instant assignedAt,
+			boolean active, Instant removedAt, UUID removedBy) {
+	}
+
 	// ---- saved filters ----
 
-	/** Task list criteria; every part is optional. {@code view} is one of the built-in quick views. */
-	record SavedFilterCriteria(UUID spaceId, UUID statusId, List<String> labels, UUID executorId, UUID authorId,
-			ResolutionState resolutionState, TaskQuickView view, LocalDate dueFrom, LocalDate dueTo) {
+	/**
+	 * Task list criteria with the names of the list query parameters; every part is optional ({@code overdue}
+	 * defaults to false). {@code view} is one of the built-in quick views; {@code executorId}, {@code authorId} and
+	 * {@code resolutionState} are the legacy resolution filters.
+	 */
+	record SavedFilterCriteria(UUID spaceId, UUID statusId, List<String> labels, UUID assignee, UUID creator,
+			Boolean overdue, TaskQuickView view, LocalDate deadlineFrom, LocalDate deadlineTo, UUID executorId,
+			UUID authorId, ResolutionState resolutionState) {
 	}
 
 	/** Create or replace a saved filter of the caller. */

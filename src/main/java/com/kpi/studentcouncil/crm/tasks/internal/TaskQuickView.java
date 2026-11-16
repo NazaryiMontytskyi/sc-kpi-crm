@@ -1,18 +1,21 @@
 package com.kpi.studentcouncil.crm.tasks.internal;
 
 /**
- * Built-in quick views of the task list. Each one is a filter on the non-archived resolutions of a task and is
- * evaluated for the current user ({@link TaskResolutionSpecs}).
+ * Built-in quick views of the task list ("My tasks", "Issued by me", "Overdue"; spec §3). Each one is evaluated for
+ * the current user on the task itself and its assignees ({@link TaskSpecs}).
  */
 enum TaskQuickView {
 
-	/** The current user is the executor or a co-executor of a live resolution (NEW, IN_PROGRESS, SUBMITTED, REWORK). */
-	MY_RESOLUTIONS,
+	/** The current user is an active assignee of an open task (status category TODO or IN_PROGRESS). */
+	MY_TASKS,
 
-	/** The current user is the author of a resolution. */
+	/** The current user created the task and it has at least one active assignee other than them. */
 	ISSUED_BY_ME,
 
-	/** A resolution whose due date has passed (Europe/Kyiv) and that is neither ACCEPTED nor CANCELED. */
+	/**
+	 * The deadline has passed (end of day, Europe/Kyiv) and the status category is neither DONE nor CANCELED; never
+	 * archived tasks.
+	 */
 	OVERDUE
 
 }

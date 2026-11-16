@@ -87,14 +87,16 @@ class SavedFilterController {
 
 	private static Criteria criteria(SavedFilterCriteria c) {
 		return new Criteria(c.spaceId(), c.statusId(), c.labels() == null ? Set.of() : new java.util.LinkedHashSet<>(c.labels()),
-				c.executorId(), c.authorId(), c.resolutionState(), c.view(), c.dueFrom(), c.dueTo());
+				c.assignee(), c.creator(), Boolean.TRUE.equals(c.overdue()), c.view(), c.deadlineFrom(), c.deadlineTo(),
+				c.executorId(), c.authorId(), c.resolutionState());
 	}
 
 	private static SavedFilterResponse response(SavedFilter f) {
 		Criteria c = f.criteria();
 		return new SavedFilterResponse(f.getId(), f.getName(),
-				new SavedFilterCriteria(c.spaceId(), c.statusId(), c.labels().stream().sorted().toList(), c.executorId(),
-						c.authorId(), c.resolutionState(), c.view(), c.dueFrom(), c.dueTo()),
+				new SavedFilterCriteria(c.spaceId(), c.statusId(), c.labels().stream().sorted().toList(), c.assignee(),
+						c.creator(), c.overdue(), c.view(), c.deadlineFrom(), c.deadlineTo(), c.executorId(),
+						c.authorId(), c.resolutionState()),
 				f.getCreatedAt(), f.getUpdatedAt());
 	}
 

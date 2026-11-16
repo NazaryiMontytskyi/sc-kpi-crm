@@ -37,7 +37,8 @@ import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.UpdateTaskRequest;
 
 /**
  * Tasks. Reads need {@code tasks.view} (openness by default), creating {@code tasks.create}, archiving and restoring
- * {@code tasks.archive}. Editing and status changes are decided by {@link TaskEditPolicy} (author or Admin).
+ * {@code tasks.archive}. Editing (creator or Admin) and status changes (creator, assignee, {@code tasks.edit.any} or
+ * Admin) are decided by {@link TaskEditPolicy}.
  */
 @ApiV1
 @Tag(name = "Tasks")
@@ -55,22 +56,26 @@ class TaskController {
 	@GetMapping("/tasks")
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
-			description = "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat "
-					+ "the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, "
-					+ "compared with the deadline). "
-						+ "Resolution filters executorId (executor or co-executor), authorId, resolutionState and view "
-						+ "(MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a "
-						+ "non-archived resolution that satisfies all of them at once.")
+			description = "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, "
+					+ "labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo "
+					+ "(inclusive dates, compared with the deadline), assignee (an active assignee), creator, "
+					+ "overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never "
+					+ "archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created "
+					+ "it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). "
+					+ "Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState "
+					+ "match tasks having a non-archived resolution that satisfies all of them at once.")
 	PageResponse<TaskSummaryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) UUID spaceId,
 			@RequestParam(required = false) UUID statusId, @RequestParam(required = false) List<String> labels,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineFrom,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineTo,
 			@RequestParam(defaultValue = "false") boolean includeArchived,
-				@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
-				@RequestParam(required = false) ResolutionState resolutionState,
-				@RequestParam(required = false) TaskQuickView view) {
-		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, dueFrom, dueTo, includeArchived, executorId,
-				authorId, resolutionState, view);
+			@RequestParam(required = false) UUID assignee, @RequestParam(required = false) UUID creator,
+			@RequestParam(defaultValue = "false") boolean overdue,
+			@RequestParam(required = false) TaskQuickView view,
+			@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
+			@RequestParam(required = false) ResolutionState resolutionState) {
+		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived,
+				assignee, creator, overdue, view, executorId, authorId, resolutionState);
 		return PageResponse.of(service.list(filter, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				TaskController::summary);
 	}
@@ -102,7 +107,8 @@ class TaskController {
 	@Operation(summary = "Edit a task (replaces all editable fields)",
 			description = "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 "
 					+ "TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. "
-					+ "The relatedTaskIds list is the complete new set of symmetric links.")
+					+ "The relatedTaskIds list is the complete new set of symmetric links. An edit that changes "
+					+ "nothing is not recorded.")
 	TaskResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTaskRequest request) {
 		return detail(service.update(id, request.expectedVersion(), request.title(), request.description(),
 				request.priority(), request.deadline(), request.labels(), request.customFieldValues(),
@@ -112,9 +118,10 @@ class TaskController {
 	@PostMapping("/tasks/{id}/status")
 	@PreAuthorize("hasAuthority('tasks.view')")
 	@Operation(summary = "Change the status of a task",
-			description = "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active "
-					+ "status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and "
-					+ "differs from the current version.")
+			description = "The creator, an active assignee, a holder of tasks.edit.any or an Admin (403 "
+					+ "TASK_CONTRIBUTE_FORBIDDEN otherwise). The status must be an active status of the task's space "
+					+ "(422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current "
+					+ "version. Moving to the current status changes nothing.")
 	TaskResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody ChangeTaskStatusRequest request) {
 		return detail(service.changeStatus(id, request.expectedVersion(), request.statusId()));
 	}

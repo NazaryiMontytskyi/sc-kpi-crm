@@ -36,7 +36,10 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crm.access.AccessService;
 
-/** Resolution filters and built-in quick views of the task list, and the privacy of saved filters. */
+/**
+ * Built-in quick views ("My tasks", "Issued by me", "Overdue") and the assignee/creator/overdue/deadline filters of
+ * the task list (INC-073), the legacy resolution filters, and saved filters.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -66,6 +69,9 @@ class TaskQuickViewIntegrationTests {
 	private UUID role;
 	private UUID space;
 	private UUID statusId;
+	private UUID progress;
+	private UUID done;
+	private UUID canceled;
 	private Account me;
 	private Account other;
 	private Account third;
@@ -82,6 +88,9 @@ class TaskQuickViewIntegrationTests {
 		statusId = UUID.randomUUID();
 		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
 				+ " values (?, ?, 'Todo', 'TODO', 0, now(), now())", statusId, space);
+		progress = spaceStatus("Doing", "IN_PROGRESS", 1);
+		done = spaceStatus("Done", "DONE", 2);
+		canceled = spaceStatus("Dropped", "CANCELED", 3);
 		me = account();
 		other = account();
 		third = account();
@@ -101,6 +110,7 @@ class TaskQuickViewIntegrationTests {
 				jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
 			}
 			jdbc.update("delete from resolution where task_id = ?", task);
+			jdbc.update("delete from task_assignee where task_id = ?", task);
 			jdbc.update("delete from task_label where task_id = ?", task);
 			jdbc.update("delete from task where id = ?", task);
 		}
@@ -143,6 +153,54 @@ class TaskQuickViewIntegrationTests {
 		return id;
 	}
 
+	private UUID spaceStatus(String name, String category, int position) {
+		UUID id = UUID.randomUUID();
+		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
+				+ " values (?, ?, ?, ?, ?, now(), now())", id, space, name, category, position);
+		return id;
+	}
+
+	/** A task created by {@code creator} in the given status. */
+	private UUID task(String title, UUID creator, UUID status, LocalDate deadline, boolean archived) {
+		UUID id = UUID.randomUUID();
+		tasks.add(id);
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, deadline, created_at, updated_at,"
+				+ " creator_id, issued_at, archived_at) values (?, ?, ?, ?, 'NORMAL', ?, now(), now(), ?, now(), "
+				+ (archived ? "now()" : "null") + ")", id, space, title, status, deadline, creator);
+		return id;
+	}
+
+	private void assign(UUID task, UUID user, boolean removed) {
+		jdbc.update("insert into task_assignee (id, task_id, user_id, assigned_by, assigned_at, removed_at, created_at,"
+				+ " updated_at) values (?, ?, ?, ?, now(), " + (removed ? "now()" : "null") + ", now(), now())",
+				UUID.randomUUID(), task, user, user);
+	}
+
+	/** Assignment seed (viewed as "me"): see the expectations in the tests. */
+	private void seedAssignments() {
+		UUID t1 = task("t1-mine-todo", other.id(), statusId, TODAY.plusDays(5), false);
+		assign(t1, me.id(), false);
+		UUID t2 = task("t2-mine-and-third", other.id(), progress, null, false);
+		assign(t2, me.id(), false);
+		assign(t2, third.id(), false);
+		UUID t3 = task("t3-issued-overdue", me.id(), statusId, TODAY.minusDays(3), false);
+		assign(t3, other.id(), false);
+		UUID t4 = task("t4-mine-done-past", other.id(), done, TODAY.minusDays(10), false);
+		assign(t4, me.id(), false);
+		UUID t5 = task("t5-issued-canceled-past", me.id(), canceled, TODAY.minusDays(10), false);
+		assign(t5, other.id(), false);
+		UUID t6 = task("t6-archived-overdue", me.id(), statusId, TODAY.minusDays(2), true);
+		assign(t6, me.id(), false);
+		assign(t6, other.id(), false);
+		task("t7-no-assignee-overdue", me.id(), statusId, TODAY.minusDays(1), false);
+		UUID t8 = task("t8-due-today", other.id(), progress, TODAY, false);
+		assign(t8, me.id(), false);
+		UUID t9 = task("t9-removed-assignee", other.id(), statusId, null, false);
+		assign(t9, me.id(), true);
+		UUID t10 = task("t10-self-assigned", me.id(), statusId, null, false);
+		assign(t10, me.id(), false);
+	}
+
 	private UUID resolution(UUID task, UUID author, UUID executor, String state, LocalDate due, boolean archived) {
 		UUID id = UUID.randomUUID();
 		jdbc.update("insert into resolution (id, task_id, author_id, executor_id, instruction, due_date, state,"
@@ -182,29 +240,71 @@ class TaskQuickViewIntegrationTests {
 	}
 
 	@Test
-	void myResolutionsListsTasksWhereIAmExecutorOrCoExecutorOfALiveResolution() throws Exception {
-		seed();
-		assertThat(titles(me, "&view=MY_RESOLUTIONS")).containsExactly("t1-mine-in-progress", "t2-mine-co-executor",
-				"t8-due-today");
-		// another user's quick view is evaluated for that user
-		assertThat(titles(other, "&view=MY_RESOLUTIONS")).containsExactly("t3-issued-overdue");
-		assertThat(titles(third, "&view=MY_RESOLUTIONS")).containsExactly("t2-mine-co-executor");
+	void myTasksListsOpenTasksWhereIAmAnActiveAssignee() throws Exception {
+		seedAssignments();
+		// t4 is done, t6 archived, t9 no longer assigned to me
+		assertThat(titles(me, "&view=MY_TASKS")).containsExactly("t1-mine-todo", "t10-self-assigned",
+				"t2-mine-and-third", "t8-due-today");
+		// another user's quick view is evaluated for that user; t5 is canceled
+		assertThat(titles(other, "&view=MY_TASKS")).containsExactly("t3-issued-overdue");
+		assertThat(titles(third, "&view=MY_TASKS")).containsExactly("t2-mine-and-third");
 	}
 
 	@Test
-	void issuedByMeListsTasksWithAResolutionIAuthoredIgnoringArchivedOnes() throws Exception {
-		seed();
-		assertThat(titles(me, "&view=ISSUED_BY_ME")).containsExactly("t3-issued-overdue", "t5-issued-canceled");
-		assertThat(titles(other, "&view=ISSUED_BY_ME")).containsExactly("t1-mine-in-progress", "t2-mine-co-executor",
-				"t4-accepted-in-the-past", "t8-due-today");
+	void issuedByMeListsTasksICreatedAndAssignedToSomeoneElse() throws Exception {
+		seedAssignments();
+		// t6 archived, t7 has no assignee, t10 is assigned to me only
+		assertThat(titles(me, "&view=ISSUED_BY_ME")).containsExactly("t3-issued-overdue", "t5-issued-canceled-past");
+		// t9's only assignment was removed
+		assertThat(titles(other, "&view=ISSUED_BY_ME")).containsExactly("t1-mine-todo", "t2-mine-and-third",
+				"t4-mine-done-past", "t8-due-today");
 	}
 
 	@Test
-	void overdueMeansDueDatePassedAndStateNotAcceptedOrCanceled() throws Exception {
-		seed();
-		// t4 is accepted, t5 canceled, t6 archived, t8 is due today (not yet overdue)
-		assertThat(titles(me, "&view=OVERDUE")).containsExactly("t3-issued-overdue");
-		assertThat(titles(other, "&view=OVERDUE")).containsExactly("t3-issued-overdue");
+	void overdueMeansDeadlinePassedOpenCategoryAndNotArchived() throws Exception {
+		seedAssignments();
+		// t4 is done, t5 canceled, t6 archived, t8 is due today (not yet overdue)
+		assertThat(titles(me, "&view=OVERDUE")).containsExactly("t3-issued-overdue", "t7-no-assignee-overdue");
+		assertThat(titles(other, "&overdue=true")).containsExactly("t3-issued-overdue", "t7-no-assignee-overdue");
+		// archived tasks are never overdue, even when archived ones are requested
+		assertThat(titles(me, "&overdue=true&includeArchived=true")).containsExactly("t3-issued-overdue",
+				"t7-no-assignee-overdue");
+		assertThat(titles(me, "&overdue=false")).hasSize(9);
+	}
+
+	@Test
+	void assigneeCreatorAndDeadlineFiltersCombine() throws Exception {
+		seedAssignments();
+		assertThat(titles(third, "&assignee=" + me.id())).containsExactly("t1-mine-todo", "t10-self-assigned",
+				"t2-mine-and-third", "t4-mine-done-past", "t8-due-today");
+		assertThat(titles(third, "&assignee=" + me.id() + "&includeArchived=true")).contains("t6-archived-overdue")
+				.hasSize(6);
+		assertThat(titles(third, "&creator=" + me.id())).containsExactly("t10-self-assigned", "t3-issued-overdue",
+				"t5-issued-canceled-past", "t7-no-assignee-overdue");
+		assertThat(titles(third, "&creator=" + me.id() + "&assignee=" + other.id())).containsExactly(
+				"t3-issued-overdue", "t5-issued-canceled-past");
+		assertThat(titles(third, "&assignee=" + other.id() + "&overdue=true")).containsExactly("t3-issued-overdue");
+		assertThat(titles(third, "&deadlineFrom=" + TODAY + "&deadlineTo=" + TODAY.plusDays(5)))
+				.containsExactly("t1-mine-todo", "t8-due-today");
+		assertThat(titles(third, "&assignee=" + me.id() + "&deadlineTo=" + TODAY)).containsExactly(
+				"t4-mine-done-past", "t8-due-today");
+		assertThat(titles(third, "&assignee=" + third.id())).containsExactly("t2-mine-and-third");
+	}
+
+	@Test
+	void assigneeFilterIsPaginated() throws Exception {
+		seedAssignments();
+		String base = "/api/v1/tasks?spaceId=" + space + "&assignee=" + me.id() + "&sort=title,asc&size=2";
+		mvc.perform(get(base + "&page=0").session(me.session())).andExpect(status().isOk())
+				.andExpect(jsonPath("$.content.length()").value(2)).andExpect(jsonPath("$.totalElements").value(5))
+				.andExpect(jsonPath("$.totalPages").value(3));
+		mvc.perform(get(base + "&page=2").session(me.session())).andExpect(status().isOk())
+				.andExpect(jsonPath("$.content.length()").value(1));
+	}
+
+	@Test
+	void theRetiredMyResolutionsViewIsRejected() throws Exception {
+		mvc.perform(get("/api/v1/tasks?view=MY_RESOLUTIONS").session(me.session())).andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -218,7 +318,7 @@ class TaskQuickViewIntegrationTests {
 		assertThat(titles(me, "&executorId=" + me.id() + "&resolutionState=NEW")).containsExactly("t2-mine-co-executor");
 		assertThat(titles(me, "&authorId=" + me.id() + "&executorId=" + me.id())).isEmpty();
 		jdbc.update("insert into task_label (task_id, label) select id, 'urgent' from task where title = 't3-issued-overdue'");
-		assertThat(titles(me, "&view=OVERDUE&labels=urgent")).containsExactly("t3-issued-overdue");
+		assertThat(titles(me, "&authorId=" + me.id() + "&labels=urgent")).containsExactly("t3-issued-overdue");
 		assertThat(titles(me, "&labels=urgent&authorId=" + other.id())).isEmpty();
 	}
 
@@ -263,9 +363,18 @@ class TaskQuickViewIntegrationTests {
 				.andExpect(jsonPath("$.content[0].criteria.labels[0]").value("urgent"))
 				.andExpect(jsonPath("$.content[0].criteria.resolutionState").value("NEW"));
 		send(me, org.springframework.http.HttpMethod.PUT, "/task-filters/" + id,
-				"{\"name\":\"Renamed\",\"criteria\":{\"view\":\"MY_RESOLUTIONS\"}}").andExpect(status().isOk())
-				.andExpect(jsonPath("$.name").value("Renamed")).andExpect(jsonPath("$.criteria.view").value("MY_RESOLUTIONS"))
+				"{\"name\":\"Renamed\",\"criteria\":{\"view\":\"MY_TASKS\",\"assignee\":\"" + other.id()
+						+ "\",\"creator\":\"" + me.id() + "\",\"overdue\":true,\"deadlineFrom\":\"2031-01-01\","
+						+ "\"deadlineTo\":\"2031-02-01\"}}").andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Renamed")).andExpect(jsonPath("$.criteria.view").value("MY_TASKS"))
+				.andExpect(jsonPath("$.criteria.assignee").value(other.id().toString()))
+				.andExpect(jsonPath("$.criteria.creator").value(me.id().toString()))
+				.andExpect(jsonPath("$.criteria.overdue").value(true))
+				.andExpect(jsonPath("$.criteria.deadlineFrom").value("2031-01-01"))
+				.andExpect(jsonPath("$.criteria.deadlineTo").value("2031-02-01"))
 				.andExpect(jsonPath("$.criteria.labels.length()").value(0));
+		send(me, org.springframework.http.HttpMethod.PUT, "/task-filters/" + id,
+				"{\"name\":\"Old\",\"criteria\":{\"view\":\"MY_RESOLUTIONS\"}}").andExpect(status().isBadRequest());
 		send(me, org.springframework.http.HttpMethod.DELETE, "/task-filters/" + id, null).andExpect(status().isNoContent());
 		mvc.perform(get("/api/v1/task-filters").session(me.session())).andExpect(status().isOk())
 				.andExpect(jsonPath("$.content.length()").value(0));

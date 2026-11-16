@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -49,19 +50,26 @@ class TaskService {
 	}
 
 	/**
-	 * Filters of the task list. The resolution filters ({@code executorId} incl. co-executors, {@code authorId},
-	 * {@code resolutionState}, {@code view}) are combined on one and the same non-archived resolution of the task.
+	 * Filters of the task list. {@code assignee} matches an active assignee, {@code creator} the creator,
+	 * {@code overdue} (when true) open, non-archived tasks past their deadline, {@code view} a quick view evaluated for
+	 * the caller ({@link TaskSpecs}). The legacy resolution filters ({@code executorId} incl. co-executors,
+	 * {@code authorId}, {@code resolutionState}) are combined on one and the same non-archived resolution of the task.
 	 */
-	record TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate dueFrom, LocalDate dueTo,
-			boolean includeArchived, UUID executorId, UUID authorId, ResolutionState resolutionState, TaskQuickView view) {
+	record TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
+			LocalDate deadlineTo, boolean includeArchived, UUID assignee, UUID creator, boolean overdue,
+			TaskQuickView view, UUID executorId, UUID authorId, ResolutionState resolutionState) {
 
-		TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate dueFrom, LocalDate dueTo,
-				boolean includeArchived) {
-			this(spaceId, statusId, labels, dueFrom, dueTo, includeArchived, null, null, null, null);
+		TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
+				LocalDate deadlineTo, boolean includeArchived) {
+			this(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived, null, null, false, null, null,
+					null, null);
 		}
 	}
 
+	static final String TASK_ASSIGNEE = "TaskAssignee";
+
 	private final TaskRepository tasks;
+	private final TaskAssigneeRepository assignees;
 	private final TaskLinkRepository links;
 	private final SpaceRepository spaces;
 	private final SpaceStatusRepository statuses;
@@ -75,10 +83,12 @@ class TaskService {
 	private final ApplicationEventPublisher events;
 	private final Clock clock;
 
-	TaskService(TaskRepository tasks, TaskLinkRepository links, SpaceRepository spaces, SpaceStatusRepository statuses,
-			ResolutionRepository resolutions, CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
+	TaskService(TaskRepository tasks, TaskAssigneeRepository assignees, TaskLinkRepository links,
+			SpaceRepository spaces, SpaceStatusRepository statuses, ResolutionRepository resolutions,
+			CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
 			AuditPublisher audit, ActorProvider actors, ApplicationEventPublisher events, Clock clock) {
 		this.tasks = tasks;
+		this.assignees = assignees;
 		this.links = links;
 		this.spaces = spaces;
 		this.statuses = statuses;
@@ -126,6 +136,8 @@ class TaskService {
 	/**
 	 * Replaces the editable fields. Author or Admin only ({@link TaskEditPolicy}). {@code expectedVersion} (optional) is
 	 * the version the caller edited; a different current version is a conflict (409 {@code TASK_VERSION_CONFLICT}).
+	 * An edit that changes nothing is not saved, audited or published; a moved deadline additionally publishes
+	 * {@code DEADLINE_CHANGED}.
 	 */
 	@Transactional
 	TaskView update(UUID id, Long expectedVersion, String title, Map<String, Object> description,
@@ -152,10 +164,16 @@ class TaskService {
 		Set<UUID> currentRelated = relatedOf(id);
 		assertLinkable(without(related, currentRelated));
 		Set<String> normalizedLabels = TaskRules.normalizeLabels(labels);
+		String newTitle = title.strip();
+		TaskPriority newPriority = priority == null ? TaskPriority.NORMAL : priority;
+		if (unchanged(task, newTitle, description, newPriority, deadline, normalizedLabels, attachments, values)
+				&& related.equals(currentRelated)) {
+			return view(task, currentRelated); // a no-op edit: nothing saved, audited or published (spec 6.4)
+		}
 
 		Map<String, Object> before = task.auditSnapshot(currentRelated);
-		task.update(title.strip(), description, priority == null ? TaskPriority.NORMAL : priority, deadline,
-				normalizedLabels, attachments, values);
+		LocalDate previousDeadline = task.getDeadline();
+		task.update(newTitle, description, newPriority, deadline, normalizedLabels, attachments, values);
 		Task saved = tasks.save(task);
 		tasks.flush(); // the new version is part of the audit snapshot and of the response
 
@@ -167,10 +185,19 @@ class TaskService {
 		audit.publish(AuditAction.UPDATE, TASK, id, before, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
 		publish(TaskEvent.Kind.UPDATED, saved);
+		if (!Objects.equals(previousDeadline, saved.getDeadline())) {
+			events.publishEvent(new TaskEvent(TaskEvent.Kind.DEADLINE_CHANGED, id, saved.getSpaceId(),
+					saved.getStatusId(), saved.getCreatorId(), actors.currentActorId(), null, null, previousDeadline,
+					saved.getDeadline()));
+		}
 		return view(saved, related);
 	}
 
-	/** Moves the task to another status of its space. Same rule as editing; same optional version check. */
+	/**
+	 * Moves the task to another status of its space: the creator, an active assignee, {@code tasks.edit.any} or an
+	 * Admin (AS-5, {@link TaskEditPolicy}); same optional version check as editing. Moving to the current status is a
+	 * no-op (nothing audited or published).
+	 */
 	@Transactional
 	TaskView changeStatus(UUID id, Long expectedVersion, UUID statusId) {
 		UUID spaceId = require(id).getSpaceId();
@@ -184,11 +211,13 @@ class TaskService {
 		Set<UUID> related = relatedOf(id);
 		if (!target.getId().equals(task.getStatusId())) {
 			Map<String, Object> before = task.auditSnapshot(related);
+			UUID previousStatus = task.getStatusId();
 			task.changeStatus(target.getId());
 			tasks.save(task);
 			tasks.flush();
 			audit.publish(AuditAction.UPDATE, TASK, id, before, task.auditSnapshot(related));
-			publish(TaskEvent.Kind.UPDATED, task);
+			events.publishEvent(new TaskEvent(TaskEvent.Kind.STATUS_CHANGED, id, task.getSpaceId(), task.getStatusId(),
+					task.getCreatorId(), actors.currentActorId(), null, previousStatus, null, task.getDeadline()));
 		}
 		return view(task, related);
 	}
@@ -227,6 +256,63 @@ class TaskService {
 		return view(saved, related);
 	}
 
+	// ---- assignees (AS-1..AS-5) ----
+
+	/**
+	 * Adds an active assignee. Rights: {@link AssigneeRules} (403 {@code TASK_ASSIGN_FORBIDDEN}); the user must be an
+	 * active account (422 {@code TASK_ASSIGNEE_INACTIVE}); a user is an active assignee at most once (409
+	 * {@code TASK_ASSIGNEE_DUPLICATE}); archived tasks are not changed (409 {@code TASK_ARCHIVED}).
+	 */
+	@Transactional
+	TaskAssignee assign(UUID taskId, UUID userId) {
+		Task task = lockActive(taskId);
+		editPolicy.assertCanManageAssignee(task, userId);
+		if (!users.isActive(userId)) {
+			throw new BusinessRuleException("TASK_ASSIGNEE_INACTIVE");
+		}
+		if (assignees.existsByTaskIdAndUserIdAndRemovedAtIsNull(taskId, userId)) {
+			throw new ConflictException("TASK_ASSIGNEE_DUPLICATE");
+		}
+		List<String> before = activeAssigneeIds(taskId);
+		UUID actor = actors.currentActorId();
+		TaskAssignee saved = assignees.saveAndFlush(new TaskAssignee(taskId, userId, actor, clock.instant()));
+		audit.publish(AuditAction.UPDATE, TASK, taskId, assigneeSnapshot(before, null),
+				assigneeSnapshot(activeAssigneeIds(taskId), saved.auditSnapshot()));
+		events.publishEvent(new TaskEvent(TaskEvent.Kind.ASSIGNED, taskId, task.getSpaceId(), task.getStatusId(),
+				task.getCreatorId(), actor, userId, null, null, task.getDeadline()));
+		return saved;
+	}
+
+	/**
+	 * Ends an active assignment: the row stays with {@code removedAt} (AS-4). Same rights as adding; 404 when the user
+	 * is not an active assignee of the task.
+	 */
+	@Transactional
+	TaskAssignee unassign(UUID taskId, UUID userId) {
+		Task task = lockActive(taskId);
+		editPolicy.assertCanManageAssignee(task, userId);
+		TaskAssignee row = assignees.findByTaskIdAndUserIdAndRemovedAtIsNull(taskId, userId)
+				.orElseThrow(() -> new NotFoundException(TASK_ASSIGNEE, userId));
+		List<String> before = activeAssigneeIds(taskId);
+		Map<String, Object> rowBefore = row.auditSnapshot();
+		UUID actor = actors.currentActorId();
+		row.remove(actor, clock.instant());
+		TaskAssignee saved = assignees.saveAndFlush(row);
+		audit.publish(AuditAction.UPDATE, TASK, taskId, assigneeSnapshot(before, rowBefore),
+				assigneeSnapshot(activeAssigneeIds(taskId), saved.auditSnapshot()));
+		events.publishEvent(new TaskEvent(TaskEvent.Kind.UNASSIGNED, taskId, task.getSpaceId(), task.getStatusId(),
+				task.getCreatorId(), actor, userId, null, null, task.getDeadline()));
+		return saved;
+	}
+
+	/** Assignees of a task (archived tasks too), oldest first; removed ones only with {@code includeRemoved}. */
+	@Transactional(readOnly = true)
+	List<TaskAssignee> assignees(UUID taskId, boolean includeRemoved) {
+		require(taskId);
+		return includeRemoved ? assignees.findByTaskIdOrderByAssignedAtAscIdAsc(taskId)
+				: assignees.findByTaskIdAndRemovedAtIsNullOrderByAssignedAtAscIdAsc(taskId);
+	}
+
 	// ---- queries ----
 
 	@Transactional(readOnly = true)
@@ -247,11 +333,25 @@ class TaskService {
 		if (filter.statusId() != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("statusId"), filter.statusId()));
 		}
-		if (filter.dueFrom() != null) {
-			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.<LocalDate>get("deadline"), filter.dueFrom()));
+		if (filter.deadlineFrom() != null) {
+			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.<LocalDate>get("deadline"),
+					filter.deadlineFrom()));
 		}
-		if (filter.dueTo() != null) {
-			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.<LocalDate>get("deadline"), filter.dueTo()));
+		if (filter.deadlineTo() != null) {
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.<LocalDate>get("deadline"),
+					filter.deadlineTo()));
+		}
+		if (filter.assignee() != null) {
+			spec = spec.and(TaskSpecs.assignee(filter.assignee()));
+		}
+		if (filter.creator() != null) {
+			spec = spec.and(TaskSpecs.creator(filter.creator()));
+		}
+		if (filter.overdue()) {
+			spec = spec.and(TaskSpecs.overdue(clock));
+		}
+		if (filter.view() != null) {
+			spec = spec.and(TaskSpecs.view(filter.view(), actors.currentActorId(), clock));
 		}
 		Set<String> labels = filter.labels() == null || filter.labels().isEmpty() ? Set.of()
 				: TaskRules.normalizeLabels(filter.labels());
@@ -260,7 +360,7 @@ class TaskService {
 			spec = spec.and((root, query, cb) -> cb.or(labels.stream()
 					.map(label -> cb.isMember(label, root.<Set<String>>get("labels"))).toArray(jakarta.persistence.criteria.Predicate[]::new)));
 		}
-		spec = spec.and(TaskResolutionSpecs.of(filter, actors.currentActorId(), clock));
+		spec = spec.and(TaskResolutionSpecs.of(filter));
 		Page<Task> page = tasks.findAll(spec, pageable);
 		Map<UUID, Set<UUID>> related = relatedOfAll(page.getContent().stream().map(Task::getId).toList());
 		Map<UUID, Boolean> suggestions = suggestDoneOfAll(page.getContent());
@@ -382,6 +482,28 @@ class TaskService {
 		}
 	}
 
+	/** True when the new values equal the task's current ones (a no-op edit). */
+	private static boolean unchanged(Task task, String title, Map<String, Object> description, TaskPriority priority,
+			LocalDate deadline, Set<String> labels, List<UUID> attachments, Map<String, Object> values) {
+		return task.getTitle().equals(title) && Objects.equals(task.getDescription(), description)
+				&& task.getPriority() == priority && Objects.equals(task.getDeadline(), deadline)
+				&& task.getLabels().equals(labels) && task.getAttachmentIds().equals(attachments)
+				&& task.getCustomFieldValues().equals(values);
+	}
+
+	private List<String> activeAssigneeIds(UUID taskId) {
+		return ids(assignees.findByTaskIdAndRemovedAtIsNullOrderByAssignedAtAscIdAsc(taskId).stream()
+				.map(TaskAssignee::getUserId).toList());
+	}
+
+	/** Audit state of an assignee change: the active assignee ids and the changed row (null before an addition). */
+	private static Map<String, Object> assigneeSnapshot(List<String> activeIds, Map<String, Object> row) {
+		Map<String, Object> map = new LinkedHashMap<>();
+		map.put("assigneeIds", activeIds);
+		map.put("assignee", row);
+		return map;
+	}
+
 	private static Set<UUID> without(Set<UUID> source, Set<UUID> removed) {
 		Set<UUID> result = new LinkedHashSet<>(source);
 		result.removeAll(removed);
@@ -442,7 +564,7 @@ class TaskService {
 
 	private void publish(TaskEvent.Kind kind, Task task) {
 		events.publishEvent(new TaskEvent(kind, task.getId(), task.getSpaceId(), task.getStatusId(),
-				task.getAuthorId()));
+				task.getAuthorId(), actors.currentActorId(), null, null, null, task.getDeadline()));
 	}
 
 }

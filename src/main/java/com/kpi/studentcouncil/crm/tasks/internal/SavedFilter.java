@@ -30,8 +30,9 @@ import com.kpi.studentcouncil.crm.shared.domain.ArchivableEntity;
 class SavedFilter extends ArchivableEntity {
 
 	/** The stored criteria; they mirror the query parameters of the task list. */
-	record Criteria(UUID spaceId, UUID statusId, Set<String> labels, UUID executorId, UUID authorId,
-			ResolutionState resolutionState, TaskQuickView view, LocalDate dueFrom, LocalDate dueTo) {
+	record Criteria(UUID spaceId, UUID statusId, Set<String> labels, UUID assignee, UUID creator, boolean overdue,
+			TaskQuickView view, LocalDate deadlineFrom, LocalDate deadlineTo, UUID executorId, UUID authorId,
+			ResolutionState resolutionState) {
 	}
 
 	@Column(name = "owner_id", nullable = false, updatable = false)
@@ -45,6 +46,15 @@ class SavedFilter extends ArchivableEntity {
 
 	@Column(name = "status_id")
 	private UUID statusId;
+
+	@Column(name = "assignee_id")
+	private UUID assignee;
+
+	@Column(name = "creator_id")
+	private UUID creator;
+
+	@Column(name = "overdue", nullable = false)
+	private boolean overdue;
 
 	@Column(name = "executor_id")
 	private UUID executorId;
@@ -60,11 +70,11 @@ class SavedFilter extends ArchivableEntity {
 	@Column(name = "quick_view", length = 20)
 	private TaskQuickView view;
 
-	@Column(name = "due_from")
-	private LocalDate dueFrom;
+	@Column(name = "deadline_from")
+	private LocalDate deadlineFrom;
 
-	@Column(name = "due_to")
-	private LocalDate dueTo;
+	@Column(name = "deadline_to")
+	private LocalDate deadlineTo;
 
 	@ElementCollection(fetch = FetchType.EAGER)
 	@Fetch(FetchMode.SELECT)
@@ -90,20 +100,23 @@ class SavedFilter extends ArchivableEntity {
 	}
 
 	Criteria criteria() {
-		return new Criteria(spaceId, statusId, new LinkedHashSet<>(labels), executorId, authorId, resolutionState, view,
-				dueFrom, dueTo);
+		return new Criteria(spaceId, statusId, new LinkedHashSet<>(labels), assignee, creator, overdue, view,
+				deadlineFrom, deadlineTo, executorId, authorId, resolutionState);
 	}
 
 	void update(String name, Criteria c) {
 		this.name = name;
 		this.spaceId = c.spaceId();
 		this.statusId = c.statusId();
+		this.assignee = c.assignee();
+		this.creator = c.creator();
+		this.overdue = c.overdue();
 		this.executorId = c.executorId();
 		this.authorId = c.authorId();
 		this.resolutionState = c.resolutionState();
 		this.view = c.view();
-		this.dueFrom = c.dueFrom();
-		this.dueTo = c.dueTo();
+		this.deadlineFrom = c.deadlineFrom();
+		this.deadlineTo = c.deadlineTo();
 		this.labels.clear();
 		this.labels.addAll(c.labels());
 	}
@@ -115,12 +128,15 @@ class SavedFilter extends ArchivableEntity {
 		map.put("spaceId", str(spaceId));
 		map.put("statusId", str(statusId));
 		map.put("labels", List.copyOf(labels.stream().sorted().toList()));
+		map.put("assignee", str(assignee));
+		map.put("creator", str(creator));
+		map.put("overdue", overdue);
 		map.put("executorId", str(executorId));
 		map.put("authorId", str(authorId));
 		map.put("resolutionState", resolutionState == null ? null : resolutionState.name());
 		map.put("view", view == null ? null : view.name());
-		map.put("dueFrom", str(dueFrom));
-		map.put("dueTo", str(dueTo));
+		map.put("deadlineFrom", str(deadlineFrom));
+		map.put("deadlineTo", str(deadlineTo));
 		map.put("archivedAt", str(getArchivedAt()));
 		return map;
 	}
