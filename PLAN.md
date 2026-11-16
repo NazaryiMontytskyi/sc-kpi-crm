@@ -997,7 +997,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Shared-kernel touch limited to the permission catalog and its migration (spec §6.2). Frontend change here is the field rename only.
 
 #### INC-072 — Convert existing resolutions into subtasks (data migration)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks` (migration + converter)
 - **Depends on:** INC-071
 - **Scope:** Flyway migration converting each `resolution` row into one subtask (spec §5.8): executor and co-executors -> `task_assignee` (`assigned_by` = author); author -> `creator_id`; instruction -> description; due date -> `deadline` (not clamped); state mapped to the first Space status of the target category (NEW -> TODO; IN_PROGRESS/REWORK/SUBMITTED -> IN_PROGRESS; ACCEPTED -> DONE; CANCELED/REDIRECTED -> CANCELED); completion note, rework comments and history -> comments on the subtask with original author and timestamps and a localized marker (SUBMITTED flagged); redirect chains flattened into sibling subtasks with a "Redirected from X" comment; `resolution_reminder` rows -> `task_reminder`. One transaction, deterministic. Mapping logic as a pure class (`ResolutionMigrationMapping`) where feasible.
