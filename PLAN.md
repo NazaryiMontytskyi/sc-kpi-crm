@@ -980,7 +980,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 ### Increments
 
 #### INC-071 — ADR-0010 and task data model (schema, entity, permission `tasks.assign`)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`, `access` (permission catalog + migration only), `docs/adr/`
 - **Depends on:** —
 - **Scope:** ADR `docs/adr/0010-task-assignment-model-and-resolution-migration.md` (subtask depth 1, shared status, `tasks.assign`, migration mapping per spec §5.8, legacy table retention, per-assignee-state extension point). Migration V25+: `task` gets `creator_id`, `issued_at`, `parent_task_id` (FK, index), `deadline` (values preserved from `due_date`, indexed), `version` (optimistic locking); new tables `task_assignee` (`task_id`, `user_id`, `assigned_by`, `assigned_at`, `removed_at`; partial unique index on active `(task_id,user_id)`; index `(user_id, task_id)`), `task_artifact` (type FILE|LINK, `file_id`, `url`, `title`, added by/at, `archived_at`), `task_reminder` (task, user, threshold, deadline); backfill `creator_id` from `created_by`, `issued_at` from `created_at`. Task entity/DTOs expose `deadline`, `issuedAt`, `creatorId`, `parentId`, `version`. `Permission.TASKS_ASSIGN` in group Tasks; migration granting `tasks.assign` to every role holding `resolutions.create`; `TemplateRoleSeeder` updated (Advisor excluded). `resolutions.*` keys remain for now.
