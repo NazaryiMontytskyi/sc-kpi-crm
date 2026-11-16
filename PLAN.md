@@ -1032,7 +1032,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Q9 default: any active user may be assigned.
 
 #### INC-074 — Subtasks backend: one level, deadline rules, suggest-close, cascade archive
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`
 - **Depends on:** INC-073
 - **Scope:** `GET/POST /api/v1/tasks/{id}/subtasks` and list filter `parentId`; pure `SubtaskRules` (depth, deadline bound, conflicting-subtask list); creation rights (ST-2); `spaceId` inherited; archive/restore cascade parent -> subtasks (TM-4); pure `SuggestCloseRule` (successor of `SuggestDoneRule`) exposed as `suggestClose` in the task DTO plus open-subtask count; task detail returns task, assignees and subtasks in one response (§7). OpenAPI + client regenerated.
