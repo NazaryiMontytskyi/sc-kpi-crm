@@ -108,8 +108,8 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Get a task (archived ones too) with its active assignees and subtasks",
-        "description": "subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically).",
+        "summary": "Get a task (archived ones too) with its active assignees, subtasks and artifacts",
+        "description": "subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically). artifacts lists the active (not removed) artifacts, oldest first.",
         "operationId": "get",
         "parameters": [
           {
@@ -1802,6 +1802,92 @@
         }
       }
     },
+    "/api/v1/tasks/{id}/artifacts": {
+      "get": {
+        "tags": [
+          "Task artifacts"
+        ],
+        "summary": "Artifacts of a task (oldest first; a task has few, so the list is not paginated)",
+        "description": "Active artifacts only, unless includeArchived=true (then removed ones are listed too, with archivedAt). Works for archived tasks.",
+        "operationId": "list_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskArtifactResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task artifacts"
+        ],
+        "summary": "Attach a file or a link to a task",
+        "description": "FILE: fileId of an uploaded file (POST /files), no url or title. LINK: url (http or https with a host, at most 2048 characters, surrounding whitespace is stripped) and an optional title. Only the creator, an active assignee, a holder of tasks.edit.any or an Admin (403 TASK_CONTRIBUTE_FORBIDDEN). 422 TASK_ARTIFACT_INVALID (fields do not match the type), TASK_ARTIFACT_FILE_INVALID (file missing or archived), TASK_ARTIFACT_URL_INVALID, TASK_ARTIFACT_URL_TOO_LONG; 409 TASK_ARTIFACT_DUPLICATE (file already attached), 409 TASK_ARCHIVED.",
+        "operationId": "add",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTaskArtifactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskArtifactResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tasks/{id}/archive": {
       "post": {
         "tags": [
@@ -1841,7 +1927,7 @@
           "Saved task filters"
         ],
         "summary": "My saved task filters (paginated, sortable by name, createdAt; default name)",
-        "operationId": "list_2",
+        "operationId": "list_3",
         "parameters": [
           {
             "name": "page",
@@ -1924,7 +2010,7 @@
         ],
         "summary": "Spaces (paginated, sortable by name, createdAt; default name)",
         "description": "Archived spaces only with includeArchived=true. Optional filter by orgUnitId.",
-        "operationId": "list_3",
+        "operationId": "list_4",
         "parameters": [
           {
             "name": "page",
@@ -2355,7 +2441,7 @@
         ],
         "summary": "List roles (paginated, by name; the built-in Admin role first)",
         "description": "includeArchived=true is honoured only for holders of roles.manage.",
-        "operationId": "list_4",
+        "operationId": "list_5",
         "parameters": [
           {
             "name": "page",
@@ -3582,7 +3668,7 @@
         ],
         "summary": "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
         "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.",
-        "operationId": "list_5",
+        "operationId": "list_6",
         "parameters": [
           {
             "name": "page",
@@ -3908,7 +3994,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list_6",
+        "operationId": "list_7",
         "parameters": [
           {
             "name": "page",
@@ -4066,7 +4152,7 @@
         ],
         "summary": "Comments of a record (paginated, oldest first)",
         "description": "Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.",
-        "operationId": "list_7",
+        "operationId": "list_8",
         "parameters": [
           {
             "name": "page",
@@ -4329,7 +4415,7 @@
         ],
         "summary": "Articles (paginated, sortable by title, createdAt, updatedAt; default title)",
         "description": "Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.",
-        "operationId": "list_8",
+        "operationId": "list_9",
         "parameters": [
           {
             "name": "page",
@@ -4672,7 +4758,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_9",
+        "operationId": "list_10",
         "parameters": [
           {
             "name": "page",
@@ -4989,7 +5075,7 @@
         ],
         "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
         "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
-        "operationId": "list_10",
+        "operationId": "list_11",
         "parameters": [
           {
             "name": "page",
@@ -5453,7 +5539,7 @@
         ],
         "summary": "Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)",
         "description": "role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.",
-        "operationId": "list_11",
+        "operationId": "list_12",
         "parameters": [
           {
             "name": "id",
@@ -5745,7 +5831,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_12",
+        "operationId": "list_13",
         "parameters": [
           {
             "name": "page",
@@ -6233,6 +6319,41 @@
           }
         }
       }
+    },
+    "/api/v1/tasks/{id}/artifacts/{artifactId}": {
+      "delete": {
+        "tags": [
+          "Task artifacts"
+        ],
+        "summary": "Remove an artifact from a task (archived; an uploaded file stays in storage)",
+        "description": "Same rights as attaching (403 TASK_CONTRIBUTE_FORBIDDEN). 404 when the artifact does not belong to the task or is already removed; 409 TASK_ARCHIVED for an archived task.",
+        "operationId": "remove_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6312,6 +6433,68 @@
           "size": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "TaskArtifactResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "FILE",
+              "LINK"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileAvailable": {
+            "type": "boolean"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archivedBy": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -6469,6 +6652,12 @@
           },
           "suggestClose": {
             "type": "boolean"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskArtifactResponse"
+            }
           }
         }
       },
@@ -8074,6 +8263,33 @@
         },
         "required": [
           "userId"
+        ]
+      },
+      "AddTaskArtifactRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "FILE",
+              "LINK"
+            ]
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "type"
         ]
       },
       "CreateSpaceRequest": {

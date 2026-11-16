@@ -123,15 +123,16 @@ final class TasksDtos {
 
 	/**
 	 * Field meanings as in {@link TaskSummaryResponse}. The detail also carries the active {@code assignees} and the
-	 * {@code subtasks} (non-archived ones; for an archived task every subtask), so one request opens the task (spec
-	 * §7).
+	 * {@code subtasks} (non-archived ones; for an archived task every subtask) and the active {@code artifacts} (oldest
+	 * first), so one request opens the task (spec §7). {@code attachments} is the legacy view of the same files.
 	 */
 	record TaskResponse(UUID id, UUID spaceId, UUID parentId, String title, Map<String, Object> description,
 			UUID statusId, TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId,
 			List<String> labels, Map<String, Object> customFieldValues, List<AttachmentResponse> attachments,
 			List<UUID> relatedTaskIds, UUID authorId, boolean archived, Instant archivedAt, boolean suggestDone,
 			long version, Instant createdAt, Instant updatedAt, List<TaskAssigneeResponse> assignees,
-			List<TaskSummaryResponse> subtasks, int subtaskCount, int openSubtaskCount, boolean suggestClose) {
+			List<TaskSummaryResponse> subtasks, int subtaskCount, int openSubtaskCount, boolean suggestClose,
+			List<TaskArtifactResponse> artifacts) {
 	}
 
 	/**
@@ -153,6 +154,27 @@ final class TasksDtos {
 	/** An assignment; {@code active} is false once removed ({@code removedAt}/{@code removedBy} set). */
 	record TaskAssigneeResponse(UUID id, UUID taskId, UUID userId, UUID assignedBy, Instant assignedAt,
 			boolean active, Instant removedAt, UUID removedBy) {
+	}
+
+	// ---- artifacts ----
+
+	/**
+	 * A FILE artifact needs {@code fileId} (an uploaded file) and no {@code url}/{@code title}; a LINK artifact needs
+	 * {@code url} (http or https with a host, at most 2048 characters) and may have a {@code title}.
+	 */
+	record AddTaskArtifactRequest(@NotNull TaskArtifactType type, UUID fileId, String url,
+			@Size(max = 300) String title) {
+	}
+
+	/**
+	 * An artifact of a task (AR-5). {@code name} is the file name, the link title or (untitled link) the URL; it is
+	 * null only for a FILE whose file is no longer available ({@code fileAvailable} false). {@code mimeType} and
+	 * {@code size} are set for available files only. {@code archived}/{@code archivedAt}/{@code archivedBy} describe a
+	 * removed artifact.
+	 */
+	record TaskArtifactResponse(UUID id, UUID taskId, TaskArtifactType type, String name, UUID fileId,
+			boolean fileAvailable, String mimeType, Long size, String url, String title, UUID addedBy,
+			Instant addedAt, boolean archived, Instant archivedAt, UUID archivedBy) {
 	}
 
 	// ---- saved filters ----

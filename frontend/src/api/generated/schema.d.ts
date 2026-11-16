@@ -36,8 +36,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a task (archived ones too) with its active assignees and subtasks
-         * @description subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically).
+         * Get a task (archived ones too) with its active assignees, subtasks and artifacts
+         * @description subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically). artifacts lists the active (not removed) artifacts, oldest first.
          */
         get: operations["get"];
         /**
@@ -530,6 +530,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{id}/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Artifacts of a task (oldest first; a task has few, so the list is not paginated)
+         * @description Active artifacts only, unless includeArchived=true (then removed ones are listed too, with archivedAt). Works for archived tasks.
+         */
+        get: operations["list_2"];
+        put?: never;
+        /**
+         * Attach a file or a link to a task
+         * @description FILE: fileId of an uploaded file (POST /files), no url or title. LINK: url (http or https with a host, at most 2048 characters, surrounding whitespace is stripped) and an optional title. Only the creator, an active assignee, a holder of tasks.edit.any or an Admin (403 TASK_CONTRIBUTE_FORBIDDEN). 422 TASK_ARTIFACT_INVALID (fields do not match the type), TASK_ARTIFACT_FILE_INVALID (file missing or archived), TASK_ARTIFACT_URL_INVALID, TASK_ARTIFACT_URL_TOO_LONG; 409 TASK_ARTIFACT_DUPLICATE (file already attached), 409 TASK_ARCHIVED.
+         */
+        post: operations["add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{id}/archive": {
         parameters: {
             query?: never;
@@ -558,7 +582,7 @@ export interface paths {
             cookie?: never;
         };
         /** My saved task filters (paginated, sortable by name, createdAt; default name) */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /**
          * Save a task filter for myself
@@ -582,7 +606,7 @@ export interface paths {
          * Spaces (paginated, sortable by name, createdAt; default name)
          * @description Archived spaces only with includeArchived=true. Optional filter by orgUnitId.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /**
          * Create a space
@@ -739,7 +763,7 @@ export interface paths {
          * List roles (paginated, by name; the built-in Admin role first)
          * @description includeArchived=true is honoured only for holders of roles.manage.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /**
          * Create a role
@@ -1264,7 +1288,7 @@ export interface paths {
          * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
          * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /**
          * Create an account and profile
@@ -1365,7 +1389,7 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         /**
          * Create a faculty
@@ -1429,7 +1453,7 @@ export interface paths {
          * Comments of a record (paginated, oldest first)
          * @description Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         /**
          * Add a comment
@@ -1524,7 +1548,7 @@ export interface paths {
          * Articles (paginated, sortable by title, createdAt, updatedAt; default title)
          * @description Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         /**
          * Create an article
@@ -1665,7 +1689,7 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         /**
          * Create a definition
@@ -1800,7 +1824,7 @@ export interface paths {
          * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
          * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
          */
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2008,7 +2032,7 @@ export interface paths {
          * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
          * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
          */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2122,7 +2146,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2299,6 +2323,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{id}/artifacts/{artifactId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an artifact from a task (archived; an uploaded file stays in storage)
+         * @description Same rights as attaching (403 TASK_CONTRIBUTE_FORBIDDEN). 404 when the artifact does not belong to the task or is already removed; 409 TASK_ARCHIVED for an archived task.
+         */
+        delete: operations["remove_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2328,6 +2372,32 @@ export interface components {
             mimeType?: string;
             /** Format: int64 */
             size?: number;
+        };
+        TaskArtifactResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** @enum {string} */
+            type?: "FILE" | "LINK";
+            name?: string;
+            /** Format: uuid */
+            fileId?: string;
+            fileAvailable?: boolean;
+            mimeType?: string;
+            /** Format: int64 */
+            size?: number;
+            url?: string;
+            title?: string;
+            /** Format: uuid */
+            addedBy?: string;
+            /** Format: date-time */
+            addedAt?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** Format: uuid */
+            archivedBy?: string;
         };
         TaskAssigneeResponse: {
             /** Format: uuid */
@@ -2392,6 +2462,7 @@ export interface components {
             /** Format: int32 */
             openSubtaskCount?: number;
             suggestClose?: boolean;
+            artifacts?: components["schemas"]["TaskArtifactResponse"][];
         };
         TaskSummaryResponse: {
             /** Format: uuid */
@@ -2931,6 +3002,14 @@ export interface components {
         AssignTaskRequest: {
             /** Format: uuid */
             userId: string;
+        };
+        AddTaskArtifactRequest: {
+            /** @enum {string} */
+            type: "FILE" | "LINK";
+            /** Format: uuid */
+            fileId?: string;
+            url?: string;
+            title?: string;
         };
         CreateSpaceRequest: {
             name: string;
@@ -4729,6 +4808,56 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskArtifactResponse"][];
+                };
+            };
+        };
+    };
+    add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddTaskArtifactRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskArtifactResponse"];
+                };
+            };
+        };
+    };
     archive: {
         parameters: {
             query?: never;
@@ -4751,7 +4880,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 page?: number;
@@ -4799,7 +4928,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 page?: number;
@@ -5059,7 +5188,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 page?: number;
@@ -5801,7 +5930,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 page?: number;
@@ -5977,7 +6106,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 page?: number;
@@ -6070,7 +6199,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query: {
                 page?: number;
@@ -6253,7 +6382,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 page?: number;
@@ -6449,7 +6578,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 page?: number;
@@ -6634,7 +6763,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 page?: number;
@@ -6882,7 +7011,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: {
                 page?: number;
@@ -7039,7 +7168,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: {
                 page?: number;
@@ -7262,6 +7391,27 @@ export interface operations {
             path: {
                 id: string;
                 userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    remove_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                artifactId: string;
             };
             cookie?: never;
         };

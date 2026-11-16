@@ -83,10 +83,10 @@ class TaskController {
 
 	@GetMapping("/tasks/{id}")
 	@PreAuthorize("hasAuthority('tasks.view')")
-	@Operation(summary = "Get a task (archived ones too) with its active assignees and subtasks",
+	@Operation(summary = "Get a task (archived ones too) with its active assignees, subtasks and artifacts",
 			description = "subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; "
 					+ "subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed "
-					+ "automatically).")
+					+ "automatically). artifacts lists the active (not removed) artifacts, oldest first.")
 	TaskResponse get(@PathVariable UUID id) {
 		return detail(service.get(id));
 	}
@@ -164,7 +164,9 @@ class TaskController {
 				view.suggestDone(), t.getVersion(), t.getCreatedAt(), t.getUpdatedAt(),
 				view.assignees().stream().map(TaskAssigneeController::response).toList(),
 				view.subtasks() == null ? List.of() : view.subtasks().stream().map(TaskController::summary).toList(),
-				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose());
+				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose(),
+				view.artifacts() == null ? List.of()
+						: view.artifacts().stream().map(TaskArtifactController::response).toList());
 	}
 
 	static TaskSummaryResponse summary(TaskView view) {

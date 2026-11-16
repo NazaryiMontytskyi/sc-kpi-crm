@@ -108,6 +108,7 @@ class TaskIntegrationTests {
 					+ " or task_high in (select id from task where space_id = ?)", space, space);
 			jdbc.update("delete from task_label where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task_attachment where task_id in (select id from task where space_id = ?)", space);
+			jdbc.update("delete from task_artifact where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task_assignee where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task where space_id = ?", space);
 			jdbc.update("delete from task_custom_field_option where field_id in"

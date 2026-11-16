@@ -82,7 +82,8 @@ class TaskServiceTest {
 			}
 			return a;
 		});
-		service = new TaskService(tasks, assignees, links, spaces, statuses, resolutions, fields, files, users, editPolicy, audit, actors,
+		service = new TaskService(tasks, assignees, links, spaces, statuses, resolutions, fields, files, users, editPolicy,
+				mock(TaskArtifactService.class), audit, actors,
 				events, Clock.systemUTC());
 	}
 

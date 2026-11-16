@@ -50,12 +50,13 @@ class TaskService {
 
 	/**
 	 * A task together with the data that lives outside its row: related ids, the legacy resolution hint, its active
-	 * assignees and the progress of its subtasks ({@link SuggestCloseRule}). {@code attachments} and {@code subtasks}
-	 * are null in list results; in a detail they hold the attachments and the subtasks as list views (spec §7: one
-	 * request for task, assignees and subtasks).
+	 * assignees and the progress of its subtasks ({@link SuggestCloseRule}). {@code attachments}, {@code subtasks} and
+	 * {@code artifacts} are null in list results; in a detail they hold the attachments, the subtasks as list views and
+	 * the active artifacts (spec §7: one request for task, assignees, subtasks and artifacts).
 	 */
 	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone,
-			List<TaskAssignee> assignees, SuggestCloseRule.Progress subtaskProgress, List<TaskView> subtasks) {
+			List<TaskAssignee> assignees, SuggestCloseRule.Progress subtaskProgress, List<TaskView> subtasks,
+			List<TaskArtifactService.ArtifactView> artifacts) {
 	}
 
 	/**
@@ -87,6 +88,7 @@ class TaskService {
 	private final FileService files;
 	private final UserDirectory users;
 	private final TaskEditPolicy editPolicy;
+	private final TaskArtifactService artifacts;
 	private final AuditPublisher audit;
 	private final ActorProvider actors;
 	private final ApplicationEventPublisher events;
@@ -95,7 +97,8 @@ class TaskService {
 	TaskService(TaskRepository tasks, TaskAssigneeRepository assignees, TaskLinkRepository links,
 			SpaceRepository spaces, SpaceStatusRepository statuses, ResolutionRepository resolutions,
 			CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
-			AuditPublisher audit, ActorProvider actors, ApplicationEventPublisher events, Clock clock) {
+			TaskArtifactService artifacts, AuditPublisher audit, ActorProvider actors, ApplicationEventPublisher events,
+			Clock clock) {
 		this.tasks = tasks;
 		this.assignees = assignees;
 		this.links = links;
@@ -106,6 +109,7 @@ class TaskService {
 		this.files = files;
 		this.users = users;
 		this.editPolicy = editPolicy;
+		this.artifacts = artifacts;
 		this.audit = audit;
 		this.actors = actors;
 		this.events = events;
@@ -188,6 +192,7 @@ class TaskService {
 		related.forEach(other -> links.save(new TaskLink(TaskLinkId.of(saved.getId(), other))));
 		audit.publish(AuditAction.CREATE, TASK, saved.getId(), null, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
+		artifacts.syncLegacyAttachments(saved.getId(), List.of(), attachments);
 		publish(TaskEvent.Kind.CREATED, saved);
 		return saved;
 	}
@@ -249,6 +254,7 @@ class TaskService {
 
 		Map<String, Object> before = task.auditSnapshot(currentRelated);
 		LocalDate previousDeadline = task.getDeadline();
+		List<UUID> previousAttachments = task.getAttachmentIds();
 		task.update(newTitle, description, newPriority, deadline, normalizedLabels, attachments, values);
 		Task saved = tasks.save(task);
 		tasks.flush(); // the new version is part of the audit snapshot and of the response
@@ -260,6 +266,7 @@ class TaskService {
 		without(currentRelated, related).forEach(o -> links.delete(new TaskLink(TaskLinkId.of(id, o))));
 		audit.publish(AuditAction.UPDATE, TASK, id, before, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
+		artifacts.syncLegacyAttachments(id, previousAttachments, attachments);
 		publish(TaskEvent.Kind.UPDATED, saved);
 		if (!Objects.equals(previousDeadline, saved.getDeadline())) {
 			events.publishEvent(new TaskEvent(TaskEvent.Kind.DEADLINE_CHANGED, id, saved.getSpaceId(),
@@ -547,9 +554,9 @@ class TaskService {
 
 	/**
 	 * Views of the given tasks, in order, with a fixed number of batched queries (links, resolution states, active
-	 * assignees, subtasks, status categories). A detail ({@code detail}) adds attachments and the subtasks: the
-	 * non-archived ones, or every subtask when the task itself is archived (so an archived task still shows what was
-	 * archived with it).
+	 * assignees, subtasks, status categories). A detail ({@code detail}) adds attachments, the active artifacts (one
+	 * more query) and the subtasks: the non-archived ones, or every subtask when the task itself is archived (so an
+	 * archived task still shows what was archived with it).
 	 */
 	private List<TaskView> views(List<Task> list, boolean detail) {
 		if (list.isEmpty()) {
@@ -578,6 +585,7 @@ class TaskService {
 		statuses.findByIdIn(statusIds).forEach(s -> categories.put(s.getId(), s.getCategory()));
 
 		Map<UUID, TaskView> subtaskViews = new HashMap<>();
+		Map<UUID, List<TaskArtifactService.ArtifactView>> artifactsOf = detail ? artifacts.activeOfAll(ids) : Map.of();
 		if (detail) {
 			List<Task> shown = new ArrayList<>();
 			for (Task t : list) {
@@ -598,7 +606,7 @@ class TaskService {
 					: children.stream().map(c -> subtaskViews.get(c.getId())).filter(Objects::nonNull).toList();
 			result.add(new TaskView(t, related.getOrDefault(t.getId(), Set.of()), detail ? attachmentInfos(t) : null,
 					suggestions.getOrDefault(t.getId(), false), List.copyOf(active.getOrDefault(t.getId(), List.of())),
-					progress, subtasks));
+					progress, subtasks, detail ? List.copyOf(artifactsOf.getOrDefault(t.getId(), List.of())) : null));
 		}
 		return result;
 	}
