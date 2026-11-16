@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost",
+      "url": "http://localhost:8080",
       "description": "Generated server url"
     }
   ],
@@ -139,7 +139,7 @@
           "Tasks"
         ],
         "summary": "Edit a task (replaces all editable fields)",
-        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links.",
+        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded.",
         "operationId": "update",
         "parameters": [
           {
@@ -1234,7 +1234,7 @@
           "Tasks"
         ],
         "summary": "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
-        "description": "Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, compared with the deadline). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.",
+        "description": "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.",
         "operationId": "list",
         "parameters": [
           {
@@ -1296,7 +1296,7 @@
             }
           },
           {
-            "name": "dueFrom",
+            "name": "deadlineFrom",
             "in": "query",
             "required": false,
             "schema": {
@@ -1305,7 +1305,7 @@
             }
           },
           {
-            "name": "dueTo",
+            "name": "deadlineTo",
             "in": "query",
             "required": false,
             "schema": {
@@ -1320,6 +1320,46 @@
             "schema": {
               "type": "boolean",
               "default": false
+            }
+          },
+          {
+            "name": "assignee",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "creator",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MY_TASKS",
+                "ISSUED_BY_ME",
+                "OVERDUE"
+              ]
             }
           },
           {
@@ -1354,19 +1394,6 @@
                 "ACCEPTED",
                 "REDIRECTED",
                 "CANCELED"
-              ]
-            }
-          },
-          {
-            "name": "view",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "MY_RESOLUTIONS",
-                "ISSUED_BY_ME",
-                "OVERDUE"
               ]
             }
           }
@@ -1523,7 +1550,7 @@
           "Tasks"
         ],
         "summary": "Change the status of a task",
-        "description": "Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version.",
+        "description": "The creator, an active assignee, a holder of tasks.edit.any or an Admin (403 TASK_CONTRIBUTE_FORBIDDEN otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. Moving to the current status changes nothing.",
         "operationId": "changeStatus",
         "parameters": [
           {
@@ -1593,6 +1620,92 @@
         }
       }
     },
+    "/api/v1/tasks/{id}/assignees": {
+      "get": {
+        "tags": [
+          "Task assignees"
+        ],
+        "summary": "Assignees of a task (oldest first; a task has few, so the list is not paginated)",
+        "description": "Active assignees only, unless includeRemoved=true (then removed assignments are listed too, with removedAt). Works for archived tasks.",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeRemoved",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskAssigneeResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task assignees"
+        ],
+        "summary": "Assign a user to a task",
+        "description": "Assigning another user needs tasks.assign; assigning oneself needs tasks.assign, tasks.edit.any, or tasks.create as the creator of the task (403 TASK_ASSIGN_FORBIDDEN). The user must be an active account (422 TASK_ASSIGNEE_INACTIVE); a user is an active assignee at most once (409 TASK_ASSIGNEE_DUPLICATE); 409 TASK_ARCHIVED for an archived task.",
+        "operationId": "assign_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAssigneeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tasks/{id}/archive": {
       "post": {
         "tags": [
@@ -1631,7 +1744,7 @@
           "Saved task filters"
         ],
         "summary": "My saved task filters (paginated, sortable by name, createdAt; default name)",
-        "operationId": "list_1",
+        "operationId": "list_2",
         "parameters": [
           {
             "name": "page",
@@ -1714,7 +1827,7 @@
         ],
         "summary": "Spaces (paginated, sortable by name, createdAt; default name)",
         "description": "Archived spaces only with includeArchived=true. Optional filter by orgUnitId.",
-        "operationId": "list_2",
+        "operationId": "list_3",
         "parameters": [
           {
             "name": "page",
@@ -2145,7 +2258,7 @@
         ],
         "summary": "List roles (paginated, by name; the built-in Admin role first)",
         "description": "includeArchived=true is honoured only for holders of roles.manage.",
-        "operationId": "list_3",
+        "operationId": "list_4",
         "parameters": [
           {
             "name": "page",
@@ -3372,7 +3485,7 @@
         ],
         "summary": "Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)",
         "description": "All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.",
-        "operationId": "list_4",
+        "operationId": "list_5",
         "parameters": [
           {
             "name": "page",
@@ -3698,7 +3811,7 @@
         ],
         "summary": "List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)",
         "description": "Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.",
-        "operationId": "list_5",
+        "operationId": "list_6",
         "parameters": [
           {
             "name": "page",
@@ -3856,7 +3969,7 @@
         ],
         "summary": "Comments of a record (paginated, oldest first)",
         "description": "Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.",
-        "operationId": "list_6",
+        "operationId": "list_7",
         "parameters": [
           {
             "name": "page",
@@ -4119,7 +4232,7 @@
         ],
         "summary": "Articles (paginated, sortable by title, createdAt, updatedAt; default title)",
         "description": "Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.",
-        "operationId": "list_7",
+        "operationId": "list_8",
         "parameters": [
           {
             "name": "page",
@@ -4462,7 +4575,7 @@
         ],
         "summary": "List activity level definitions (paginated, default order by sortOrder)",
         "description": "Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.",
-        "operationId": "list_8",
+        "operationId": "list_9",
         "parameters": [
           {
             "name": "page",
@@ -4779,7 +4892,7 @@
         ],
         "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
         "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
-        "operationId": "list_9",
+        "operationId": "list_10",
         "parameters": [
           {
             "name": "page",
@@ -5243,7 +5356,7 @@
         ],
         "summary": "Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)",
         "description": "role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.",
-        "operationId": "list_10",
+        "operationId": "list_11",
         "parameters": [
           {
             "name": "id",
@@ -5535,7 +5648,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_11",
+        "operationId": "list_12",
         "parameters": [
           {
             "name": "page",
@@ -5988,6 +6101,41 @@
           }
         }
       }
+    },
+    "/api/v1/tasks/{id}/assignees/{userId}": {
+      "delete": {
+        "tags": [
+          "Task assignees"
+        ],
+        "summary": "Remove an assignee from a task (the assignment is kept with removedAt)",
+        "description": "Same rights as assigning (403 TASK_ASSIGN_FORBIDDEN). 404 when the user is not an active assignee; 409 TASK_ARCHIVED for an archived task.",
+        "operationId": "unassign",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6202,6 +6350,33 @@
               "type": "string"
             }
           },
+          "assignee": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "creator": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "MY_TASKS",
+              "ISSUED_BY_ME",
+              "OVERDUE"
+            ]
+          },
+          "deadlineFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "deadlineTo": {
+            "type": "string",
+            "format": "date"
+          },
           "executorId": {
             "type": "string",
             "format": "uuid"
@@ -6221,22 +6396,6 @@
               "REDIRECTED",
               "CANCELED"
             ]
-          },
-          "view": {
-            "type": "string",
-            "enum": [
-              "MY_RESOLUTIONS",
-              "ISSUED_BY_ME",
-              "OVERDUE"
-            ]
-          },
-          "dueFrom": {
-            "type": "string",
-            "format": "date"
-          },
-          "dueTo": {
-            "type": "string",
-            "format": "date"
           }
         }
       },
@@ -7592,6 +7751,54 @@
         "required": [
           "statusId"
         ]
+      },
+      "AssignTaskRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "TaskAssigneeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "removedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "removedBy": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
       },
       "CreateSpaceRequest": {
         "type": "object",

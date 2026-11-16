@@ -79,8 +79,8 @@ describe('quick views and saved filters', () => {
     renderPage();
     await waitFor(() => expect(api.listTasks).toHaveBeenCalled());
     expect(lastQuery().view).toBeUndefined();
-    await user.click(screen.getByLabelText('Мої резолюції'));
-    await waitFor(() => expect(lastQuery().view).toBe('MY_RESOLUTIONS'));
+    await user.click(screen.getByLabelText('Мої завдання'));
+    await waitFor(() => expect(lastQuery().view).toBe('MY_TASKS'));
     await user.click(screen.getByLabelText('Прострочені'));
     await waitFor(() => expect(lastQuery().view).toBe('OVERDUE'));
     await user.click(screen.getByLabelText('Прострочені'));

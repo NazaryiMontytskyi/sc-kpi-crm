@@ -73,8 +73,8 @@ export function TaskFiltersDrawer({ opened, onClose, query, onChange, spaces, ca
           clearable
           size="md"
         />
-        <TextInput label={t('tasks.filters.dueFrom')} type="date" value={query.dueFrom ?? ''} onChange={(e) => set({ dueFrom: e.currentTarget.value || undefined })} size="md" />
-        <TextInput label={t('tasks.filters.dueTo')} type="date" value={query.dueTo ?? ''} onChange={(e) => set({ dueTo: e.currentTarget.value || undefined })} size="md" />
+        <TextInput label={t('tasks.filters.deadlineFrom')} type="date" value={query.deadlineFrom ?? ''} onChange={(e) => set({ deadlineFrom: e.currentTarget.value || undefined })} size="md" />
+        <TextInput label={t('tasks.filters.deadlineTo')} type="date" value={query.deadlineTo ?? ''} onChange={(e) => set({ deadlineTo: e.currentTarget.value || undefined })} size="md" />
         <TagsInput label={t('tasks.fields.labels')} description={t('tasks.filters.labelsHint')} value={query.labels} onChange={(labels) => set({ labels })} splitChars={[',']} size="md" />
         {canSeeArchived && (
           <Switch

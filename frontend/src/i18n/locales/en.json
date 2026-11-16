@@ -810,8 +810,8 @@
     "filters": {
       "open": "Filters",
       "title": "Filters",
-      "dueFrom": "Due from",
-      "dueTo": "Due to",
+      "deadlineFrom": "Deadline from",
+      "deadlineTo": "Deadline to",
       "labelsHint": "Tasks having any of these labels",
       "statusNeedsSpace": "Choose a space first",
       "includeArchived": "Show archived",
@@ -1030,7 +1030,7 @@
     },
     "quickViews": {
       "label": "Quick views",
-      "MY_RESOLUTIONS": "My resolutions",
+      "MY_TASKS": "My tasks",
       "ISSUED_BY_ME": "Issued by me",
       "OVERDUE": "Overdue"
     },

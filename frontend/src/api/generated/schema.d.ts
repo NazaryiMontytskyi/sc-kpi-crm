@@ -39,7 +39,7 @@ export interface paths {
         get: operations["get"];
         /**
          * Edit a task (replaces all editable fields)
-         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links.
+         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded.
          */
         put: operations["update"];
         post?: never;
@@ -403,7 +403,7 @@ export interface paths {
         };
         /**
          * Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)
-         * @description Archived tasks only with includeArchived=true. Filters: spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), dueFrom/dueTo (inclusive dates, compared with the deadline). Resolution filters executorId (executor or co-executor), authorId, resolutionState and view (MY_RESOLUTIONS, ISSUED_BY_ME, OVERDUE, evaluated for the caller) match tasks having a non-archived resolution that satisfies all of them at once.
+         * @description Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.
          */
         get: operations["list"];
         put?: never;
@@ -450,7 +450,7 @@ export interface paths {
         put?: never;
         /**
          * Change the status of a task
-         * @description Same rule as editing: the author or an Admin (403 otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version.
+         * @description The creator, an active assignee, a holder of tasks.edit.any or an Admin (403 TASK_CONTRIBUTE_FORBIDDEN otherwise). The status must be an active status of the task's space (422). 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. Moving to the current status changes nothing.
          */
         post: operations["changeStatus"];
         delete?: never;
@@ -473,6 +473,30 @@ export interface paths {
          * @description 409 while its space is archived.
          */
         post: operations["restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assignees of a task (oldest first; a task has few, so the list is not paginated)
+         * @description Active assignees only, unless includeRemoved=true (then removed assignments are listed too, with removedAt). Works for archived tasks.
+         */
+        get: operations["list_1"];
+        put?: never;
+        /**
+         * Assign a user to a task
+         * @description Assigning another user needs tasks.assign; assigning oneself needs tasks.assign, tasks.edit.any, or tasks.create as the creator of the task (403 TASK_ASSIGN_FORBIDDEN). The user must be an active account (422 TASK_ASSIGNEE_INACTIVE); a user is an active assignee at most once (409 TASK_ASSIGNEE_DUPLICATE); 409 TASK_ARCHIVED for an archived task.
+         */
+        post: operations["assign_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -504,7 +528,7 @@ export interface paths {
             cookie?: never;
         };
         /** My saved task filters (paginated, sortable by name, createdAt; default name) */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /**
          * Save a task filter for myself
@@ -528,7 +552,7 @@ export interface paths {
          * Spaces (paginated, sortable by name, createdAt; default name)
          * @description Archived spaces only with includeArchived=true. Optional filter by orgUnitId.
          */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /**
          * Create a space
@@ -685,7 +709,7 @@ export interface paths {
          * List roles (paginated, by name; the built-in Admin role first)
          * @description includeArchived=true is honoured only for holders of roles.manage.
          */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /**
          * Create a role
@@ -1210,7 +1234,7 @@ export interface paths {
          * Member directory (paginated, filterable, sortable by lastName, firstName, joinedAt; default lastName)
          * @description All filters are optional and combined with AND. q: case-insensitive text matched against last/first/middle name and Telegram (a leading @ is ignored; several words must all match). departmentId/divisionId: members with an active membership in the unit or any of its descendants. positionId: current holders. status: ACTIVE (default), ARCHIVED or ALL; ARCHIVED and ALL are honoured only for holders of members.archive, otherwise treated as ACTIVE. includeArchived=true is a deprecated alias of status=ALL. activityLevelId: id of an activity level definition (GET /activity-levels). Ties are broken by id, so paging is stable.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /**
          * Create an account and profile
@@ -1311,7 +1335,7 @@ export interface paths {
          * List faculties (paginated, sortable by code, nameUk, nameEn; default nameUk)
          * @description Active faculties only. includeArchived=true is honoured only for holders of settings.manage; for everyone else it is ignored.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /**
          * Create a faculty
@@ -1375,7 +1399,7 @@ export interface paths {
          * Comments of a record (paginated, oldest first)
          * @description Needs the view permission of the target (tasks.view for TASK). Archived comments are hidden. 422 COMMENT_TARGET_UNSUPPORTED while the target type has no implementation.
          */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         /**
          * Add a comment
@@ -1470,7 +1494,7 @@ export interface paths {
          * Articles (paginated, sortable by title, createdAt, updatedAt; default title)
          * @description Optional filters: tag (case-insensitive), parentArticleId. Archived articles only with includeArchived=true. Restricted articles are omitted without kb.restricted.view.
          */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         /**
          * Create an article
@@ -1611,7 +1635,7 @@ export interface paths {
          * List activity level definitions (paginated, default order by sortOrder)
          * @description Active definitions only. includeArchived=true is honoured only for holders of settings.manage. The scale is data (OPEN-Q3): clients must not hardcode codes.
          */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         /**
          * Create a definition
@@ -1746,7 +1770,7 @@ export interface paths {
          * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
          * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
          */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1954,7 +1978,7 @@ export interface paths {
          * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
          * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
          */
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2068,7 +2092,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2225,6 +2249,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/{id}/assignees/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an assignee from a task (the assignment is kept with removedAt)
+         * @description Same rights as assigning (403 TASK_ASSIGN_FORBIDDEN). 404 when the user is not an active assignee; 409 TASK_ARCHIVED for an archived task.
+         */
+        delete: operations["unassign"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2306,17 +2350,22 @@ export interface components {
             statusId?: string;
             labels?: string[];
             /** Format: uuid */
+            assignee?: string;
+            /** Format: uuid */
+            creator?: string;
+            overdue?: boolean;
+            /** @enum {string} */
+            view?: "MY_TASKS" | "ISSUED_BY_ME" | "OVERDUE";
+            /** Format: date */
+            deadlineFrom?: string;
+            /** Format: date */
+            deadlineTo?: string;
+            /** Format: uuid */
             executorId?: string;
             /** Format: uuid */
             authorId?: string;
             /** @enum {string} */
             resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            /** @enum {string} */
-            view?: "MY_RESOLUTIONS" | "ISSUED_BY_ME" | "OVERDUE";
-            /** Format: date */
-            dueFrom?: string;
-            /** Format: date */
-            dueTo?: string;
         };
         SavedFilterResponse: {
             /** Format: uuid */
@@ -2765,6 +2814,27 @@ export interface components {
             statusId: string;
             /** Format: int64 */
             expectedVersion?: number;
+        };
+        AssignTaskRequest: {
+            /** Format: uuid */
+            userId: string;
+        };
+        TaskAssigneeResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: uuid */
+            assignedBy?: string;
+            /** Format: date-time */
+            assignedAt?: string;
+            active?: boolean;
+            /** Format: date-time */
+            removedAt?: string;
+            /** Format: uuid */
+            removedBy?: string;
         };
         CreateSpaceRequest: {
             name: string;
@@ -4346,13 +4416,16 @@ export interface operations {
                 spaceId?: string;
                 statusId?: string;
                 labels?: string[];
-                dueFrom?: string;
-                dueTo?: string;
+                deadlineFrom?: string;
+                deadlineTo?: string;
                 includeArchived?: boolean;
+                assignee?: string;
+                creator?: string;
+                overdue?: boolean;
+                view?: "MY_TASKS" | "ISSUED_BY_ME" | "OVERDUE";
                 executorId?: string;
                 authorId?: string;
                 resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-                view?: "MY_RESOLUTIONS" | "ISSUED_BY_ME" | "OVERDUE";
             };
             header?: never;
             path?: never;
@@ -4495,6 +4568,56 @@ export interface operations {
             };
         };
     };
+    list_1: {
+        parameters: {
+            query?: {
+                includeRemoved?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskAssigneeResponse"][];
+                };
+            };
+        };
+    };
+    assign_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskAssigneeResponse"];
+                };
+            };
+        };
+    };
     archive: {
         parameters: {
             query?: never;
@@ -4517,7 +4640,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 page?: number;
@@ -4565,7 +4688,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 page?: number;
@@ -4825,7 +4948,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 page?: number;
@@ -5567,7 +5690,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 page?: number;
@@ -5743,7 +5866,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 page?: number;
@@ -5836,7 +5959,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query: {
                 page?: number;
@@ -6019,7 +6142,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 page?: number;
@@ -6215,7 +6338,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 page?: number;
@@ -6400,7 +6523,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 page?: number;
@@ -6648,7 +6771,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 page?: number;
@@ -6805,7 +6928,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: {
                 page?: number;
@@ -7018,6 +7141,27 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AppointmentResponse"];
                 };
+            };
+        };
+    };
+    unassign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

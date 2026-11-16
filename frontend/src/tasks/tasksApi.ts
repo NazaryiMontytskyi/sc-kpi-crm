@@ -109,7 +109,7 @@ export interface CreateCustomFieldInput extends CustomFieldInput {
 export type ResolutionState = NonNullable<Schemas['SavedFilterCriteria']['resolutionState']>;
 export type QuickView = NonNullable<Schemas['SavedFilterCriteria']['view']>;
 export const RESOLUTION_STATE_LIST: readonly ResolutionState[] = ['NEW', 'IN_PROGRESS', 'SUBMITTED', 'REWORK', 'ACCEPTED', 'REDIRECTED', 'CANCELED'];
-export const QUICK_VIEWS: readonly QuickView[] = ['MY_RESOLUTIONS', 'ISSUED_BY_ME', 'OVERDUE'];
+export const QUICK_VIEWS: readonly QuickView[] = ['MY_TASKS', 'ISSUED_BY_ME', 'OVERDUE'];
 
 /** The part of a task query that a saved filter stores (no sorting or paging). */
 export interface FilterCriteria {
@@ -120,8 +120,8 @@ export interface FilterCriteria {
   authorId?: string;
   resolutionState?: ResolutionState;
   view?: QuickView;
-  dueFrom?: string;
-  dueTo?: string;
+  deadlineFrom?: string;
+  deadlineTo?: string;
 }
 
 export interface SavedFilter {
@@ -137,8 +137,8 @@ export interface TaskQuery {
   spaceId?: string;
   statusId?: string;
   labels: string[];
-  dueFrom?: string;
-  dueTo?: string;
+  deadlineFrom?: string;
+  deadlineTo?: string;
   includeArchived: boolean;
   /** Resolution filters: executor (or co-executor), author, state; they apply to one and the same resolution. */
   executorId?: string;
@@ -351,8 +351,8 @@ export async function listTasks(q: TaskQuery): Promise<Paged<TaskSummary>> {
         spaceId: q.spaceId,
         statusId: q.statusId,
         labels: q.labels.length > 0 ? q.labels : undefined,
-        dueFrom: q.dueFrom,
-        dueTo: q.dueTo,
+        deadlineFrom: q.deadlineFrom,
+        deadlineTo: q.deadlineTo,
         includeArchived: q.includeArchived || undefined,
         executorId: q.executorId,
         authorId: q.authorId,

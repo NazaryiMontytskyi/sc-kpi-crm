@@ -810,8 +810,8 @@
     "filters": {
       "open": "Фільтри",
       "title": "Фільтри",
-      "dueFrom": "Строк від",
-      "dueTo": "Строк до",
+      "deadlineFrom": "Дедлайн від",
+      "deadlineTo": "Дедлайн до",
       "labelsHint": "Задачі з будь-якою з цих міток",
       "statusNeedsSpace": "Спершу оберіть простір",
       "includeArchived": "Показувати архівні",
@@ -1030,7 +1030,7 @@
     },
     "quickViews": {
       "label": "Швидкі перегляди",
-      "MY_RESOLUTIONS": "Мої резолюції",
+      "MY_TASKS": "Мої завдання",
       "ISSUED_BY_ME": "Видані мною",
       "OVERDUE": "Прострочені"
     },

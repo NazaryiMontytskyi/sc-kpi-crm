@@ -204,12 +204,12 @@ describe('TasksPage', () => {
     const user = userEvent.setup();
     renderIn(<TasksPage />, authWith(['tasks.view']));
     await screen.findByText('Фейкова задача');
-    expect(screen.queryByLabelText('Строк від')).toBeNull();
+    expect(screen.queryByLabelText('Дедлайн від')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Фільтри' }));
-    const from = await screen.findByLabelText('Строк від');
+    const from = await screen.findByLabelText('Дедлайн від');
     await user.type(from, '2031-03-01');
-    await waitFor(() => expect(vi.mocked(api.listTasks).mock.calls.some(([q]) => q.dueFrom === '2031-03-01')).toBe(true));
-    expect(screen.getByLabelText('Строк до')).toBeInTheDocument();
+    await waitFor(() => expect(vi.mocked(api.listTasks).mock.calls.some(([q]) => q.deadlineFrom === '2031-03-01')).toBe(true));
+    expect(screen.getByLabelText('Дедлайн до')).toBeInTheDocument();
     expect(screen.getAllByText('Мітки').length).toBeGreaterThan(0);
   });
 
