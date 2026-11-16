@@ -108,18 +108,41 @@ final class TasksDtos {
 	 * {@code creatorId} issued the task ({@code authorId} is the same user, kept for compatibility); {@code parentId}
 	 * is set for a subtask; {@code version} is the optimistic-locking version to send back as {@code expectedVersion}.
 	 */
+	/**
+	 * Subtask progress (ST-4, ST-5): {@code subtaskCount} non-archived subtasks, {@code openSubtaskCount} of them not in
+	 * a DONE/CANCELED-category status, {@code suggestClose} the hint that every non-archived, non-canceled subtask is
+	 * done (at least one) while the task itself is not closed; the task is never closed automatically.
+	 * {@code assigneeIds}: active assignees, oldest assignment first.
+	 */
 	record TaskSummaryResponse(UUID id, UUID spaceId, UUID parentId, String title, UUID statusId,
 			TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId, List<String> labels,
 			int attachmentCount, int relatedCount, UUID authorId, boolean archived, Instant archivedAt,
-			boolean suggestDone, long version, Instant createdAt, Instant updatedAt) {
+			boolean suggestDone, long version, Instant createdAt, Instant updatedAt, List<UUID> assigneeIds,
+			int subtaskCount, int openSubtaskCount, boolean suggestClose) {
 	}
 
-	/** Field meanings as in {@link TaskSummaryResponse}. */
+	/**
+	 * Field meanings as in {@link TaskSummaryResponse}. The detail also carries the active {@code assignees} and the
+	 * {@code subtasks} (non-archived ones; for an archived task every subtask), so one request opens the task (spec
+	 * §7).
+	 */
 	record TaskResponse(UUID id, UUID spaceId, UUID parentId, String title, Map<String, Object> description,
 			UUID statusId, TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId,
 			List<String> labels, Map<String, Object> customFieldValues, List<AttachmentResponse> attachments,
 			List<UUID> relatedTaskIds, UUID authorId, boolean archived, Instant archivedAt, boolean suggestDone,
-			long version, Instant createdAt, Instant updatedAt) {
+			long version, Instant createdAt, Instant updatedAt, List<TaskAssigneeResponse> assignees,
+			List<TaskSummaryResponse> subtasks, int subtaskCount, int openSubtaskCount, boolean suggestClose) {
+	}
+
+	/**
+	 * A subtask of the task in the path (ST-1..ST-3); it inherits the parent's space. {@code assigneeIds}: omitted
+	 * means "for myself" (the caller); an empty list creates it unassigned; anybody other than the caller needs
+	 * {@code tasks.assign}. {@code deadline} must not be later than the parent's (no limit when the parent has none).
+	 * Other fields as in {@link CreateTaskRequest}.
+	 */
+	record CreateSubtaskRequest(@NotBlank @Size(max = 300) String title, Map<String, Object> description,
+			UUID statusId, TaskPriority priority, LocalDate deadline, List<String> labels,
+			Map<String, Object> customFieldValues, @Size(max = 20) List<@NotNull UUID> assigneeIds) {
 	}
 
 	// ---- assignees ----

@@ -1,9 +1,12 @@
 package com.kpi.studentcouncil.crm.tasks.internal;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -45,24 +48,30 @@ class TaskService {
 
 	static final String TASK = "Task";
 
-	/** A task together with the data that lives outside its row; {@code attachments} is null in list results. */
-	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone) {
+	/**
+	 * A task together with the data that lives outside its row: related ids, the legacy resolution hint, its active
+	 * assignees and the progress of its subtasks ({@link SuggestCloseRule}). {@code attachments} and {@code subtasks}
+	 * are null in list results; in a detail they hold the attachments and the subtasks as list views (spec §7: one
+	 * request for task, assignees and subtasks).
+	 */
+	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone,
+			List<TaskAssignee> assignees, SuggestCloseRule.Progress subtaskProgress, List<TaskView> subtasks) {
 	}
 
 	/**
 	 * Filters of the task list. {@code assignee} matches an active assignee, {@code creator} the creator,
 	 * {@code overdue} (when true) open, non-archived tasks past their deadline, {@code view} a quick view evaluated for
-	 * the caller ({@link TaskSpecs}). The legacy resolution filters ({@code executorId} incl. co-executors,
+	 * the caller ({@link TaskSpecs}), {@code parentId} the subtasks of that task. The legacy resolution filters ({@code executorId} incl. co-executors,
 	 * {@code authorId}, {@code resolutionState}) are combined on one and the same non-archived resolution of the task.
 	 */
 	record TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
 			LocalDate deadlineTo, boolean includeArchived, UUID assignee, UUID creator, boolean overdue,
-			TaskQuickView view, UUID executorId, UUID authorId, ResolutionState resolutionState) {
+			TaskQuickView view, UUID executorId, UUID authorId, ResolutionState resolutionState, UUID parentId) {
 
 		TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
 				LocalDate deadlineTo, boolean includeArchived) {
 			this(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived, null, null, false, null, null,
-					null, null);
+					null, null, null);
 		}
 	}
 
@@ -109,10 +118,60 @@ class TaskService {
 	TaskView create(UUID spaceId, String title, Map<String, Object> description, UUID statusId, TaskPriority priority,
 			LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
 			Collection<UUID> attachmentIds, Collection<UUID> relatedTaskIds) {
-		Space space = spaces.lockById(spaceId).orElseThrow(() -> new NotFoundException(SpaceService.SPACE, spaceId));
-		if (space.isArchived()) {
-			throw new ConflictException("SPACE_ARCHIVED");
+		lockActiveSpace(spaceId);
+		Task saved = insert(spaceId, null, title, description, statusId, priority, deadline, labels,
+				customFieldValues, attachmentIds, relatedTaskIds);
+		return view(saved);
+	}
+
+	/**
+	 * Creates a subtask of {@code parentId} (ST-1, ST-2, ST-3) in the parent's space. The parent must be a non-archived
+	 * top-level task (409 {@code TASK_ARCHIVED}, 422 {@code SUBTASK_DEPTH_EXCEEDED}); the deadline must not be later
+	 * than the parent's (422 {@code SUBTASK_DEADLINE_AFTER_PARENT}). {@code assigneeIds} null means "for myself"; an
+	 * empty list creates it unassigned. Assigning another user needs {@code tasks.assign} ({@link AssigneeRules}, 403
+	 * {@code TASK_ASSIGN_FORBIDDEN}); assignees must be active (422 {@code TASK_ASSIGNEE_INACTIVE}). Audits the
+	 * creation and each assignment and publishes {@code CREATED}, {@code ASSIGNED} (per assignee) and, on the parent,
+	 * {@code SUBTASK_ADDED}.
+	 */
+	@Transactional
+	TaskView createSubtask(UUID parentId, String title, Map<String, Object> description, UUID statusId,
+			TaskPriority priority, LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
+			Collection<UUID> assigneeIds) {
+		UUID spaceId = require(parentId).getSpaceId();
+		lockActiveSpace(spaceId);
+		Task parent = lockActive(parentId);
+		SubtaskRules.assertCanHaveSubtasks(parent.getParentTaskId());
+		UUID actor = actors.currentActorId();
+		List<UUID> targets = assigneeIds == null ? List.of(actor)
+				: List.copyOf(new LinkedHashSet<>(assigneeIds.stream().filter(Objects::nonNull).toList()));
+		// the caller becomes the creator of the subtask: AssigneeRules decide on that basis (ST-2)
+		Task draft = new Task(spaceId, parentId, actor, clock.instant(), title.strip(), null, parent.getStatusId(),
+				TaskPriority.NORMAL, null, Set.of(), List.of(), Map.of());
+		targets.forEach(target -> editPolicy.assertCanManageAssignee(draft, target));
+		if (targets.stream().anyMatch(target -> !users.isActive(target))) {
+			throw new BusinessRuleException("TASK_ASSIGNEE_INACTIVE");
 		}
+		SubtaskRules.assertWithinParent(deadline, parent.getDeadline());
+
+		Task saved = insert(spaceId, parentId, title, description, statusId, priority, deadline, labels,
+				customFieldValues, null, null);
+		for (UUID target : targets) {
+			List<String> before = activeAssigneeIds(saved.getId());
+			TaskAssignee row = assignees.saveAndFlush(new TaskAssignee(saved.getId(), target, actor, clock.instant()));
+			audit.publish(AuditAction.UPDATE, TASK, saved.getId(), assigneeSnapshot(before, null),
+					assigneeSnapshot(activeAssigneeIds(saved.getId()), row.auditSnapshot()));
+			events.publishEvent(new TaskEvent(TaskEvent.Kind.ASSIGNED, saved.getId(), spaceId, saved.getStatusId(),
+					saved.getCreatorId(), actor, target, null, null, saved.getDeadline()));
+		}
+		events.publishEvent(new TaskEvent(TaskEvent.Kind.SUBTASK_ADDED, parentId, spaceId, parent.getStatusId(),
+				parent.getCreatorId(), actor, null, null, null, parent.getDeadline(), saved.getId()));
+		return view(saved);
+	}
+
+	/** Validates and saves a new task (the space is already locked), audits it and publishes {@code CREATED}. */
+	private Task insert(UUID spaceId, UUID parentId, String title, Map<String, Object> description, UUID statusId,
+			TaskPriority priority, LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
+			Collection<UUID> attachmentIds, Collection<UUID> relatedTaskIds) {
 		UUID status = resolveInitialStatus(spaceId, statusId);
 		Map<String, Object> values = TaskRules.validateCustomFields(fieldRules(spaceId), customFieldValues,
 				users::exists);
@@ -122,27 +181,41 @@ class TaskService {
 		assertLinkable(related);
 		Set<String> normalizedLabels = TaskRules.normalizeLabels(labels);
 
-		Task saved = tasks.save(new Task(spaceId, actors.currentActorId(), clock.instant(), title.strip(), description,
-				status, priority == null ? TaskPriority.NORMAL : priority, deadline, normalizedLabels, attachments,
-				values));
+		Task saved = tasks.save(new Task(spaceId, parentId, actors.currentActorId(), clock.instant(), title.strip(),
+				description, status, priority == null ? TaskPriority.NORMAL : priority, deadline, normalizedLabels,
+				attachments, values));
 		Map<UUID, Set<UUID>> counterpartsBefore = relatedOfAll(related);
 		related.forEach(other -> links.save(new TaskLink(TaskLinkId.of(saved.getId(), other))));
 		audit.publish(AuditAction.CREATE, TASK, saved.getId(), null, saved.auditSnapshot(related));
 		auditCounterparts(counterpartsBefore);
 		publish(TaskEvent.Kind.CREATED, saved);
-		return view(saved, related);
+		return saved;
+	}
+
+	private Space lockActiveSpace(UUID spaceId) {
+		Space space = spaces.lockById(spaceId).orElseThrow(() -> new NotFoundException(SpaceService.SPACE, spaceId));
+		if (space.isArchived()) {
+			throw new ConflictException("SPACE_ARCHIVED");
+		}
+		return space;
 	}
 
 	/**
 	 * Replaces the editable fields. Author or Admin only ({@link TaskEditPolicy}). {@code expectedVersion} (optional) is
 	 * the version the caller edited; a different current version is a conflict (409 {@code TASK_VERSION_CONFLICT}).
 	 * An edit that changes nothing is not saved, audited or published; a moved deadline additionally publishes
-	 * {@code DEADLINE_CHANGED}.
+	 * {@code DEADLINE_CHANGED}. Only a changed deadline is checked against the subtask rules (ST-3,
+	 * {@link SubtaskRules}): a subtask's against its parent (422 {@code SUBTASK_DEADLINE_AFTER_PARENT}), a parent's
+	 * against its non-archived subtasks (422 {@code TASK_DEADLINE_BEFORE_SUBTASKS} naming them); a rejected edit
+	 * changes nothing. Edits that keep the deadline never fail on it (subtasks migrated from resolutions).
 	 */
 	@Transactional
 	TaskView update(UUID id, Long expectedVersion, String title, Map<String, Object> description,
 			TaskPriority priority, LocalDate deadline, Collection<String> labels, Map<String, Object> customFieldValues,
 			Collection<UUID> attachmentIds, Collection<UUID> relatedTaskIds) {
+		// a subtask's deadline is checked against its parent: lock the parent first (parent -> subtask lock order)
+		UUID parentId = require(id).getParentTaskId();
+		Task parent = parentId == null ? null : lock(parentId);
 		Task task = lockActive(id);
 		editPolicy.assertCanEdit(task);
 		task.assertVersion(expectedVersion);
@@ -168,7 +241,10 @@ class TaskService {
 		TaskPriority newPriority = priority == null ? TaskPriority.NORMAL : priority;
 		if (unchanged(task, newTitle, description, newPriority, deadline, normalizedLabels, attachments, values)
 				&& related.equals(currentRelated)) {
-			return view(task, currentRelated); // a no-op edit: nothing saved, audited or published (spec 6.4)
+			return view(task); // a no-op edit: nothing saved, audited or published (spec 6.4)
+		}
+		if (!Objects.equals(task.getDeadline(), deadline)) {
+			assertDeadlineMove(task, parent, deadline);
 		}
 
 		Map<String, Object> before = task.auditSnapshot(currentRelated);
@@ -190,7 +266,22 @@ class TaskService {
 					saved.getStatusId(), saved.getCreatorId(), actors.currentActorId(), null, null, previousDeadline,
 					saved.getDeadline()));
 		}
-		return view(saved, related);
+		return view(saved);
+	}
+
+	/** ST-3 for a changed deadline; throws before anything is modified. */
+	private void assertDeadlineMove(Task task, Task parent, LocalDate deadline) {
+		if (parent != null) {
+			SubtaskRules.assertWithinParent(deadline, parent.getDeadline());
+			return;
+		}
+		List<SubtaskRules.Subtask> subtasks = tasks.findByParentTaskIdOrderByIssuedAtAscIdAsc(task.getId()).stream()
+				.filter(t -> !t.isArchived())
+				.map(t -> new SubtaskRules.Subtask(t.getId(), t.getTitle(), t.getDeadline())).toList();
+		List<SubtaskRules.Subtask> conflicts = SubtaskRules.conflicting(task.getDeadline(), deadline, subtasks);
+		if (!conflicts.isEmpty()) {
+			throw new SubtaskDeadlineConflictException(conflicts);
+		}
 	}
 
 	/**
@@ -219,26 +310,40 @@ class TaskService {
 			events.publishEvent(new TaskEvent(TaskEvent.Kind.STATUS_CHANGED, id, task.getSpaceId(), task.getStatusId(),
 					task.getCreatorId(), actors.currentActorId(), null, previousStatus, null, task.getDeadline()));
 		}
-		return view(task, related);
+		return view(task);
 	}
 
+	/**
+	 * Archives the task and, in the same transaction, every non-archived subtask (TM-4), all with the same archive
+	 * instant and actor; each archived task is audited and publishes {@code ARCHIVED}. Nothing is deleted.
+	 */
 	@Transactional
 	TaskView archive(UUID id) {
 		Task task = lock(id);
-		Set<UUID> related = relatedOf(id);
-		Map<String, Object> before = task.auditSnapshot(related);
-		task.archive(actors.currentActorId(), clock.instant());
-		Task saved = tasks.save(task);
-		tasks.flush();
-		audit.publish(AuditAction.ARCHIVE, TASK, id, before, saved.auditSnapshot(related));
-		publish(TaskEvent.Kind.ARCHIVED, saved);
-		return view(saved, related);
+		// one instant (database precision) for the whole cascade: restore recognises the cascaded subtasks by it
+		Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
+		UUID actor = actors.currentActorId();
+		archiveOne(task, actor, at);
+		for (Task subtask : tasks.lockByParentTaskId(id)) {
+			if (!subtask.isArchived()) {
+				archiveOne(subtask, actor, at);
+			}
+		}
+		return view(task);
 	}
 
+	/**
+	 * Restores the task and only the subtasks archived together with it by the cascade
+	 * ({@link SubtaskRules#archivedWithParent}); subtasks archived on their own before stay archived. A subtask cannot
+	 * be restored while its parent is archived (409 {@code TASK_PARENT_ARCHIVED}). Each restored task is audited and
+	 * publishes {@code RESTORED}.
+	 */
 	@Transactional
 	TaskView restore(UUID id) {
-		UUID spaceId = require(id).getSpaceId();
+		Task current = require(id);
+		UUID spaceId = current.getSpaceId();
 		Space space = spaces.lockById(spaceId).orElseThrow(() -> new NotFoundException(SpaceService.SPACE, spaceId));
+		Task parent = current.getParentTaskId() == null ? null : lock(current.getParentTaskId());
 		Task task = lock(id);
 		if (!task.isArchived()) {
 			throw new ConflictException("NOT_ARCHIVED");
@@ -246,14 +351,39 @@ class TaskService {
 		if (space.isArchived()) {
 			throw new ConflictException("SPACE_ARCHIVED");
 		}
-		Set<UUID> related = relatedOf(id);
+		if (parent != null && parent.isArchived()) {
+			throw new ConflictException("TASK_PARENT_ARCHIVED");
+		}
+		Instant archivedAt = task.getArchivedAt();
+		UUID archivedBy = task.getArchivedBy();
+		restoreOne(task);
+		for (Task subtask : tasks.lockByParentTaskId(id)) {
+			if (subtask.isArchived() && SubtaskRules.archivedWithParent(subtask.getArchivedAt(),
+					subtask.getArchivedBy(), archivedAt, archivedBy)) {
+				restoreOne(subtask);
+			}
+		}
+		return view(task);
+	}
+
+	private void archiveOne(Task task, UUID actor, Instant at) {
+		Set<UUID> related = relatedOf(task.getId());
+		Map<String, Object> before = task.auditSnapshot(related);
+		task.archive(actor, at);
+		Task saved = tasks.save(task);
+		tasks.flush();
+		audit.publish(AuditAction.ARCHIVE, TASK, task.getId(), before, saved.auditSnapshot(related));
+		publish(TaskEvent.Kind.ARCHIVED, saved);
+	}
+
+	private void restoreOne(Task task) {
+		Set<UUID> related = relatedOf(task.getId());
 		Map<String, Object> before = task.auditSnapshot(related);
 		task.restore();
 		Task saved = tasks.save(task);
 		tasks.flush();
-		audit.publish(AuditAction.RESTORE, TASK, id, before, saved.auditSnapshot(related));
+		audit.publish(AuditAction.RESTORE, TASK, task.getId(), before, saved.auditSnapshot(related));
 		publish(TaskEvent.Kind.RESTORED, saved);
-		return view(saved, related);
 	}
 
 	// ---- assignees (AS-1..AS-5) ----
@@ -315,10 +445,21 @@ class TaskService {
 
 	// ---- queries ----
 
+	/** A task with its attachments, active assignees and subtasks (spec §7: one request opens the panel). */
 	@Transactional(readOnly = true)
 	TaskView get(UUID id) {
-		Task task = require(id);
-		return view(task, relatedOf(id));
+		return view(require(id));
+	}
+
+	/**
+	 * Subtasks of a task (of an archived one too) as list views, oldest issue first; archived subtasks only with
+	 * {@code includeArchived}.
+	 */
+	@Transactional(readOnly = true)
+	List<TaskView> subtasks(UUID parentId, boolean includeArchived) {
+		require(parentId);
+		return views(tasks.findByParentTaskIdOrderByIssuedAtAscIdAsc(parentId).stream()
+				.filter(t -> includeArchived || !t.isArchived()).toList(), false);
 	}
 
 	@Transactional(readOnly = true)
@@ -347,6 +488,9 @@ class TaskService {
 		if (filter.creator() != null) {
 			spec = spec.and(TaskSpecs.creator(filter.creator()));
 		}
+		if (filter.parentId() != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("parentTaskId"), filter.parentId()));
+		}
 		if (filter.overdue()) {
 			spec = spec.and(TaskSpecs.overdue(clock));
 		}
@@ -362,10 +506,9 @@ class TaskService {
 		}
 		spec = spec.and(TaskResolutionSpecs.of(filter));
 		Page<Task> page = tasks.findAll(spec, pageable);
-		Map<UUID, Set<UUID>> related = relatedOfAll(page.getContent().stream().map(Task::getId).toList());
-		Map<UUID, Boolean> suggestions = suggestDoneOfAll(page.getContent());
-		return page.map(t -> new TaskView(t, related.getOrDefault(t.getId(), Set.of()), null,
-				suggestions.getOrDefault(t.getId(), false)));
+		Map<UUID, TaskView> built = new HashMap<>();
+		views(page.getContent(), false).forEach(v -> built.put(v.task().getId(), v));
+		return page.map(t -> built.get(t.getId()));
 	}
 
 	/** Whether the "all resolutions accepted" suggestion applies to the task ({@link SuggestDoneRule}); never changes it. */
@@ -397,9 +540,67 @@ class TaskService {
 
 	// ---- helpers ----
 
-	private TaskView view(Task task, Set<UUID> related) {
-		return new TaskView(task, related, attachmentInfos(task),
-				suggestDoneOfAll(List.of(task)).getOrDefault(task.getId(), false));
+	/** The detail view of one task. */
+	private TaskView view(Task task) {
+		return views(List.of(task), true).get(0);
+	}
+
+	/**
+	 * Views of the given tasks, in order, with a fixed number of batched queries (links, resolution states, active
+	 * assignees, subtasks, status categories). A detail ({@code detail}) adds attachments and the subtasks: the
+	 * non-archived ones, or every subtask when the task itself is archived (so an archived task still shows what was
+	 * archived with it).
+	 */
+	private List<TaskView> views(List<Task> list, boolean detail) {
+		if (list.isEmpty()) {
+			return List.of();
+		}
+		List<UUID> ids = list.stream().map(Task::getId).toList();
+		Map<UUID, Set<UUID>> related = relatedOfAll(ids);
+		Map<UUID, Boolean> suggestions = suggestDoneOfAll(list);
+		Map<UUID, List<TaskAssignee>> active = new HashMap<>();
+		assignees.findByTaskIdInAndRemovedAtIsNullOrderByAssignedAtAscIdAsc(ids)
+				.forEach(a -> active.computeIfAbsent(a.getTaskId(), k -> new ArrayList<>()).add(a));
+
+		// only top-level tasks have subtasks (one level, ST-1)
+		List<UUID> parents = list.stream().filter(t -> t.getParentTaskId() == null).map(Task::getId).toList();
+		Map<UUID, List<Task>> childrenOf = new HashMap<>();
+		if (!parents.isEmpty()) {
+			tasks.findByParentTaskIdIn(parents).stream()
+					.sorted(Comparator.comparing(Task::getIssuedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+							.thenComparing(Task::getId))
+					.forEach(c -> childrenOf.computeIfAbsent(c.getParentTaskId(), k -> new ArrayList<>()).add(c));
+		}
+		Set<UUID> statusIds = new HashSet<>();
+		list.forEach(t -> statusIds.add(t.getStatusId()));
+		childrenOf.values().forEach(children -> children.forEach(c -> statusIds.add(c.getStatusId())));
+		Map<UUID, StatusCategory> categories = new HashMap<>();
+		statuses.findByIdIn(statusIds).forEach(s -> categories.put(s.getId(), s.getCategory()));
+
+		Map<UUID, TaskView> subtaskViews = new HashMap<>();
+		if (detail) {
+			List<Task> shown = new ArrayList<>();
+			for (Task t : list) {
+				childrenOf.getOrDefault(t.getId(), List.of()).stream().filter(c -> t.isArchived() || !c.isArchived())
+						.forEach(shown::add);
+			}
+			views(shown, false).forEach(v -> subtaskViews.put(v.task().getId(), v));
+		}
+
+		List<TaskView> result = new ArrayList<>();
+		for (Task t : list) {
+			List<Task> children = childrenOf.getOrDefault(t.getId(), List.of());
+			SuggestCloseRule.Progress progress = children.isEmpty() ? SuggestCloseRule.Progress.NONE
+					: SuggestCloseRule.progress(categories.get(t.getStatusId()), children.stream()
+							.map(c -> new SuggestCloseRule.Subtask(categories.get(c.getStatusId()), c.isArchived()))
+							.toList());
+			List<TaskView> subtasks = !detail ? null
+					: children.stream().map(c -> subtaskViews.get(c.getId())).filter(Objects::nonNull).toList();
+			result.add(new TaskView(t, related.getOrDefault(t.getId(), Set.of()), detail ? attachmentInfos(t) : null,
+					suggestions.getOrDefault(t.getId(), false), List.copyOf(active.getOrDefault(t.getId(), List.of())),
+					progress, subtasks));
+		}
+		return result;
 	}
 
 	/** Two batched queries (resolution states, status categories) for any number of tasks. */

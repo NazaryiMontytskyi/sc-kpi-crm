@@ -356,7 +356,7 @@ class TaskIntegrationTests {
 	}
 
 	@Test
-	void relatedTasksAreSymmetricAndThereIsNoHierarchy() throws Exception {
+	void relatedTasksAreSymmetricAndDoNotMakeSubtasks() throws Exception {
 		UUID space = space();
 		UUID a = createTask(admin, space);
 		UUID b = createTask(admin, space);
@@ -366,7 +366,7 @@ class TaskIntegrationTests {
 				.andExpect(status().isOk()).andExpect(jsonPath("$.relatedTaskIds", hasSize(2)));
 		read(admin, "/tasks/" + b).andExpect(jsonPath("$.relatedTaskIds[0]").value(a.toString()))
 				.andExpect(jsonPath("$.relatedTaskIds", hasSize(1))).andExpect(jsonPath("$.parentId").doesNotExist())
-				.andExpect(jsonPath("$.subtasks").doesNotExist());
+				.andExpect(jsonPath("$.subtasks", hasSize(0))); // related links are not a hierarchy (INC-074)
 		assertThat(audit("Task", b, "UPDATE")).isEqualTo(1);
 		assertThat(audit("Task", c, "UPDATE")).isEqualTo(1);
 

@@ -108,7 +108,8 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Get a task (archived ones too)",
+        "summary": "Get a task (archived ones too) with its active assignees and subtasks",
+        "description": "subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically).",
         "operationId": "get",
         "parameters": [
           {
@@ -139,7 +140,7 @@
           "Tasks"
         ],
         "summary": "Edit a task (replaces all editable fields)",
-        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded.",
+        "description": "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded. A changed deadline of a subtask must not be later than its parent's (422 SUBTASK_DEADLINE_AFTER_PARENT); a changed deadline of a parent must not be earlier than the deadline of a non-archived subtask (422 TASK_DEADLINE_BEFORE_SUBTASKS with conflictingSubtasks: id, title, deadline). An edit keeping the deadline is never rejected for it.",
         "operationId": "update",
         "parameters": [
           {
@@ -1234,7 +1235,7 @@
           "Tasks"
         ],
         "summary": "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
-        "description": "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.",
+        "description": "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.",
         "operationId": "list",
         "parameters": [
           {
@@ -1396,6 +1397,15 @@
                 "CANCELED"
               ]
             }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -1544,6 +1554,92 @@
         }
       }
     },
+    "/api/v1/tasks/{id}/subtasks": {
+      "get": {
+        "tags": [
+          "Task subtasks"
+        ],
+        "summary": "Subtasks of a task (oldest issue first; one level, few per task, so not paginated)",
+        "description": "Non-archived subtasks only, unless includeArchived=true. Works for archived tasks. The paginated task list offers the same set with the parentId filter.",
+        "operationId": "listSubtasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task subtasks"
+        ],
+        "summary": "Add a subtask to a task",
+        "description": "The subtask lives in the parent's space; the caller becomes its creator. assigneeIds omitted: the subtask is for the caller; an empty list: unassigned; anybody else needs tasks.assign (403 TASK_ASSIGN_FORBIDDEN). Assignees must be active (422 TASK_ASSIGNEE_INACTIVE). A subtask cannot have subtasks (422 SUBTASK_DEPTH_EXCEEDED); its deadline must not be later than the parent's (422 SUBTASK_DEADLINE_AFTER_PARENT; no limit when the parent has none). 409 TASK_ARCHIVED / SPACE_ARCHIVED for an archived parent or space.",
+        "operationId": "createSubtask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubtaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tasks/{id}/status": {
       "post": {
         "tags": [
@@ -1592,8 +1688,8 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Restore an archived task",
-        "description": "409 while its space is archived.",
+        "summary": "Restore an archived task and the subtasks archived with it",
+        "description": "Subtasks archived together with the task are restored too; subtasks archived on their own before stay archived. 409 while its space is archived; 409 TASK_PARENT_ARCHIVED for a subtask whose parent is archived.",
         "operationId": "restore",
         "parameters": [
           {
@@ -1711,7 +1807,8 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Archive a task (soft)",
+        "summary": "Archive a task (soft) and its subtasks",
+        "description": "Every non-archived subtask is archived with it (same instant and actor), each audited.",
         "operationId": "archive",
         "parameters": [
           {
@@ -6218,6 +6315,42 @@
           }
         }
       },
+      "TaskAssigneeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "removedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "removedBy": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "TaskResponse": {
         "type": "object",
         "properties": {
@@ -6313,6 +6446,132 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeResponse"
+            }
+          },
+          "subtasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskSummaryResponse"
+            }
+          },
+          "subtaskCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openSubtaskCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suggestClose": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TaskSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "relatedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "suggestDone": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assigneeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "subtaskCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openSubtaskCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suggestClose": {
+            "type": "boolean"
           }
         }
       },
@@ -7735,6 +7994,59 @@
           }
         }
       },
+      "CreateSubtaskRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ]
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customFieldValues": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "assigneeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 20,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
       "ChangeTaskStatusRequest": {
         "type": "object",
         "properties": {
@@ -7763,42 +8075,6 @@
         "required": [
           "userId"
         ]
-      },
-      "TaskAssigneeResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "assignedBy": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "assignedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "removedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "removedBy": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
       },
       "CreateSpaceRequest": {
         "type": "object",
@@ -8636,91 +8912,6 @@
           },
           "last": {
             "type": "boolean"
-          }
-        }
-      },
-      "TaskSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "spaceId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "parentId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
-            "type": "string"
-          },
-          "statusId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "LOW",
-              "NORMAL",
-              "HIGH",
-              "URGENT"
-            ]
-          },
-          "deadline": {
-            "type": "string",
-            "format": "date"
-          },
-          "issuedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "creatorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "labels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "attachmentCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "relatedCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "archivedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "suggestDone": {
-            "type": "boolean"
-          },
-          "version": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },

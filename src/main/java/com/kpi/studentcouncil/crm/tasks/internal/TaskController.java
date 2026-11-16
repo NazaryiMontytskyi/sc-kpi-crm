@@ -60,7 +60,7 @@ class TaskController {
 					+ "labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo "
 					+ "(inclusive dates, compared with the deadline), assignee (an active assignee), creator, "
 					+ "overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never "
-					+ "archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created "
+					+ "archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created "
 					+ "it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). "
 					+ "Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState "
 					+ "match tasks having a non-archived resolution that satisfies all of them at once.")
@@ -73,16 +73,20 @@ class TaskController {
 			@RequestParam(defaultValue = "false") boolean overdue,
 			@RequestParam(required = false) TaskQuickView view,
 			@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
-			@RequestParam(required = false) ResolutionState resolutionState) {
+			@RequestParam(required = false) ResolutionState resolutionState,
+			@RequestParam(required = false) UUID parentId) {
 		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived,
-				assignee, creator, overdue, view, executorId, authorId, resolutionState);
+				assignee, creator, overdue, view, executorId, authorId, resolutionState, parentId);
 		return PageResponse.of(service.list(filter, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				TaskController::summary);
 	}
 
 	@GetMapping("/tasks/{id}")
 	@PreAuthorize("hasAuthority('tasks.view')")
-	@Operation(summary = "Get a task (archived ones too)")
+	@Operation(summary = "Get a task (archived ones too) with its active assignees and subtasks",
+			description = "subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; "
+					+ "subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed "
+					+ "automatically).")
 	TaskResponse get(@PathVariable UUID id) {
 		return detail(service.get(id));
 	}
@@ -108,7 +112,11 @@ class TaskController {
 			description = "Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 "
 					+ "TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. "
 					+ "The relatedTaskIds list is the complete new set of symmetric links. An edit that changes "
-					+ "nothing is not recorded.")
+					+ "nothing is not recorded. A changed deadline of a subtask must not be later than its parent's "
+					+ "(422 SUBTASK_DEADLINE_AFTER_PARENT); a changed deadline of a parent must not be earlier than "
+					+ "the deadline of a non-archived subtask (422 TASK_DEADLINE_BEFORE_SUBTASKS with "
+					+ "conflictingSubtasks: id, title, deadline). An edit keeping the deadline is never rejected for "
+					+ "it.")
 	TaskResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTaskRequest request) {
 		return detail(service.update(id, request.expectedVersion(), request.title(), request.description(),
 				request.priority(), request.deadline(), request.labels(), request.customFieldValues(),
@@ -128,19 +136,23 @@ class TaskController {
 
 	@PostMapping("/tasks/{id}/archive")
 	@PreAuthorize("hasAuthority('tasks.archive')")
-	@Operation(summary = "Archive a task (soft)")
+	@Operation(summary = "Archive a task (soft) and its subtasks",
+			description = "Every non-archived subtask is archived with it (same instant and actor), each audited.")
 	TaskResponse archive(@PathVariable UUID id) {
 		return detail(service.archive(id));
 	}
 
 	@PostMapping("/tasks/{id}/restore")
 	@PreAuthorize("hasAuthority('tasks.archive')")
-	@Operation(summary = "Restore an archived task", description = "409 while its space is archived.")
+	@Operation(summary = "Restore an archived task and the subtasks archived with it",
+			description = "Subtasks archived together with the task are restored too; subtasks archived on their own "
+					+ "before stay archived. 409 while its space is archived; 409 TASK_PARENT_ARCHIVED for a subtask "
+					+ "whose parent is archived.")
 	TaskResponse restore(@PathVariable UUID id) {
 		return detail(service.restore(id));
 	}
 
-	private static TaskResponse detail(TaskView view) {
+	static TaskResponse detail(TaskView view) {
 		Task t = view.task();
 		List<AttachmentResponse> attachments = view.attachments() == null ? List.of()
 				: view.attachments().stream()
@@ -149,16 +161,20 @@ class TaskController {
 				t.getStatusId(), t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
 				t.getLabels().stream().sorted().toList(), t.getCustomFieldValues(), attachments,
 				view.relatedTaskIds().stream().sorted().toList(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(),
-				view.suggestDone(), t.getVersion(), t.getCreatedAt(), t.getUpdatedAt());
+				view.suggestDone(), t.getVersion(), t.getCreatedAt(), t.getUpdatedAt(),
+				view.assignees().stream().map(TaskAssigneeController::response).toList(),
+				view.subtasks() == null ? List.of() : view.subtasks().stream().map(TaskController::summary).toList(),
+				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose());
 	}
 
-	private static TaskSummaryResponse summary(TaskView view) {
+	static TaskSummaryResponse summary(TaskView view) {
 		Task t = view.task();
 		return new TaskSummaryResponse(t.getId(), t.getSpaceId(), t.getParentTaskId(), t.getTitle(), t.getStatusId(),
 				t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
 				t.getLabels().stream().sorted().toList(), t.getAttachmentIds().size(), view.relatedTaskIds().size(),
 				t.getAuthorId(), t.isArchived(), t.getArchivedAt(), view.suggestDone(), t.getVersion(),
-				t.getCreatedAt(), t.getUpdatedAt());
+				t.getCreatedAt(), t.getUpdatedAt(), view.assignees().stream().map(TaskAssignee::getUserId).toList(),
+				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose());
 	}
 
 }

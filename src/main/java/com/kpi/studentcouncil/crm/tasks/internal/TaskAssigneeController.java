@@ -72,7 +72,7 @@ class TaskAssigneeController {
 		return ResponseEntity.noContent().build();
 	}
 
-	private static TaskAssigneeResponse response(TaskAssignee a) {
+	static TaskAssigneeResponse response(TaskAssignee a) {
 		return new TaskAssigneeResponse(a.getId(), a.getTaskId(), a.getUserId(), a.getAssignedBy(), a.getAssignedAt(),
 				a.isActive(), a.getRemovedAt(), a.getRemovedBy());
 	}

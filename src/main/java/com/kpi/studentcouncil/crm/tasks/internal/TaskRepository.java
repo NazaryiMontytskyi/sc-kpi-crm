@@ -27,6 +27,17 @@ interface TaskRepository extends ArchivableRepository<Task, UUID> {
 
 	List<Task> findByIdIn(Collection<UUID> ids);
 
+	/** Every subtask (archived ones too) of the given parents. */
+	List<Task> findByParentTaskIdIn(Collection<UUID> parentIds);
+
+	/** Every subtask (archived ones too) of the parent, oldest issue first. */
+	List<Task> findByParentTaskIdOrderByIssuedAtAscIdAsc(UUID parentId);
+
+	/** Row locks on every subtask (archived ones too) of the parent; taken after the parent's lock. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select t from Task t where t.parentTaskId = :parentId order by t.issuedAt, t.id")
+	List<Task> lockByParentTaskId(@Param("parentId") UUID parentId);
+
 	/** Flushes pending changes so the incremented {@code version} is visible before the response is built. */
 	void flush();
 

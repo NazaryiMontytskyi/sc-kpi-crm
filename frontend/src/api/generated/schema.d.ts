@@ -35,11 +35,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get a task (archived ones too) */
+        /**
+         * Get a task (archived ones too) with its active assignees and subtasks
+         * @description subtasks lists the non-archived subtasks (every subtask for an archived task) as list items; subtaskCount, openSubtaskCount and suggestClose summarise them (the task is never closed automatically).
+         */
         get: operations["get"];
         /**
          * Edit a task (replaces all editable fields)
-         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded.
+         * @description Only the task author or an Admin (403 otherwise). 409 when the task is archived; 409 TASK_VERSION_CONFLICT when expectedVersion is given and differs from the current version. The relatedTaskIds list is the complete new set of symmetric links. An edit that changes nothing is not recorded. A changed deadline of a subtask must not be later than its parent's (422 SUBTASK_DEADLINE_AFTER_PARENT); a changed deadline of a parent must not be earlier than the deadline of a non-archived subtask (422 TASK_DEADLINE_BEFORE_SUBTASKS with conflictingSubtasks: id, title, deadline). An edit keeping the deadline is never rejected for it.
          */
         put: operations["update"];
         post?: never;
@@ -403,7 +406,7 @@ export interface paths {
         };
         /**
          * Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)
-         * @description Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.
+         * @description Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.
          */
         get: operations["list"];
         put?: never;
@@ -433,6 +436,30 @@ export interface paths {
          * @description The caller becomes the author; any executor is allowed (top-down, horizontal or bottom-up). Executor and co-executors must be ACTIVE users (422), the due date must not be in the past (422), 409 when the task is archived. A task may have several resolutions. Starts in NEW.
          */
         post: operations["issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/subtasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subtasks of a task (oldest issue first; one level, few per task, so not paginated)
+         * @description Non-archived subtasks only, unless includeArchived=true. Works for archived tasks. The paginated task list offers the same set with the parentId filter.
+         */
+        get: operations["listSubtasks"];
+        put?: never;
+        /**
+         * Add a subtask to a task
+         * @description The subtask lives in the parent's space; the caller becomes its creator. assigneeIds omitted: the subtask is for the caller; an empty list: unassigned; anybody else needs tasks.assign (403 TASK_ASSIGN_FORBIDDEN). Assignees must be active (422 TASK_ASSIGNEE_INACTIVE). A subtask cannot have subtasks (422 SUBTASK_DEPTH_EXCEEDED); its deadline must not be later than the parent's (422 SUBTASK_DEADLINE_AFTER_PARENT; no limit when the parent has none). 409 TASK_ARCHIVED / SPACE_ARCHIVED for an archived parent or space.
+         */
+        post: operations["createSubtask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -469,8 +496,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Restore an archived task
-         * @description 409 while its space is archived.
+         * Restore an archived task and the subtasks archived with it
+         * @description Subtasks archived together with the task are restored too; subtasks archived on their own before stay archived. 409 while its space is archived; 409 TASK_PARENT_ARCHIVED for a subtask whose parent is archived.
          */
         post: operations["restore"];
         delete?: never;
@@ -512,7 +539,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Archive a task (soft) */
+        /**
+         * Archive a task (soft) and its subtasks
+         * @description Every non-archived subtask is archived with it (same instant and actor), each audited.
+         */
         post: operations["archive"];
         delete?: never;
         options?: never;
@@ -2299,6 +2329,23 @@ export interface components {
             /** Format: int64 */
             size?: number;
         };
+        TaskAssigneeResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: uuid */
+            assignedBy?: string;
+            /** Format: date-time */
+            assignedAt?: string;
+            active?: boolean;
+            /** Format: date-time */
+            removedAt?: string;
+            /** Format: uuid */
+            removedBy?: string;
+        };
         TaskResponse: {
             /** Format: uuid */
             id?: string;
@@ -2338,6 +2385,55 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            assignees?: components["schemas"]["TaskAssigneeResponse"][];
+            subtasks?: components["schemas"]["TaskSummaryResponse"][];
+            /** Format: int32 */
+            subtaskCount?: number;
+            /** Format: int32 */
+            openSubtaskCount?: number;
+            suggestClose?: boolean;
+        };
+        TaskSummaryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            spaceId?: string;
+            /** Format: uuid */
+            parentId?: string;
+            title?: string;
+            /** Format: uuid */
+            statusId?: string;
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            deadline?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: uuid */
+            creatorId?: string;
+            labels?: string[];
+            /** Format: int32 */
+            attachmentCount?: number;
+            /** Format: int32 */
+            relatedCount?: number;
+            /** Format: uuid */
+            authorId?: string;
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            suggestDone?: boolean;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            assigneeIds?: string[];
+            /** Format: int32 */
+            subtaskCount?: number;
+            /** Format: int32 */
+            openSubtaskCount?: number;
+            suggestClose?: boolean;
         };
         SaveFilterRequest: {
             name: string;
@@ -2809,6 +2905,23 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        CreateSubtaskRequest: {
+            title: string;
+            description?: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            statusId?: string;
+            /** @enum {string} */
+            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+            /** Format: date */
+            deadline?: string;
+            labels?: string[];
+            customFieldValues?: {
+                [key: string]: unknown;
+            };
+            assigneeIds?: string[];
+        };
         ChangeTaskStatusRequest: {
             /** Format: uuid */
             statusId: string;
@@ -2818,23 +2931,6 @@ export interface components {
         AssignTaskRequest: {
             /** Format: uuid */
             userId: string;
-        };
-        TaskAssigneeResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            taskId?: string;
-            /** Format: uuid */
-            userId?: string;
-            /** Format: uuid */
-            assignedBy?: string;
-            /** Format: date-time */
-            assignedAt?: string;
-            active?: boolean;
-            /** Format: date-time */
-            removedAt?: string;
-            /** Format: uuid */
-            removedBy?: string;
         };
         CreateSpaceRequest: {
             name: string;
@@ -3120,42 +3216,6 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
-        };
-        TaskSummaryResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            spaceId?: string;
-            /** Format: uuid */
-            parentId?: string;
-            title?: string;
-            /** Format: uuid */
-            statusId?: string;
-            /** @enum {string} */
-            priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-            /** Format: date */
-            deadline?: string;
-            /** Format: date-time */
-            issuedAt?: string;
-            /** Format: uuid */
-            creatorId?: string;
-            labels?: string[];
-            /** Format: int32 */
-            attachmentCount?: number;
-            /** Format: int32 */
-            relatedCount?: number;
-            /** Format: uuid */
-            authorId?: string;
-            archived?: boolean;
-            /** Format: date-time */
-            archivedAt?: string;
-            suggestDone?: boolean;
-            /** Format: int64 */
-            version?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
         };
         PageResponseResolutionSummaryResponse: {
             content?: components["schemas"]["ResolutionSummaryResponse"][];
@@ -4426,6 +4486,7 @@ export interface operations {
                 executorId?: string;
                 authorId?: string;
                 resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
+                parentId?: string;
             };
             header?: never;
             path?: never;
@@ -4516,6 +4577,56 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResolutionResponse"];
+                };
+            };
+        };
+    };
+    listSubtasks: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskSummaryResponse"][];
+                };
+            };
+        };
+    };
+    createSubtask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSubtaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskResponse"];
                 };
             };
         };

@@ -103,7 +103,16 @@ class Task extends ArchivableEntity {
 	Task(UUID spaceId, UUID creatorId, Instant issuedAt, String title, Map<String, Object> description,
 			UUID statusId, TaskPriority priority, LocalDate deadline, Set<String> labels, List<UUID> attachmentIds,
 			Map<String, Object> customFieldValues) {
+		this(spaceId, null, creatorId, issuedAt, title, description, statusId, priority, deadline, labels,
+				attachmentIds, customFieldValues);
+	}
+
+	/** A subtask of {@code parentTaskId} (null: a top-level task); the parent never changes afterwards. */
+	Task(UUID spaceId, UUID parentTaskId, UUID creatorId, Instant issuedAt, String title,
+			Map<String, Object> description, UUID statusId, TaskPriority priority, LocalDate deadline,
+			Set<String> labels, List<UUID> attachmentIds, Map<String, Object> customFieldValues) {
 		this.spaceId = spaceId;
+		this.parentTaskId = parentTaskId;
 		this.creatorId = creatorId;
 		this.issuedAt = issuedAt;
 		this.statusId = statusId;

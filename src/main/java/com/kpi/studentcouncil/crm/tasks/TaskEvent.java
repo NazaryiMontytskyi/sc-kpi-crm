@@ -15,8 +15,12 @@ import java.util.UUID;
  * <li>{@code STATUS_CHANGED}: a user moved the task to another status ({@code previousStatusId} ->
  * {@code statusId});</li>
  * <li>{@code ASSIGNED} / {@code UNASSIGNED}: {@code assigneeId} was added to / removed from the active
- * assignees.</li>
+ * assignees;</li>
+ * <li>{@code SUBTASK_ADDED}: a subtask ({@code subtaskId}) was created under the task {@code id} (the parent); the
+ * subtask itself additionally publishes {@code CREATED}.</li>
  * </ul>
+ * Archiving or restoring a task cascades to its subtasks; each cascaded subtask publishes its own
+ * {@code ARCHIVED}/{@code RESTORED}.
  * A no-op change publishes nothing. {@code actorId} is the user who made the change (never notified of it).
  *
  * @param kind             what happened
@@ -29,17 +33,25 @@ import java.util.UUID;
  * @param previousStatusId the status before ({@code STATUS_CHANGED} only)
  * @param previousDeadline the deadline before ({@code DEADLINE_CHANGED} only; may be null)
  * @param deadline         the task's current deadline (may be null)
+ * @param subtaskId        the created subtask ({@code SUBTASK_ADDED} only)
  */
 public record TaskEvent(Kind kind, UUID id, UUID spaceId, UUID statusId, UUID authorId, UUID actorId,
-		UUID assigneeId, UUID previousStatusId, LocalDate previousDeadline, LocalDate deadline) {
+		UUID assigneeId, UUID previousStatusId, LocalDate previousDeadline, LocalDate deadline, UUID subtaskId) {
+
+	/** An event without a subtask (every kind except {@code SUBTASK_ADDED}). */
+	public TaskEvent(Kind kind, UUID id, UUID spaceId, UUID statusId, UUID authorId, UUID actorId, UUID assigneeId,
+			UUID previousStatusId, LocalDate previousDeadline, LocalDate deadline) {
+		this(kind, id, spaceId, statusId, authorId, actorId, assigneeId, previousStatusId, previousDeadline, deadline,
+				null);
+	}
 
 	/** An event without change details (kept for existing publishers and tests). */
 	public TaskEvent(Kind kind, UUID id, UUID spaceId, UUID statusId, UUID authorId) {
-		this(kind, id, spaceId, statusId, authorId, null, null, null, null, null);
+		this(kind, id, spaceId, statusId, authorId, null, null, null, null, null, null);
 	}
 
 	public enum Kind {
-		CREATED, UPDATED, ARCHIVED, RESTORED, ASSIGNED, UNASSIGNED, DEADLINE_CHANGED, STATUS_CHANGED
+		CREATED, UPDATED, ARCHIVED, RESTORED, ASSIGNED, UNASSIGNED, DEADLINE_CHANGED, STATUS_CHANGED, SUBTASK_ADDED
 	}
 
 }
