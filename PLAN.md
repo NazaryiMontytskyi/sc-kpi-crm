@@ -1049,7 +1049,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Edits that do not touch the deadline on migrated subtasks that violate ST-3 must not fail.
 
 #### INC-075 — Artifacts backend: files and links
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks` (uses `files` via public `FileService`)
 - **Depends on:** INC-071
 - **Scope:** `GET/POST/DELETE /api/v1/tasks/{id}/artifacts`; FILE (existing `FileObject`, ADR-0005 rules) and LINK (`url`, optional `title`); validation http/https only, max 2048 chars; add/remove rights (creator, assignees, `tasks.edit.any`); removal archives the record, file stays; migration copying `Task.attachmentIds` into FILE artifacts (idempotent); artifact DTO with name, type, added by/at included in task detail; audit events. OpenAPI + client regenerated.
