@@ -20,7 +20,8 @@ import com.kpi.studentcouncil.crm.search.internal.SearchDtos.SearchResponse;
 
 /**
  * Answers a query. A group is searched only when the caller holds the view permission of its type (otherwise it is
- * empty); restricted articles additionally need {@code kb.restricted.view}.
+ * empty); restricted articles additionally need {@code kb.restricted.view}. The legacy {@code resolutions} group is
+ * always empty (INC-080).
  */
 @Service
 class SearchService {
@@ -43,7 +44,7 @@ class SearchService {
 		Map<SearchType, SearchGroup> groups = new EnumMap<>(SearchType.class);
 		for (SearchType type : SearchType.values()) {
 			boolean wanted = types == null || types.isEmpty() || types.contains(type);
-			if (parsed.isEmpty() || !wanted || !permissions.contains(type.viewPermissionKey())) {
+			if (parsed.isEmpty() || !wanted || !type.indexed() || !permissions.contains(type.viewPermissionKey())) {
 				groups.put(type, new SearchGroup(0, List.of()));
 				continue;
 			}

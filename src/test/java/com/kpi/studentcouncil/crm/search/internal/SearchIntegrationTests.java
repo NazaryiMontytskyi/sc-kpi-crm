@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -90,15 +91,20 @@ class SearchIntegrationTests {
 		everything.addAll(articles);
 		everything.addAll(orgUnits);
 		everything.addAll(members);
-		if (task != null) {
-			everything.add(task);
-			for (UUID id : jdbc.queryForList("select id from resolution where task_id = ?", UUID.class, task)) {
-				everything.add(id);
-				jdbc.update("delete from resolution_history where resolution_id = ?", id);
-				jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
+		if (space != null) {
+			List<UUID> spaceTasks = jdbc.queryForList("select id from task where space_id = ?", UUID.class, space);
+			everything.addAll(spaceTasks);
+			for (UUID t : spaceTasks) {
+				for (UUID id : jdbc.queryForList("select id from resolution where task_id = ?", UUID.class, t)) {
+					everything.add(id);
+					jdbc.update("delete from resolution_history where resolution_id = ?", id);
+					jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
+				}
+				jdbc.update("delete from resolution where task_id = ?", t);
 			}
-			jdbc.update("delete from resolution where task_id = ?", task);
-			jdbc.update("delete from task where id = ?", task);
+			jdbc.update("delete from task_assignee where task_id in (select id from task where space_id = ?)", space);
+			jdbc.update("delete from task_label where task_id in (select id from task where space_id = ?)", space);
+			jdbc.update("delete from task where space_id = ?", space);
 		}
 		for (UUID id : everything) {
 			jdbc.update("delete from search_document where entity_id = ?", id);
@@ -229,6 +235,21 @@ class SearchIntegrationTests {
 				.andExpect(status().isCreated()));
 	}
 
+	/** An active user with a member profile (obviously fake data). */
+	private UUID memberProfile(String lastName, String firstName) {
+		UUID faculty = UUID.randomUUID();
+		faculties.add(faculty);
+		jdbc.update("insert into faculty (id, code, name_uk, name_en, created_at, updated_at) values (?, ?, ?, ?,"
+				+ " now(), now())", faculty, "F" + faculty.toString().substring(0, 8), "Факультет тестовий",
+				"Test faculty");
+		UUID member = user("ACTIVE");
+		members.add(member);
+		jdbc.update("insert into member_profile (id, user_id, last_name, first_name, faculty_id, study_group, telegram,"
+				+ " joined_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'ХХ-01', '@fake_user', current_date,"
+				+ " now(), now())", UUID.randomUUID(), member, lastName, firstName, faculty);
+		return member;
+	}
+
 	private static String unique() {
 		return "zy" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 	}
@@ -240,18 +261,75 @@ class SearchIntegrationTests {
 	// ---- tests ----
 
 	@Test
-	void partialUkrainianWordFindsResolutionAndEnglishFixtureMatches() throws Exception {
+	void partialUkrainianWordAndEnglishStemsFindTasks() throws Exception {
 		taskFixture();
-		task("Budget " + RUN);
-		UUID uk = resolution("Резолюція про бюджет " + RUN);
-		UUID en = resolution("Resolution about the budget " + RUN);
+		UUID uk = task("Кошторис про бюджет " + RUN);
+		UUID en = task("Budgets of the council " + RUN);
 
-		search(admin, "резол " + RUN).andExpect(status().isOk()).andExpect(jsonPath(ids("resolutions"), hasItem(uk.toString())))
-				;
-		search(admin, "резол").andExpect(jsonPath(ids("resolutions"), hasItem(uk.toString())));
-		search(admin, "Resolut " + RUN).andExpect(jsonPath(ids("resolutions"), hasItem(en.toString())));
-		search(admin, "budgets " + RUN).andExpect(jsonPath(ids("resolutions"), hasItem(en.toString())));
-		search(admin, "budg " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(task.toString())));
+		search(admin, "кошторис " + RUN).andExpect(status().isOk()).andExpect(jsonPath(ids("tasks"), hasItem(uk.toString())));
+		search(admin, "кошт " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(uk.toString())));
+		search(admin, "budget " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(en.toString())));
+		search(admin, "budg " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(en.toString())));
+	}
+
+	@Test
+	void taskIsFoundByAssigneeFullNameAndTheIndexFollowsAssigneeChanges() throws Exception {
+		taskFixture();
+		UUID t = task("Assigned work " + RUN);
+		String lastName = "Виконавченко" + unique();
+		UUID assignee = memberProfile(lastName, "Марта");
+		search(admin, lastName).andExpect(jsonPath(ids("tasks"), not(hasItem(t.toString()))));
+
+		send(admin, "/tasks/" + t + "/assignees", "{\"userId\":\"" + assignee + "\"}").andExpect(status().isCreated());
+		search(admin, lastName).andExpect(jsonPath(ids("tasks"), hasItem(t.toString())));
+		search(admin, "марта " + lastName).andExpect(jsonPath(ids("tasks"), hasItem(t.toString())));
+
+		// a renamed member: the tasks they are assigned to carry the new name
+		String renamed = "Перейменко" + unique();
+		jdbc.update("update member_profile set last_name = ? where user_id = ?", renamed, assignee);
+		publisher.publishEvent(new MemberEvent(MemberEvent.Kind.UPDATED, assignee));
+		search(admin, renamed).andExpect(jsonPath(ids("tasks"), hasItem(t.toString())));
+		search(admin, lastName).andExpect(jsonPath(ids("tasks"), not(hasItem(t.toString()))));
+
+		mvc.perform(delete("/api/v1/tasks/" + t + "/assignees/" + assignee).with(csrf()).session(admin))
+				.andExpect(status().isNoContent());
+		search(admin, renamed).andExpect(jsonPath(ids("tasks"), not(hasItem(t.toString()))));
+	}
+
+	@Test
+	void taskIsFoundBySubtaskTitleAndTheIndexFollowsSubtasks() throws Exception {
+		taskFixture();
+		UUID parent = task("Parent work " + RUN);
+		String word = unique();
+		search(admin, word).andExpect(jsonPath(ids("tasks"), empty()));
+
+		UUID subtask = id(send(admin, "/tasks/" + parent + "/subtasks", "{\"title\":\"Підзадача " + word + "\"}")
+				.andExpect(status().isCreated()));
+		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())))
+				.andExpect(jsonPath(ids("tasks"), hasItem(subtask.toString())));
+
+		send(admin, "/tasks/" + subtask + "/archive", "{}").andExpect(status().isOk());
+		search(admin, word).andExpect(jsonPath(ids("tasks"), empty()));
+
+		send(admin, "/tasks/" + subtask + "/restore", "{}").andExpect(status().isOk());
+		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())))
+				.andExpect(jsonPath(ids("tasks"), hasItem(subtask.toString())));
+	}
+
+	@Test
+	void resolutionsAreNeitherIndexedNorReturned() throws Exception {
+		taskFixture();
+		task("Legacy " + RUN);
+		UUID resolution = resolution("Резолюція застаріла " + RUN);
+
+		search(admin, "резолюція застаріла " + RUN).andExpect(status().isOk())
+				.andExpect(jsonPath("$.resolutions.items", empty())).andExpect(jsonPath("$.resolutions.total").value(0));
+		mvc.perform(get("/api/v1/search").param("q", "застаріла " + RUN).param("types", "RESOLUTION").session(admin))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.resolutions.items", empty()));
+		assertThat(jdbc.queryForObject("select count(*) from search_document where entity_type = 'RESOLUTION'",
+				Long.class)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from search_document where entity_id = ?", Long.class,
+				resolution)).isZero();
 	}
 
 	@Test
@@ -285,14 +363,12 @@ class SearchIntegrationTests {
 	void groupsRequireTheirViewPermission() throws Exception {
 		taskFixture();
 		task("Perm " + RUN);
-		UUID resolution = resolution("Permcheck " + RUN);
 		MockHttpSession kbOnly = sessionWith("kb.view");
 		MockHttpSession tasksOnly = sessionWith("tasks.view");
 
 		search(kbOnly, "perm " + RUN).andExpect(jsonPath("$.tasks.items", empty()))
 				.andExpect(jsonPath("$.resolutions.items", empty()));
 		search(tasksOnly, "perm " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(task.toString())))
-				.andExpect(jsonPath(ids("resolutions"), hasItem(resolution.toString())))
 				.andExpect(jsonPath("$.people.items", empty()));
 	}
 
@@ -327,20 +403,22 @@ class SearchIntegrationTests {
 	}
 
 	@Test
-	void archivingATaskRemovesItAndItsResolutionsAndRestoreBringsThemBack() throws Exception {
+	void archivingATaskRemovesItAndItsSubtasksAndRestoreBringsThemBack() throws Exception {
 		taskFixture();
-		task("Archivable " + RUN);
-		UUID resolution = resolution("Архівна резолюція " + RUN);
-		search(admin, RUN).andExpect(jsonPath(ids("tasks"), hasItem(task.toString())))
-				.andExpect(jsonPath(ids("resolutions"), hasItem(resolution.toString())));
+		UUID parent = task("Archivable " + RUN);
+		String word = unique();
+		UUID subtask = id(send(admin, "/tasks/" + parent + "/subtasks", "{\"title\":\"Архівна " + word + "\"}")
+				.andExpect(status().isCreated()));
+		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())))
+				.andExpect(jsonPath(ids("tasks"), hasItem(subtask.toString())));
 
-		send(admin, "/tasks/" + task + "/archive", "{}").andExpect(status().isOk());
-		search(admin, RUN).andExpect(jsonPath(ids("tasks"), not(hasItem(task.toString()))))
-				.andExpect(jsonPath(ids("resolutions"), not(hasItem(resolution.toString()))));
+		send(admin, "/tasks/" + parent + "/archive", "{}").andExpect(status().isOk());
+		search(admin, word).andExpect(jsonPath(ids("tasks"), empty()));
+		search(admin, "archivable " + RUN).andExpect(jsonPath(ids("tasks"), not(hasItem(parent.toString()))));
 
-		send(admin, "/tasks/" + task + "/restore", "{}").andExpect(status().isOk());
-		search(admin, RUN).andExpect(jsonPath(ids("tasks"), hasItem(task.toString())))
-				.andExpect(jsonPath(ids("resolutions"), hasItem(resolution.toString())));
+		send(admin, "/tasks/" + parent + "/restore", "{}").andExpect(status().isOk());
+		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())))
+				.andExpect(jsonPath(ids("tasks"), hasItem(subtask.toString())));
 	}
 
 	@Test
@@ -399,6 +477,31 @@ class SearchIntegrationTests {
 				Long.class)).isEqualTo(before + 1);
 		// restricted flag survives the reindex: a reader without kb.restricted.view still cannot find it
 		search(sessionWith("kb.view"), "reindex" + RUN).andExpect(jsonPath("$.articles.items", empty()));
+	}
+
+	@Test
+	void reindexWritesTasksWithAssigneeNamesAndSubtaskTitlesAndNoResolutions() throws Exception {
+		taskFixture();
+		UUID parent = task("Rebuilt " + RUN);
+		String lastName = "Реіндексенко" + unique();
+		UUID assignee = memberProfile(lastName, "Ірина");
+		send(admin, "/tasks/" + parent + "/assignees", "{\"userId\":\"" + assignee + "\"}")
+				.andExpect(status().isCreated());
+		String word = unique();
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id,"
+				+ " issued_at, parent_task_id) select ?, space_id, ?, status_id, 'NORMAL', now(), now(), creator_id, now(),"
+				+ " id from task where id = ?", UUID.randomUUID(), "Мігрована " + word, parent);
+		resolution("Резолюція до реіндексу " + RUN);
+		// a subtask written by plain SQL (as the resolution migration did) is not in the index yet
+		search(admin, word).andExpect(jsonPath(ids("tasks"), empty()));
+
+		send(admin, "/search/reindex", "{}").andExpect(status().isOk()).andExpect(jsonPath("$.resolutions").value(0))
+				.andExpect(jsonPath("$.tasks").isNumber());
+
+		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())));
+		search(admin, lastName).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())));
+		assertThat(jdbc.queryForObject("select count(*) from search_document where entity_type = 'RESOLUTION'",
+				Long.class)).isZero();
 	}
 
 }

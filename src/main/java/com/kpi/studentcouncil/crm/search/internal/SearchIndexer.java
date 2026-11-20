@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -16,18 +18,23 @@ import com.kpi.studentcouncil.crm.audit.AuditPublisher;
 import com.kpi.studentcouncil.crm.knowledge.ArticleEvent;
 import com.kpi.studentcouncil.crm.knowledge.ArticleTextProvider;
 import com.kpi.studentcouncil.crm.members.MemberEvent;
+import com.kpi.studentcouncil.crm.members.MemberText;
 import com.kpi.studentcouncil.crm.members.MemberTextProvider;
 import com.kpi.studentcouncil.crm.org.OrgService;
 import com.kpi.studentcouncil.crm.org.OrgUnitEvent;
 import com.kpi.studentcouncil.crm.org.OrgUnitInfo;
-import com.kpi.studentcouncil.crm.tasks.ResolutionEvent;
 import com.kpi.studentcouncil.crm.tasks.TaskEvent;
+import com.kpi.studentcouncil.crm.tasks.TaskText;
 import com.kpi.studentcouncil.crm.tasks.TaskTextProvider;
 
 /**
  * Keeps the index in step with the other modules. Events carry only ids, so every handler re-reads the current text
  * through the public provider of the owning module and then upserts the document, or deletes it when the entity is
  * archived or gone. Handlers run in the publisher's transaction (ADR-0007).
+ *
+ * <p>A task document holds the title, the description, the labels, the full names of the active assignees (read
+ * through {@link MemberTextProvider}) and the titles of the non-archived subtasks (RR-5). Resolutions are no longer
+ * indexed (INC-080): resolution events are ignored, and the documents left over were deleted by migration V30.
  */
 @Component
 class SearchIndexer {
@@ -51,18 +58,17 @@ class SearchIndexer {
 		this.audit = audit;
 	}
 
+	/**
+	 * Every task change re-indexes the task; a change of a subtask (created, renamed, archived, restored) also
+	 * re-indexes its parent, whose document carries the subtask titles. Assign/unassign events refresh the assignee
+	 * names, {@code SUBTASK_ADDED} refreshes the parent.
+	 */
 	@EventListener
 	void on(TaskEvent event) {
-		indexTask(event.id());
-		if (event.kind() == TaskEvent.Kind.ARCHIVED || event.kind() == TaskEvent.Kind.RESTORED) {
-			// resolutions of an archived task are hidden with it, and come back with it
-			tasks.findResolutionIdsOfTask(event.id()).forEach(this::indexResolution);
+		UUID parentId = indexTask(event.id());
+		if (parentId != null) {
+			indexTask(parentId);
 		}
-	}
-
-	@EventListener
-	void on(ResolutionEvent event) {
-		indexResolution(event.id());
 	}
 
 	@EventListener
@@ -70,9 +76,11 @@ class SearchIndexer {
 		indexArticle(event.id());
 	}
 
+	/** A member change re-indexes the person and the tasks they are assigned to (their name is in those). */
 	@EventListener
 	void on(MemberEvent event) {
 		indexPerson(event.memberId());
+		tasks.findActiveTaskIdsAssignedTo(event.memberId()).forEach(this::indexTask);
 	}
 
 	@EventListener
@@ -87,7 +95,7 @@ class SearchIndexer {
 		index.deleteAll();
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		counts.put("tasks", count(tasks.findActiveTaskIds(), this::indexTask));
-		counts.put("resolutions", count(tasks.findActiveResolutionIds(), this::indexResolution));
+		counts.put("resolutions", 0); // no longer indexed (INC-080); kept for the response shape
 		counts.put("articles", count(articles.findActiveIds(), this::indexArticle));
 		counts.put("people", count(members.findActiveIds(), this::indexPerson));
 		int units = 0;
@@ -107,17 +115,29 @@ class SearchIndexer {
 		return ids.size();
 	}
 
-	private void indexTask(UUID id) {
-		tasks.findTask(id).filter(t -> !t.archived()).ifPresentOrElse(
-				t -> index.upsert(SearchType.TASK, t.id(), t.title(),
-						join(t.text(), t.labels() == null ? "" : String.join(" ", t.labels())), false, t.spaceId()),
-				() -> index.delete(SearchType.TASK, id));
+	/** Upserts or deletes the task document; returns the parent task id of a subtask (null otherwise or if gone). */
+	private UUID indexTask(UUID id) {
+		TaskText task = tasks.findTask(id).orElse(null);
+		if (task == null || task.archived()) {
+			index.delete(SearchType.TASK, id);
+		}
+		else {
+			index.upsert(SearchType.TASK, task.id(), task.title(), taskBody(task), false, task.spaceId());
+		}
+		return task == null ? null : task.parentId();
 	}
 
-	private void indexResolution(UUID id) {
-		tasks.findResolution(id).filter(r -> !r.archived()).ifPresentOrElse(
-				r -> index.upsert(SearchType.RESOLUTION, r.id(), r.title(), r.text(), false, r.taskId()),
-				() -> index.delete(SearchType.RESOLUTION, id));
+	/** Description, labels, assignee full names and subtask titles, one part per line. */
+	private String taskBody(TaskText task) {
+		String body = join(task.text(), String.join(" ", task.labels()));
+		body = join(body, String.join(", ", assigneeNames(task.assigneeIds())));
+		return join(body, String.join("\n", task.subtaskTitles()));
+	}
+
+	/** Full names of the users that have a member profile; users without one (e.g. a bare admin) are skipped. */
+	private List<String> assigneeNames(List<UUID> userIds) {
+		return userIds.stream().map(members::findMember).flatMap(Optional::stream).map(MemberText::fullName)
+				.filter(Objects::nonNull).filter(n -> !n.isBlank()).toList();
 	}
 
 	private void indexArticle(UUID id) {

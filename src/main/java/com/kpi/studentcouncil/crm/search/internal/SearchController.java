@@ -15,7 +15,7 @@ import com.kpi.studentcouncil.crm.search.internal.SearchDtos.ReindexResponse;
 import com.kpi.studentcouncil.crm.search.internal.SearchDtos.SearchResponse;
 import com.kpi.studentcouncil.crm.shared.web.ApiV1;
 
-/** Global search across tasks, resolutions, articles, people and org units. */
+/** Global search across tasks, articles, people and org units. */
 @ApiV1
 @RequestMapping("/search")
 @Tag(name = "Search")
@@ -38,7 +38,9 @@ class SearchController {
 					+ "unless the caller holds the view permission of its type (tasks.view for tasks and "
 					+ "resolutions, kb.view for articles, members.view for people, org.view for org units); "
 					+ "restricted articles need kb.restricted.view. Archived items are never returned. `types` "
-					+ "restricts the search to some groups.")
+					+ "restricts the search to some groups. Tasks also match the full names of their active "
+					+ "assignees and the titles of their subtasks. The resolutions group is deprecated and always "
+					+ "empty (resolutions became subtasks).")
 	SearchResponse search(@RequestParam(name = "q", defaultValue = "") String q,
 			@RequestParam(name = "types", required = false) Set<SearchType> types,
 			@RequestParam(name = "limit", required = false) Integer limit) {
@@ -48,9 +50,9 @@ class SearchController {
 	@PostMapping("/reindex")
 	@PreAuthorize("hasAuthority('settings.manage')")
 	@Operation(summary = "Rebuild the whole search index",
-			description = "Reads every active task, resolution, article, member and org unit through the public "
-					+ "APIs of the owning modules and replaces the index in one transaction. Audited. Needs "
-					+ "settings.manage.")
+			description = "Reads every active task, article, member and org unit through the public APIs of the "
+					+ "owning modules and replaces the index in one transaction (resolutions are no longer indexed; "
+					+ "their count is always 0). Audited. Needs settings.manage.")
 	ReindexResponse reindex() {
 		var counts = indexer.reindexAll();
 		return new ReindexResponse(counts.get("tasks"), counts.get("resolutions"), counts.get("articles"),
