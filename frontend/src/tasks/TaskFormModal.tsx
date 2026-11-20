@@ -68,7 +68,12 @@ export function TaskFormModal({ task, spaces, defaultSpaceId, onClose, onSaved }
       customFieldValues: valuesFromDraft(fields, values),
     };
     const done = { onSuccess: (saved: Task) => onSaved(saved), onError: setFailure };
-    if (task) update.mutate({ id: task.id, input, related: task.relatedTaskIds, attachments: task.attachmentIds }, done);
+    if (task) {
+      update.mutate(
+        { id: task.id, input, related: task.relatedTaskIds, attachments: task.attachmentIds, expectedVersion: task.version ?? undefined },
+        done,
+      );
+    }
     else create.mutate({ ...input, spaceId }, done);
   };
 

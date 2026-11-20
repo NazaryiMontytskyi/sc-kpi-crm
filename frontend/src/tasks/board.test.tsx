@@ -1,12 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { configure, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProblemError } from '../api/problem';
 import { CurrentUserProvider, STUB_AUTH_STATE } from '../auth/CurrentUser';
 import { changeLanguage } from '../i18n';
 import { renderWithProviders } from '../test/render';
-import { BoardPage } from './BoardPage';
+import { TaskPanelRoute } from './TaskPanel';
+import { TasksPage } from './TasksPage';
 import { boardColumns, DRAG_MIME, groupByStatus, withTaskStatus } from './boardLogic';
 import * as api from './tasksApi';
 
@@ -43,6 +45,9 @@ const task = (over: Partial<api.TaskSummary>): api.TaskSummary => ({
   authorId: 'a',
   archived: false,
   createdAt: '2031-01-01T10:00:00Z',
+  parentId: null,
+  version: 3,
+  assigneeIds: [],
   ...over,
 });
 const T1 = task({ id: 't1', title: 'Перша', deadline: '2000-01-01', labels: ['мітка'] });
@@ -53,10 +58,14 @@ function renderBoard() {
   return renderWithProviders(
     <QueryClientProvider client={queryClient}>
       <CurrentUserProvider value={{ ...STUB_AUTH_STATE, user: { id: 'u', displayName: 'U', isAdmin: false, permissions: ['tasks.view'] } }}>
-        <BoardPage />
+        <Routes>
+          <Route path="/tasks" element={<TasksPage />}>
+            <Route path=":id" element={<TaskPanelRoute />} />
+          </Route>
+        </Routes>
       </CurrentUserProvider>
     </QueryClientProvider>,
-    '/tasks/board?space=sp1',
+    '/tasks?layout=board&space=sp1',
   );
 }
 
@@ -66,7 +75,23 @@ beforeEach(async () => {
   vi.mocked(api.listSpaces).mockResolvedValue([SPACE]);
   vi.mocked(api.getSpace).mockResolvedValue(SPACE);
   vi.mocked(api.listTasks).mockResolvedValue({ items: [T1, T2], page: 0, totalPages: 1, totalElements: 2 });
-  vi.mocked(api.changeTaskStatus).mockResolvedValue({ ...T1, statusId: 's2', description: null, customFieldValues: {}, relatedTaskIds: [], attachmentIds: [], attachments: [], suggestDone: false });
+  vi.mocked(api.changeTaskStatus).mockResolvedValue({
+    ...T1,
+    statusId: 's2',
+    description: null,
+    customFieldValues: {},
+    relatedTaskIds: [],
+    attachmentIds: [],
+    attachments: [],
+    suggestDone: false,
+    issuedAt: null,
+    creatorId: null,
+    assignees: [],
+    subtasks: [],
+    artifacts: [],
+    openSubtaskCount: 0,
+    suggestClose: false,
+  });
 });
 
 describe('board logic', () => {
@@ -85,7 +110,7 @@ describe('board logic', () => {
   });
 });
 
-describe('BoardPage', () => {
+describe('board view of the tracker', () => {
   it('renders one column per active status in order, with overdue highlight and labels', async () => {
     renderBoard();
     const cols = await screen.findAllByTestId('board-column');
@@ -102,8 +127,9 @@ describe('BoardPage', () => {
     const cols = await screen.findAllByTestId('board-column');
     await user.click(within(cols[0]).getByRole('button', { name: /Перша/ }));
     vi.mocked(api.listTasks).mockResolvedValue({ items: [{ ...T1, statusId: 's4' }, T2], page: 0, totalPages: 1, totalElements: 2 }); // server state after the move
-    await user.click(await screen.findByRole('menuitem', { name: 'Фейкове готово' }));
-    expect(api.changeTaskStatus).toHaveBeenCalledWith('t1', 's4');
+    await user.click(await screen.findByRole('menuitem', { name: 'Фейкове готово', hidden: true }, { timeout: 15000 }));
+    // The card's version is sent so a stale board yields 409 instead of overwriting a newer change (§6.5).
+    expect(api.changeTaskStatus).toHaveBeenCalledWith('t1', 's4', 3);
     await waitFor(() => expect(within(screen.getAllByTestId('board-column')[2]).getByText('Перша')).toBeInTheDocument());
   });
 
@@ -113,7 +139,7 @@ describe('BoardPage', () => {
     const data: Record<string, string> = { [DRAG_MIME]: 't1' };
     const dataTransfer = { types: [DRAG_MIME], getData: (k: string) => data[k] ?? '', setData: vi.fn() };
     fireEvent.drop(cols[1], { dataTransfer });
-    await waitFor(() => expect(api.changeTaskStatus).toHaveBeenCalledWith('t1', 's2'));
+    await waitFor(() => expect(api.changeTaskStatus).toHaveBeenCalledWith('t1', 's2', 3));
   });
 
   it('rolls back and shows a message when the move fails', async () => {
@@ -122,7 +148,7 @@ describe('BoardPage', () => {
     renderBoard();
     const cols = await screen.findAllByTestId('board-column');
     await user.click(within(cols[0]).getByRole('button', { name: /Перша/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Фейкове готово' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Фейкове готово', hidden: true }, { timeout: 15000 }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Не вдалося перенести задачу');
     await waitFor(() => expect(within(screen.getAllByTestId('board-column')[0]).getByText('Перша')).toBeInTheDocument());
   });

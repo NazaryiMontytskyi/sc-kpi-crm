@@ -57,6 +57,35 @@ export interface TaskSummary {
   authorId: string;
   archived: boolean;
   createdAt: string;
+  /** Parent task when this is a subtask (one level only). */
+  parentId: string | null;
+  /** Optimistic-locking version; sent back as `expectedVersion` on edits so a stale view yields 409. */
+  version: number | null;
+  /** Active assignees (user ids). */
+  assigneeIds: string[];
+}
+
+export type ArtifactType = NonNullable<Schemas['TaskArtifactResponse']['type']>;
+
+export interface TaskAssignee {
+  userId: string;
+  assignedBy: string | null;
+  assignedAt: string | null;
+  active: boolean;
+}
+
+export interface TaskArtifact {
+  id: string;
+  type: ArtifactType;
+  /** Display name: file name for FILE, title or URL for LINK. */
+  name: string;
+  fileId: string | null;
+  fileAvailable: boolean;
+  size: number | null;
+  url: string | null;
+  addedBy: string | null;
+  addedAt: string | null;
+  archived: boolean;
 }
 
 export interface Task extends TaskSummary {
@@ -69,6 +98,16 @@ export interface Task extends TaskSummary {
   attachments: AttachmentInfo[];
   /** Computed by the backend: every non-canceled resolution is accepted and the task is not yet done. */
   suggestDone: boolean;
+  /** Issue date (UTC instant), shown in Europe/Kyiv. */
+  issuedAt: string | null;
+  creatorId: string | null;
+  /** Assignee rows of the detail response (active and removed). */
+  assignees: TaskAssignee[];
+  /** All subtasks, archived ones included (render from this list, not from a count). */
+  subtasks: TaskSummary[];
+  artifacts: TaskArtifact[];
+  openSubtaskCount: number;
+  suggestClose: boolean;
 }
 
 export interface TaskInput {
@@ -216,12 +255,45 @@ function toTaskSummary(t: Schemas['TaskSummaryResponse']): TaskSummary {
     authorId: t.authorId ?? '',
     archived: t.archived === true,
     createdAt: t.createdAt ?? '',
+    parentId: t.parentId ?? null,
+    version: t.version ?? null,
+    assigneeIds: t.assigneeIds ?? [],
+  };
+}
+
+function toAssignee(a: Schemas['TaskAssigneeResponse']): TaskAssignee {
+  return {
+    userId: a.userId ?? '',
+    assignedBy: a.assignedBy ?? null,
+    assignedAt: a.assignedAt ?? null,
+    active: a.active !== false && !a.removedAt,
+  };
+}
+
+function toArtifact(a: Schemas['TaskArtifactResponse']): TaskArtifact {
+  const type = a.type ?? 'LINK';
+  return {
+    id: a.id ?? '',
+    type,
+    name: a.name ?? (type === 'LINK' ? (a.title ?? a.url ?? '') : ''),
+    fileId: a.fileId ?? null,
+    fileAvailable: a.fileAvailable !== false,
+    size: a.size ?? null,
+    url: a.url ?? null,
+    addedBy: a.addedBy ?? null,
+    addedAt: a.addedAt ?? null,
+    archived: a.archived === true,
   };
 }
 
 function toTask(t: Schemas['TaskResponse']): Task {
+  const assignees = (t.assignees ?? []).map(toAssignee);
   return {
-    ...toTaskSummary({ ...t, attachmentCount: t.attachments?.length ?? 0 }),
+    ...toTaskSummary({
+      ...t,
+      attachmentCount: t.attachments?.length ?? 0,
+      assigneeIds: assignees.filter((a) => a.active).map((a) => a.userId),
+    }),
     description: t.description ?? null,
     customFieldValues: t.customFieldValues ?? {},
     relatedTaskIds: t.relatedTaskIds ?? [],
@@ -230,6 +302,13 @@ function toTask(t: Schemas['TaskResponse']): Task {
       a.id ? [{ id: a.id, fileName: a.fileName ?? '', mimeType: a.mimeType ?? '', size: a.size ?? 0 }] : [],
     ),
     suggestDone: t.suggestDone === true,
+    issuedAt: t.issuedAt ?? null,
+    creatorId: t.creatorId ?? null,
+    assignees,
+    subtasks: (t.subtasks ?? []).map(toTaskSummary),
+    artifacts: (t.artifacts ?? []).map(toArtifact),
+    openSubtaskCount: t.openSubtaskCount ?? 0,
+    suggestClose: t.suggestClose === true,
   };
 }
 
@@ -382,20 +461,27 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
   return toTask(data);
 }
 
-export async function updateTask(id: string, input: TaskInput, relatedTaskIds: string[], attachmentIds: string[]): Promise<Task> {
+export async function updateTask(
+  id: string,
+  input: TaskInput,
+  relatedTaskIds: string[],
+  attachmentIds: string[],
+  expectedVersion?: number,
+): Promise<Task> {
   // PUT replaces all editable fields, so existing related links and attachments are sent back unchanged.
   const { data, error, response } = await api.PUT('/api/v1/tasks/{id}', {
     params: { path: { id } },
-    body: { ...input, relatedTaskIds, attachmentIds },
+    body: { ...input, relatedTaskIds, attachmentIds, expectedVersion },
   });
   if (!data) throw toProblemError(response, error);
   return toTask(data);
 }
 
-export async function changeTaskStatus(id: string, statusId: string): Promise<Task> {
+/** Changes the status; with `expectedVersion` a concurrent change answers 409 `TASK_VERSION_CONFLICT`. */
+export async function changeTaskStatus(id: string, statusId: string, expectedVersion?: number): Promise<Task> {
   const { data, error, response } = await api.POST('/api/v1/tasks/{id}/status', {
     params: { path: { id } },
-    body: { statusId },
+    body: { statusId, expectedVersion },
   });
   if (!data) throw toProblemError(response, error);
   return toTask(data);

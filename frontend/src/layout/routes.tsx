@@ -13,11 +13,11 @@ import { OrgUnitPage } from '../org/OrgUnitPage';
 import { PositionPage } from '../org/PositionPage';
 import { NotificationsPage } from '../notifications/NotificationsPage';
 import { ResolutionRedirectPage } from '../notifications/ResolutionRedirectPage';
-import { BoardPage } from '../tasks/BoardPage';
+import { BoardRedirect } from '../tasks/BoardPage';
 import { IssuedByMePage, MyResolutionsPage } from '../tasks/PersonalResolutionsPage';
 import { SpaceSettingsPage } from '../tasks/SpaceSettingsPage';
 import { SpacesPage } from '../tasks/SpacesPage';
-import { TaskDetailPage } from '../tasks/TaskDetailPage';
+import { TaskPanelRoute } from '../tasks/TaskPanel';
 import { TasksPage } from '../tasks/TasksPage';
 import { SearchPage } from '../search/SearchPage';
 import { HomePage } from '../pages/HomePage';
@@ -27,6 +27,8 @@ import { RolesPage } from '../roles/RolesPage';
 export interface AppRoute {
   path: string;
   element: ReactElement;
+  /** Nested routes rendered in the parent's `<Outlet />` (e.g. the task panel inside the tracker). */
+  children?: { path: string; element: ReactElement }[];
   /** When set, the route appears in the navigation. Routes that do not exist are simply not listed. */
   nav?: { labelKey: string; permission?: string };
 }
@@ -43,14 +45,19 @@ export const appRoutes: AppRoute[] = [
   { path: '/org', element: <OrgPage />, nav: { labelKey: 'nav.org' } },
   { path: '/org/positions/:id', element: <PositionPage /> },
   { path: '/org/:id', element: <OrgUnitPage /> },
-  { path: '/tasks', element: <TasksPage />, nav: { labelKey: 'nav.tasks', permission: 'tasks.view' } },
-  { path: '/tasks/board', element: <BoardPage /> },
+  {
+    path: '/tasks',
+    element: <TasksPage />,
+    nav: { labelKey: 'nav.tasks', permission: 'tasks.view' },
+    // `/tasks/:id` opens the task panel inside the tracker (master/detail); deep links work on a cold load.
+    children: [{ path: ':id', element: <TaskPanelRoute /> }],
+  },
+  { path: '/tasks/board', element: <BoardRedirect /> },
   { path: '/resolutions/mine', element: <MyResolutionsPage />, nav: { labelKey: 'nav.myResolutions', permission: 'tasks.view' } },
   { path: '/resolutions/issued', element: <IssuedByMePage />, nav: { labelKey: 'nav.issuedByMe', permission: 'tasks.view' } },
   { path: '/resolutions/:id', element: <ResolutionRedirectPage /> },
   { path: '/search', element: <SearchPage /> },
   { path: '/notifications', element: <NotificationsPage />, nav: { labelKey: 'nav.notifications' } },
-  { path: '/tasks/:id', element: <TaskDetailPage /> },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },
   { path: '/spaces/:id', element: <SpaceSettingsPage /> },
   { path: '/knowledge', element: <KnowledgeHomePage />, nav: { labelKey: 'nav.knowledge', permission: 'kb.view' } },

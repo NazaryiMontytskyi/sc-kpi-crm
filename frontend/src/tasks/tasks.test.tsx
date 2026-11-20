@@ -11,8 +11,8 @@ import * as orgApi from '../org/orgApi';
 import { renderWithProviders } from '../test/render';
 import { SpaceSettingsPage } from './SpaceSettingsPage';
 import { SpacesPage } from './SpacesPage';
-import { TaskDetailPage } from './TaskDetailPage';
 import { TaskFormModal } from './TaskFormModal';
+import { TaskPanelRoute } from './TaskPanel';
 import { TasksPage } from './TasksPage';
 import * as api from './tasksApi';
 import {
@@ -98,6 +98,16 @@ const TASK: api.Task = {
   attachmentIds: ["att1", "att2"],
   attachments: [{ id: "att1", fileName: "a.pdf", mimeType: "application/pdf", size: 2048 }, { id: "att2", fileName: "b.png", mimeType: "image/png", size: 10 }],
   suggestDone: false,
+  parentId: null,
+  version: 7,
+  assigneeIds: [],
+  issuedAt: '2031-01-01T10:00:00Z',
+  creatorId: 'author',
+  assignees: [],
+  subtasks: [],
+  artifacts: [],
+  openSubtaskCount: 0,
+  suggestClose: false,
 };
 
 const authWith = (permissions: string[], id = 'someone', isAdmin = false): AuthState => ({
@@ -259,19 +269,22 @@ describe('TaskFormModal edit', () => {
     await screen.findByDisplayValue("Фейкова задача");
     await user.click(screen.getByRole("button", { name: "Зберегти" }));
     await waitFor(() => expect(api.updateTask).toHaveBeenCalled());
-    const [id, input, related, attachments] = vi.mocked(api.updateTask).mock.calls[0];
+    const [id, input, related, attachments, expectedVersion] = vi.mocked(api.updateTask).mock.calls[0];
     expect(id).toBe("t1");
+    expect(expectedVersion).toBe(7);
     expect(related).toEqual(["rel1"]);
     expect(attachments).toEqual(["att1", "att2"]);
     expect(input).toMatchObject({ title: "Фейкова задача", priority: "HIGH", deadline: "2031-03-05", labels: ["тест"], customFieldValues: { f1: "значення" } });
   });
 });
 
-describe('TaskDetailPage', () => {
+describe('task panel (former detail page)', () => {
   const renderDetail = (auth: AuthState) =>
     renderIn(
       <Routes>
-        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+        <Route path="/tasks" element={<TasksPage />}>
+          <Route path=":id" element={<TaskPanelRoute />} />
+        </Route>
       </Routes>,
       auth,
       '/tasks/t1',
@@ -282,13 +295,13 @@ describe('TaskDetailPage', () => {
     expect(await screen.findByRole('button', { name: 'Редагувати' })).toBeInTheDocument();
     unmount();
     renderDetail(authWith(['tasks.view'], 'other'));
-    await screen.findByText('Фейкова задача');
+    await screen.findByTestId('task-panel-body');
     expect(screen.queryByRole('button', { name: 'Редагувати' })).toBeNull();
   });
 
   it('gates archive by tasks.archive and shows the placeholder tabs', async () => {
     renderDetail(authWith(['tasks.view'], 'author'));
-    await screen.findByText('Фейкова задача');
+    await screen.findByTestId('task-panel-body');
     expect(screen.queryByRole('button', { name: 'В архів' })).toBeNull();
     expect(screen.getByRole('tab', { name: 'Коментарі' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Резолюції' })).toBeInTheDocument();

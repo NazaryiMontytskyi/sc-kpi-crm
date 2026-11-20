@@ -46,6 +46,16 @@ const TASK: Task = {
     { id: 'a2', fileName: 'photo.png', mimeType: 'image/png', size: 3 * 1024 * 1024 },
   ],
   suggestDone: false,
+  parentId: null,
+  version: 1,
+  assigneeIds: [],
+  issuedAt: null,
+  creatorId: null,
+  assignees: [],
+  subtasks: [],
+  artifacts: [],
+  openSubtaskCount: 0,
+  suggestClose: false,
 };
 
 function renderPanel(editable: boolean, task: Task = TASK) {

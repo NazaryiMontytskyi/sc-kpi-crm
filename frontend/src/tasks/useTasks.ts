@@ -81,10 +81,13 @@ function useInvalidating<V, R>(fn: (v: V) => Promise<R>, keys: ReadonlyArray<rea
 
 export const useCreateTask = () => useInvalidating((i: CreateTaskInput) => createTask(i), [TASKS_KEY]);
 export const useUpdateTask = () =>
-  useInvalidating((v: { id: string; input: TaskInput; related: string[]; attachments: string[] }) =>
-      updateTask(v.id, v.input, v.related, v.attachments), [TASKS_KEY]);
+  useInvalidating((v: { id: string; input: TaskInput; related: string[]; attachments: string[]; expectedVersion?: number }) =>
+      updateTask(v.id, v.input, v.related, v.attachments, v.expectedVersion), [TASKS_KEY]);
 export const useChangeTaskStatus = () =>
-  useInvalidating((v: { id: string; statusId: string }) => changeTaskStatus(v.id, v.statusId), [TASKS_KEY]);
+  useInvalidating(
+    (v: { id: string; statusId: string; expectedVersion?: number }) => changeTaskStatus(v.id, v.statusId, v.expectedVersion),
+    [TASKS_KEY],
+  );
 export const useArchiveTask = () => useInvalidating((id: string) => archiveTask(id), [TASKS_KEY]);
 export const useRestoreTask = () => useInvalidating((id: string) => restoreTask(id), [TASKS_KEY]);
 
@@ -153,7 +156,8 @@ export function useBoardTasks(spaceId: string | undefined) {
 export function useMoveTask(spaceId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string; statusId: string }) => changeTaskStatus(v.id, v.statusId),
+    mutationFn: (v: { id: string; statusId: string; expectedVersion?: number }) =>
+      changeTaskStatus(v.id, v.statusId, v.expectedVersion),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: boardKey(spaceId) });
       const previous = qc.getQueryData<TaskSummary[]>(boardKey(spaceId));

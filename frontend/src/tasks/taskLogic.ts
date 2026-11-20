@@ -1,21 +1,51 @@
 import { ApiProblemError, problemMessage } from '../api/problem';
-import type { CurrentUser } from '../auth/CurrentUser';
-import type { CustomField, CustomFieldValues, FilterCriteria, Space, TaskQuery, TaskSummary } from './tasksApi';
+import { hasPermission, type CurrentUser } from '../auth/CurrentUser';
+import type { CustomField, CustomFieldValues, FilterCriteria, Space, StatusCategory, TaskQuery, TaskSummary } from './tasksApi';
 
 export const TASKS_VIEW = 'tasks.view';
 export const TASKS_CREATE = 'tasks.create';
 export const TASKS_ARCHIVE = 'tasks.archive';
 export const SPACES_MANAGE = 'spaces.manage';
+export const TASKS_EDIT_ANY = 'tasks.edit.any';
 
 export const MAX_TITLE = 300;
 export const MAX_FIELD_TEXT = 2000;
 export const MAX_LABELS = 20;
 export const MAX_LABEL_LENGTH = 50;
 
-/** i18n key for a failed task action; a 403 reads as "no permission" (the backend stays authoritative). */
+export const TASK_VERSION_CONFLICT = 'TASK_VERSION_CONFLICT';
+
+/** Task codes with their own message (spec §6.5 reload hint, AS-5 contributor rule, ST-3 deadline rules). */
+const TASK_PROBLEM_CODES: readonly string[] = [
+  TASK_VERSION_CONFLICT,
+  'TASK_CONTRIBUTE_FORBIDDEN',
+  'TASK_DEADLINE_BEFORE_SUBTASKS',
+  'SUBTASK_DEADLINE_AFTER_PARENT',
+];
+
+/** i18n key for a failed task action; other 403s read as "no permission" (the backend stays authoritative). */
 export function taskErrorKey(error: unknown): string {
+  if (error instanceof ApiProblemError && error.code && TASK_PROBLEM_CODES.includes(error.code)) return `tasks.errors.${error.code}`;
   if (error instanceof ApiProblemError && error.status === 403) return 'problems.FORBIDDEN';
   return problemMessage(error).key;
+}
+
+/** A stale edit (optimistic locking, spec §6.5): the view must be reloaded before trying again. */
+export function isVersionConflict(error: unknown): boolean {
+  return error instanceof ApiProblemError && error.status === 409 && (error.code === TASK_VERSION_CONFLICT || error.code === undefined);
+}
+
+/**
+ * Whether to offer the status selector: creator, author, an active assignee, `tasks.edit.any` or Admin (AS-5).
+ * Convenience only; the backend `TaskEditPolicy` decides and answers 403 `TASK_CONTRIBUTE_FORBIDDEN` otherwise.
+ */
+export function canChangeStatus(
+  user: CurrentUser | null,
+  task: Pick<TaskSummary, 'authorId' | 'assigneeIds'> & { creatorId?: string | null },
+): boolean {
+  if (!user) return false;
+  if (user.isAdmin || hasPermission(user, TASKS_EDIT_ANY)) return true;
+  return user.id === task.creatorId || user.id === task.authorId || task.assigneeIds.includes(user.id);
 }
 
 /**
@@ -102,6 +132,61 @@ export function todayKyiv(now: Date = new Date()): string {
 
 export function isOverdue(task: Pick<TaskSummary, 'deadline' | 'archived'>, today: string): boolean {
   return !!task.deadline && !task.archived && task.deadline < today;
+}
+
+/** Overdue unless the task is already closed (status category DONE or CANCELED). */
+export function isOpenAndOverdue(
+  task: Pick<TaskSummary, 'deadline' | 'archived'>,
+  today: string,
+  category: StatusCategory | undefined,
+): boolean {
+  return category !== 'DONE' && category !== 'CANCELED' && isOverdue(task, today);
+}
+
+// ---- master/detail panel ---------------------------------------------------------------------
+
+/** >= 1024 px: side panel next to the list. */
+export const PANEL_DESKTOP_QUERY = '(min-width: 64em)';
+/** >= 768 px: overlay; below it a full-screen sheet. */
+export const PANEL_TABLET_QUERY = '(min-width: 48em)';
+
+export type PanelVariant = 'side' | 'overlay' | 'sheet';
+
+/** Highlight of the list/board card whose task is open in the panel (anchor token: brand shade 6 light, shade 2 dark). */
+export const SELECTED_CARD_STYLE = {
+  borderColor: 'var(--mantine-color-anchor)',
+  boxShadow: 'inset 4px 0 0 var(--mantine-color-anchor)',
+} as const;
+
+/** How the task panel is presented for the current viewport (spec UI-1, UI-3). */
+export function panelVariant(desktop: boolean, tablet: boolean): PanelVariant {
+  if (desktop) return 'side';
+  return tablet ? 'overlay' : 'sheet';
+}
+
+/** Search params of the tracker itself (view mode and space) kept while tasks open and close; `tab` etc. are dropped. */
+export const TRACKER_PARAMS = ['layout', 'space'] as const;
+
+export function trackerSearch(search: string): string {
+  const from = new URLSearchParams(search);
+  const kept = new URLSearchParams();
+  for (const key of TRACKER_PARAMS) {
+    const value = from.get(key);
+    if (value) kept.set(key, value);
+  }
+  const out = kept.toString();
+  return out ? `?${out}` : '';
+}
+
+/** Only http(s) links are rendered as clickable (defence in depth; the backend validates too, AR-2). */
+export function isSafeHttpUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export function isRealDate(value: string): boolean {

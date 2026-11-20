@@ -89,6 +89,16 @@ const TASK: tasksApi.Task = {
   attachmentIds: [],
   attachments: [],
   suggestDone: true,
+  parentId: null,
+  version: 1,
+  assigneeIds: [],
+  issuedAt: null,
+  creatorId: null,
+  assignees: [],
+  subtasks: [],
+  artifacts: [],
+  openSubtaskCount: 0,
+  suggestClose: false,
 };
 
 function wrap(ui: React.ReactElement) {
@@ -199,7 +209,7 @@ describe('SuggestDoneBanner', () => {
     expect(tasksApi.changeTaskStatus).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'Перемістити' }));
-    await waitFor(() => expect(vi.mocked(tasksApi.changeTaskStatus).mock.calls[0]).toEqual(['t1', 's3']));
+    await waitFor(() => expect(vi.mocked(tasksApi.changeTaskStatus).mock.calls[0]).toEqual(['t1', 's3', undefined]));
     expect(tasksApi.changeTaskStatus).toHaveBeenCalledTimes(1);
   });
 
@@ -214,6 +224,6 @@ describe('SuggestDoneBanner', () => {
     wrap(<SuggestDoneBanner task={TASK} statuses={[TODO, DONE1]} />);
     expect(screen.queryByRole('combobox', { name: 'Статус' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Перемістити' }));
-    await waitFor(() => expect(vi.mocked(tasksApi.changeTaskStatus).mock.calls[0]).toEqual(['t1', 's2']));
+    await waitFor(() => expect(vi.mocked(tasksApi.changeTaskStatus).mock.calls[0]).toEqual(['t1', 's2', undefined]));
   });
 });

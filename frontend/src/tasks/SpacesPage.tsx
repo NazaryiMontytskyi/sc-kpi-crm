@@ -71,7 +71,7 @@ export function SpacesPage() {
               <Anchor component={Link} to={`/tasks?space=${s.id}`} size="sm" style={{ whiteSpace: 'nowrap' }}>
                 {t('tasks.spaces.openTasks')}
               </Anchor>
-                <Anchor component={Link} to={`/tasks/board?space=${s.id}`} size="sm" style={{ whiteSpace: 'nowrap' }}>
+                <Anchor component={Link} to={`/tasks?layout=board&space=${s.id}`} size="sm" style={{ whiteSpace: 'nowrap' }}>
                   {t('tasks.board.open')}
                 </Anchor>
               </Group>

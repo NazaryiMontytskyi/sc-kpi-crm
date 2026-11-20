@@ -25,7 +25,9 @@ export function App() {
                   r.element
                 )
               }
-            />
+            >
+              {r.children?.map((c) => <Route key={c.path} path={c.path} element={c.element} />)}
+            </Route>
           ))}
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -1,25 +1,30 @@
-import { Alert, Anchor, Badge, Box, Button, Card, Group, Loader, Menu, Paper, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Badge, Box, Button, Card, Group, Loader, Menu, Paper, Select, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
-import { usePageTitle } from '../layout/pageTitle';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../members/memberFormat';
 import { boardColumns, DRAG_MIME, groupByStatus } from './boardLogic';
-import { isOverdue, priorityColor, taskErrorKey, todayKyiv } from './taskLogic';
+import { isOpenAndOverdue, priorityColor, SELECTED_CARD_STYLE, taskErrorKey, todayKyiv } from './taskLogic';
 import type { SpaceStatus, TaskSummary } from './tasksApi';
+import { useTaskLink } from './trackerNav';
 import { useBoardTasks, useMoveTask, useSpace, useSpaces } from './useTasks';
 
 interface CardProps {
   task: TaskSummary;
   columns: SpaceStatus[];
   today: string;
+  selected: boolean;
   onMove: (taskId: string, statusId: string) => void;
 }
 
 /** A board card. The "Move to" menu works everywhere (touch, keyboard); dragging is a desktop shortcut. */
-function BoardCard({ task, columns, today, onMove }: CardProps) {
+function BoardCard({ task, columns, today, selected, onMove }: CardProps) {
   const { t } = useTranslation();
-  const overdue = isOverdue(task, today);
+  const linkTo = useTaskLink();
+  const category = columns.find((c) => c.id === task.statusId)?.category;
+  const overdue = isOpenAndOverdue(task, today, category);
+  const border = overdue ? { borderColor: 'var(--mantine-color-red-6)' } : {};
+  const highlight = selected ? SELECTED_CARD_STYLE : {};
   return (
     <Card
       withBorder
@@ -31,10 +36,18 @@ function BoardCard({ task, columns, today, onMove }: CardProps) {
         e.dataTransfer.setData(DRAG_MIME, task.id);
         e.dataTransfer.effectAllowed = 'move';
       }}
-      style={overdue ? { borderColor: 'var(--mantine-color-red-6)' } : undefined}
+      style={{ ...border, ...highlight }}
     >
       <Stack gap={6}>
-        <Anchor component={Link} to={`/tasks/${task.id}`} fw={600} size="sm" style={{ overflowWrap: 'anywhere' }}>
+        <Anchor
+          component={Link}
+          {...linkTo(task.id)}
+          data-task-link={task.id}
+          aria-current={selected ? 'true' : undefined}
+          fw={600}
+          size="sm"
+          style={{ overflowWrap: 'anywhere', display: 'inline-block', minHeight: 44, paddingBlock: 12 }}
+        >
           {task.title}
         </Anchor>
         <Group gap={6} wrap="wrap">
@@ -76,12 +89,22 @@ function BoardCard({ task, columns, today, onMove }: CardProps) {
   );
 }
 
-/** Kanban board of one space: columns are the space's statuses, cards move by menu or drag-and-drop. */
-export function BoardPage() {
+/** The old board URL `/tasks/board?space=…` now opens the tracker in board view. */
+export function BoardRedirect() {
+  const [params] = useSearchParams();
+  const space = params.get('space');
+  const search = new URLSearchParams({ layout: 'board' });
+  if (space) search.set('space', space);
+  return <Navigate to={{ pathname: '/tasks', search: `?${search.toString()}` }} replace />;
+}
+
+/**
+ * Kanban board of one space inside the tracker: columns are the space's statuses, cards move by menu or
+ * drag-and-drop and open the same task panel as the list (spec UI-6).
+ */
+export function TaskBoard({ spaceId, selectedId }: { spaceId: string | undefined; selectedId: string | undefined }) {
   const { t } = useTranslation();
-  usePageTitle('tasks.board.title');
-  const [params, setParams] = useSearchParams();
-  const spaceId = params.get('space') ?? undefined;
+  const [, setParams] = useSearchParams();
   const [moveError, setMoveError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
@@ -99,22 +122,13 @@ export function BoardPage() {
     if (!task || task.statusId === statusId) return;
     setMoveError(null);
     move.mutate(
-      { id: taskId, statusId },
+      { id: taskId, statusId, expectedVersion: task.version ?? undefined },
       { onError: (e) => setMoveError(t('tasks.board.moveFailed', { reason: t(taskErrorKey(e)) })) },
     );
   };
 
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="center" gap="sm">
-        <Title order={1} size="h2">
-          {t('tasks.board.title')}
-        </Title>
-        <Anchor component={Link} to={spaceId ? `/tasks?space=${spaceId}` : '/tasks'} size="sm">
-          {t('tasks.board.list')}
-        </Anchor>
-      </Group>
-
       <Select
         aria-label={t('tasks.board.space')}
         placeholder={t('tasks.board.pickSpace')}
@@ -122,7 +136,7 @@ export function BoardPage() {
         value={spaceId ?? null}
         onChange={(v) => {
           setMoveError(null);
-          setParams(v ? { space: v } : {});
+          setParams(v ? { layout: 'board', space: v } : { layout: 'board' });
         }}
         size="md"
         searchable
@@ -179,14 +193,16 @@ export function BoardPage() {
                     {items.length}
                   </Badge>
                 </Group>
-                <Stack gap="xs">
-                  {items.length === 0 && (
-                    <Text size="xs" c="dimmed">
-                      {t('tasks.board.empty')}
-                    </Text>
-                  )}
+                {items.length === 0 && (
+                  <Text size="xs" c="dimmed">
+                    {t('tasks.board.empty')}
+                  </Text>
+                )}
+                <Stack gap="xs" role="list" aria-label={col.name}>
                   {items.map((task) => (
-                    <BoardCard key={task.id} task={task} columns={columns} today={today} onMove={doMove} />
+                    <div role="listitem" key={task.id}>
+                      <BoardCard task={task} columns={columns} today={today} selected={task.id === selectedId} onMove={doMove} />
+                    </div>
                   ))}
                 </Stack>
               </Paper>
