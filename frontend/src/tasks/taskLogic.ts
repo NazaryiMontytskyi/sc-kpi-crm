@@ -7,6 +7,7 @@ export const TASKS_CREATE = 'tasks.create';
 export const TASKS_ARCHIVE = 'tasks.archive';
 export const SPACES_MANAGE = 'spaces.manage';
 export const TASKS_EDIT_ANY = 'tasks.edit.any';
+export const TASKS_ASSIGN = 'tasks.assign';
 
 export const MAX_TITLE = 300;
 export const MAX_FIELD_TEXT = 2000;
@@ -15,12 +16,24 @@ export const MAX_LABEL_LENGTH = 50;
 
 export const TASK_VERSION_CONFLICT = 'TASK_VERSION_CONFLICT';
 
-/** Task codes with their own message (spec §6.5 reload hint, AS-5 contributor rule, ST-3 deadline rules). */
+/**
+ * Task codes with their own message (spec §6.5 reload hint, AS-5 contributor rule, AS-1/AS-3 assignee rules,
+ * ST-1/ST-3 subtask rules, AR-2 artifact rules).
+ */
 const TASK_PROBLEM_CODES: readonly string[] = [
   TASK_VERSION_CONFLICT,
   'TASK_CONTRIBUTE_FORBIDDEN',
   'TASK_DEADLINE_BEFORE_SUBTASKS',
   'SUBTASK_DEADLINE_AFTER_PARENT',
+  'SUBTASK_DEPTH_EXCEEDED',
+  'TASK_ASSIGN_FORBIDDEN',
+  'TASK_ASSIGNEE_INACTIVE',
+  'TASK_ASSIGNEE_DUPLICATE',
+  'TASK_ARTIFACT_INVALID',
+  'TASK_ARTIFACT_FILE_INVALID',
+  'TASK_ARTIFACT_DUPLICATE',
+  'TASK_ARTIFACT_URL_INVALID',
+  'TASK_ARTIFACT_URL_TOO_LONG',
 ];
 
 /** i18n key for a failed task action; other 403s read as "no permission" (the backend stays authoritative). */

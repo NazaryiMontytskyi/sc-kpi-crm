@@ -1,22 +1,4 @@
-import {
-  Alert,
-  Anchor,
-  Avatar,
-  Badge,
-  Box,
-  Button,
-  Card,
-  CloseButton,
-  Drawer,
-  Group,
-  Loader,
-  Paper,
-  Select,
-  Stack,
-  Tabs,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Alert, Anchor, Badge, Box, Button, Card, CloseButton, Drawer, Group, Loader, Paper, Stack, Tabs, Text, Title } from '@mantine/core';
 import { useMediaQuery, useReducedMotion } from '@mantine/hooks';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,13 +7,17 @@ import { ApiProblemError } from '../api/problem';
 import { formatKyivDateTime } from '../audit/kyivTime';
 import { useAuth, usePermission } from '../auth/CurrentUser';
 import type { MemberSummary } from '../members/memberApi';
-import { fileUrl } from '../members/memberApi';
-import { formatDate, fullName, initials } from '../members/memberFormat';
+import { formatDate, fullName } from '../members/memberFormat';
 import { useMembers } from '../members/useMembers';
 import { RichTextView } from '../shared/RichTextField';
-import { formatFileSize } from './attachmentLogic';
 import { CommentsPanel } from './CommentsPanel';
+import { PanelArtifacts } from './PanelArtifacts';
+import { PanelAssignees } from './PanelAssignees';
+import { PanelDeadline } from './PanelDeadline';
+import { PanelStatus } from './PanelStatus';
+import { PanelSubtasks } from './PanelSubtasks';
 import { ResolutionsPanel } from './ResolutionsPanel';
+import { SuggestCloseBanner } from './SuggestCloseBanner';
 import { SuggestDoneBanner } from './SuggestDoneBanner';
 import { TaskAttachments } from './TaskAttachments';
 import { TaskFormModal } from './TaskFormModal';
@@ -39,7 +25,6 @@ import {
   canChangeStatus,
   canEditTask,
   isOpenAndOverdue,
-  isSafeHttpUrl,
   isVersionConflict,
   PANEL_DESKTOP_QUERY,
   PANEL_TABLET_QUERY,
@@ -50,9 +35,9 @@ import {
   todayKyiv,
   type PanelVariant,
 } from './taskLogic';
-import type { CustomField, SpaceStatus, Task, TaskArtifact, TaskSummary } from './tasksApi';
+import type { CustomField, Task } from './tasksApi';
 import { useClosePanel, useTaskLink } from './trackerNav';
-import { useArchiveTask, useChangeTaskStatus, useRestoreTask, useSpace, useSpaces, useTask } from './useTasks';
+import { useArchiveTask, useRestoreTask, useSpace, useSpaces, useTask } from './useTasks';
 
 /** Minimum touch target in px. */
 const TOUCH = 44;
@@ -84,154 +69,6 @@ function FieldValue({ field, value, members }: { field: CustomField; value: unkn
   return <Text style={{ overflowWrap: 'anywhere' }}>{String(value)}</Text>;
 }
 
-/** Active assignees as avatars with their names (names stay visible: touch screens have no hover tooltips). */
-function AssigneeList({ userIds, members }: { userIds: readonly string[]; members: readonly MemberSummary[] }) {
-  const { t } = useTranslation();
-  if (userIds.length === 0) return <Text c="dimmed">{t('tasks.panel.noAssignees')}</Text>;
-  return (
-    <Group gap="xs" role="list" aria-label={t('tasks.panel.assignees')} data-testid="panel-assignees">
-      {userIds.map((id) => {
-        const m = members.find((x) => x.id === id);
-        const name = m ? fullName(m) : t('tasks.panel.unknownMember');
-        return (
-          <Group key={id} gap={6} wrap="nowrap" role="listitem" style={{ minWidth: 0 }}>
-            <Avatar size="md" radius="xl" src={m?.avatarFileId ? fileUrl(m.avatarFileId) : null} alt="" aria-hidden>
-              {m ? initials(m) : '?'}
-            </Avatar>
-            <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-              {name}
-            </Text>
-          </Group>
-        );
-      })}
-    </Group>
-  );
-}
-
-function ArtifactItem({ artifact }: { artifact: TaskArtifact }) {
-  const { t } = useTranslation();
-  const linkStyle = { overflowWrap: 'anywhere' as const, display: 'inline-block', minHeight: TOUCH, paddingBlock: 10 };
-  let main: ReactNode;
-  if (artifact.type === 'FILE' && artifact.fileId && artifact.fileAvailable) {
-    main = (
-      <Anchor href={fileUrl(artifact.fileId)} target="_blank" rel="noopener noreferrer" size="sm" style={linkStyle}>
-        {artifact.name}
-      </Anchor>
-    );
-  } else if (artifact.type === 'LINK' && isSafeHttpUrl(artifact.url)) {
-    main = (
-      <Anchor href={artifact.url ?? undefined} target="_blank" rel="noopener noreferrer" size="sm" style={linkStyle}>
-        {artifact.name || artifact.url}
-      </Anchor>
-    );
-  } else {
-    main = (
-      <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-        {artifact.name || artifact.url}
-      </Text>
-    );
-  }
-  return (
-    <Paper withBorder p="xs" role="listitem" data-testid="panel-artifact">
-      <Group gap="xs" wrap="nowrap" justify="space-between" align="center">
-        <Box style={{ minWidth: 0, flex: 1 }}>{main}</Box>
-        <Badge variant="light" color="gray" size="sm" style={{ flexShrink: 0 }}>
-          {t(`tasks.panel.artifactType.${artifact.type}`)}
-        </Badge>
-      </Group>
-      {artifact.type === 'FILE' && !artifact.fileAvailable && (
-        <Text size="xs" c="dimmed">
-          {t('tasks.panel.fileUnavailable')}
-        </Text>
-      )}
-      {artifact.type === 'FILE' && artifact.size !== null && artifact.fileAvailable && (
-        <Text size="xs" c="dimmed">
-          {formatFileSize(artifact.size)}
-        </Text>
-      )}
-    </Paper>
-  );
-}
-
-function ArtifactList({ artifacts }: { artifacts: readonly TaskArtifact[] }) {
-  const { t } = useTranslation();
-  const active = artifacts.filter((a) => !a.archived);
-  return (
-    <Card withBorder padding="sm" component="section" aria-labelledby="task-panel-artifacts">
-      <Title order={3} size="h5" mb="xs" id="task-panel-artifacts">
-        {t('tasks.panel.artifacts')}
-      </Title>
-      {active.length === 0 ? (
-        <Text c="dimmed" size="sm">
-          {t('tasks.panel.noArtifacts')}
-        </Text>
-      ) : (
-        <Stack gap="xs" role="list" aria-label={t('tasks.panel.artifacts')}>
-          {active.map((a) => (
-            <ArtifactItem key={a.id} artifact={a} />
-          ))}
-        </Stack>
-      )}
-    </Card>
-  );
-}
-
-function SubtaskList({ subtasks, statuses }: { subtasks: readonly TaskSummary[]; statuses: readonly SpaceStatus[] }) {
-  const { t } = useTranslation();
-  const linkTo = useTaskLink();
-  const today = todayKyiv();
-  return (
-    <Card withBorder padding="sm" component="section" aria-labelledby="task-panel-subtasks">
-      <Title order={3} size="h5" mb="xs" id="task-panel-subtasks">
-        {t('tasks.panel.subtasks')}
-      </Title>
-      {subtasks.length === 0 ? (
-        <Text c="dimmed" size="sm">
-          {t('tasks.panel.noSubtasks')}
-        </Text>
-      ) : (
-        <Stack gap="xs" role="list" aria-label={t('tasks.panel.subtasks')}>
-          {subtasks.map((s) => {
-            const status = statuses.find((x) => x.id === s.statusId);
-            const overdue = isOpenAndOverdue(s, today, status?.category);
-            return (
-              <Paper key={s.id} withBorder p="xs" role="listitem" data-testid="panel-subtask">
-                <Anchor
-                  component={Link}
-                  {...linkTo(s.id)}
-                  size="sm"
-                  fw={500}
-                  style={{ overflowWrap: 'anywhere', display: 'inline-block', minHeight: TOUCH, paddingBlock: 10 }}
-                >
-                  {s.title}
-                </Anchor>
-                <Group gap={6} wrap="wrap">
-                  {status && (
-                    <Badge variant="light" color="gray" size="sm">
-                      {status.name}
-                    </Badge>
-                  )}
-                  {s.archived && (
-                    <Badge variant="outline" color="gray" size="sm">
-                      {t('tasks.archivedBadge')}
-                    </Badge>
-                  )}
-                  {s.deadline && (
-                    <Text size="xs" c={overdue ? 'red' : 'dimmed'}>
-                      {t('tasks.due', { date: formatDate(s.deadline) })}
-                      {overdue ? ` · ${t('tasks.overdue')}` : ''}
-                    </Text>
-                  )}
-                </Group>
-              </Paper>
-            );
-          })}
-        </Stack>
-      )}
-    </Card>
-  );
-}
-
 /** Edit failure: a 409 shows a reload hint with a reload button (spec §6.5); anything else its i18n message. */
 function FailureAlert({ failure, onReload, onDismiss }: { failure: unknown; onReload: () => void; onDismiss: () => void }) {
   const { t } = useTranslation();
@@ -261,7 +98,10 @@ interface BodyProps {
   onReload: () => void;
 }
 
-/** Everything about one task without navigating away (spec UI-2): read-only parts plus the status selector. */
+/**
+ * Everything about one task without navigating away (spec UI-2) with quick actions in place (UI-5): status,
+ * deadline, assignees, subtasks and artifacts. Every control follows the user's permissions; the backend decides.
+ */
 function TaskPanelBody({ task, onReload }: BodyProps) {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -274,7 +114,6 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
   const spaces = useSpaces(true);
   const members = useMembers(false);
   const memberList = members.data ?? [];
-  const changeStatus = useChangeTaskStatus();
   const archive = useArchiveTask();
   const restore = useRestoreTask();
   const linkTo = useTaskLink();
@@ -284,11 +123,11 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
   const editable = canEditTask(user, task) && !task.archived;
   const statusEditable = canChangeStatus(user, task) && !task.archived;
   const allStatuses = space.data?.statuses ?? [];
-  const statuses = allStatuses.filter((s) => !s.archived || s.id === task.statusId);
   const current = allStatuses.find((s) => s.id === task.statusId);
   const overdue = isOpenAndOverdue(task, todayKyiv(), current?.category);
   const fields = (space.data?.customFields ?? []).filter((f) => !f.archived || task.customFieldValues[f.id] !== undefined);
   const spaceName = spaces.data?.find((s) => s.id === task.spaceId)?.name ?? space.data?.name;
+  const clearFailure = () => setFailure(null);
   const run = (fn: () => void) => {
     setFailure(null);
     fn();
@@ -336,57 +175,20 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
       )}
       {failure !== null && <FailureAlert failure={failure} onReload={reload} onDismiss={() => setFailure(null)} />}
       {task.archived && <Alert color="gray">{t('tasks.archivedNotice')}</Alert>}
+      <SuggestCloseBanner task={task} statuses={allStatuses} editable={statusEditable} onFailure={setFailure} onStart={clearFailure} />
       <SuggestDoneBanner task={task} statuses={allStatuses} />
 
       <Card withBorder padding="sm">
         <Stack gap="sm">
-          {statusEditable ? (
-            <Select
-              label={t('tasks.fields.status')}
-              data={statuses.map((s) => ({ value: s.id, label: s.name }))}
-              value={task.statusId}
-              onChange={(v) =>
-                v &&
-                v !== task.statusId &&
-                run(() =>
-                  changeStatus.mutate(
-                    { id: task.id, statusId: v, expectedVersion: task.version ?? undefined },
-                    { onError: setFailure },
-                  ),
-                )
-              }
-              allowDeselect={false}
-              disabled={changeStatus.isPending || statuses.length === 0}
-              size="md"
-            />
-          ) : (
-            <DetailRow label={t('tasks.fields.status')}>
-              <Badge variant="light" color="gray" data-testid="panel-status">
-                {current?.name ?? '…'}
-              </Badge>
-            </DetailRow>
-          )}
-          <DetailRow label={t('tasks.panel.assignees')}>
-            <AssigneeList userIds={task.assigneeIds} members={memberList} />
-          </DetailRow>
+          <PanelStatus task={task} statuses={allStatuses} editable={statusEditable} onFailure={setFailure} onStart={clearFailure} />
+          <PanelAssignees task={task} members={memberList} />
           <Group gap="lg" align="flex-start" wrap="wrap">
             <DetailRow label={t('tasks.panel.issuedAt')}>
               <Text size="sm" data-testid="panel-issued">
                 {task.issuedAt ? formatKyivDateTime(task.issuedAt, i18n.language) : t('tasks.notSet')}
               </Text>
             </DetailRow>
-            <DetailRow label={t('tasks.panel.deadline')}>
-              <Group gap={6} wrap="wrap">
-                <Text size="sm" c={overdue ? 'red' : undefined} fw={overdue ? 700 : undefined} data-testid="panel-deadline">
-                  {task.deadline ? formatDate(task.deadline) : t('tasks.notSet')}
-                </Text>
-                {overdue && (
-                  <Badge color="red" variant="light" size="sm" data-testid="panel-overdue">
-                    {t('tasks.panel.overdue')}
-                  </Badge>
-                )}
-              </Group>
-            </DetailRow>
+            <PanelDeadline key={`${task.id}:${task.deadline ?? ''}`} task={task} overdue={overdue} editable={editable} onConflict={setFailure} />
           </Group>
           <Group gap="xs" wrap="wrap">
             <Badge variant="light" color={priorityColor(task.priority)}>
@@ -434,8 +236,8 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
         </Card>
       )}
 
-      <ArtifactList artifacts={task.artifacts} />
-      {!task.parentId && <SubtaskList subtasks={task.subtasks} statuses={allStatuses} />}
+      <PanelArtifacts task={task} members={memberList} />
+      {!task.parentId && <PanelSubtasks task={task} statuses={allStatuses} members={memberList} onConflict={setFailure} />}
       <TaskAttachments task={task} editable={editable} />
 
       {/* Comments and resolutions are separate requests made only when their tab is shown (spec §7). */}

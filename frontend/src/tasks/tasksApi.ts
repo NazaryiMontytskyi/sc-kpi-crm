@@ -1,5 +1,5 @@
 import { api, type components } from '../api/client';
-import { toProblemError } from '../api/problem';
+import { ApiProblemError, toProblemError } from '../api/problem';
 import type { AttachmentInfo } from './attachmentLogic';
 
 type Schemas = components['schemas'];
@@ -473,8 +473,99 @@ export async function updateTask(
     params: { path: { id } },
     body: { ...input, relatedTaskIds, attachmentIds, expectedVersion },
   });
+  if (!data) throw taskProblemError(response, error);
+  return toTask(data);
+}
+
+// ---- subtasks, assignees, artifacts (spec ST-2, AS-3, AR-1) --------------------------------------
+
+/** A subtask whose deadline is later than a proposed parent deadline (problem property `conflictingSubtasks`). */
+export interface ConflictingSubtask {
+  id: string;
+  title: string;
+  deadline: string;
+}
+
+export const DEADLINE_BEFORE_SUBTASKS = 'TASK_DEADLINE_BEFORE_SUBTASKS';
+
+/** 422 `TASK_DEADLINE_BEFORE_SUBTASKS` (ST-3) with the subtasks that block the new parent deadline. */
+export class SubtaskDeadlineConflictError extends ApiProblemError {
+  constructor(
+    status: number,
+    readonly conflictingSubtasks: readonly ConflictingSubtask[],
+  ) {
+    super(status, DEADLINE_BEFORE_SUBTASKS);
+  }
+}
+
+/** Reads `conflictingSubtasks` of a problem body; malformed entries are ignored. */
+export function conflictingSubtasksOf(body: unknown): ConflictingSubtask[] {
+  if (typeof body !== 'object' || body === null || !('conflictingSubtasks' in body)) return [];
+  const raw = (body as { conflictingSubtasks?: unknown }).conflictingSubtasks;
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((e: unknown) => {
+    if (typeof e !== 'object' || e === null) return [];
+    const { id, title, deadline } = e as { id?: unknown; title?: unknown; deadline?: unknown };
+    return typeof id === 'string' && typeof title === 'string' && typeof deadline === 'string' ? [{ id, title, deadline }] : [];
+  });
+}
+
+/** Like `toProblemError`, but keeps the conflicting subtasks of an ST-3 rejection. */
+function taskProblemError(response: Response, body: unknown): ApiProblemError {
+  const base = toProblemError(response, body);
+  return base.code === DEADLINE_BEFORE_SUBTASKS ? new SubtaskDeadlineConflictError(base.status, conflictingSubtasksOf(body)) : base;
+}
+
+export interface SubtaskInput {
+  title: string;
+  deadline?: string;
+  /** Omitted: the subtask is for the caller. Anybody else needs `tasks.assign` (ST-2). */
+  assigneeIds?: string[];
+}
+
+/** Adds a subtask to `parentId`; it lives in the parent's space and the caller becomes its creator. */
+export async function createSubtask(parentId: string, input: SubtaskInput): Promise<Task> {
+  const { data, error, response } = await api.POST('/api/v1/tasks/{id}/subtasks', {
+    params: { path: { id: parentId } },
+    body: input,
+  });
   if (!data) throw toProblemError(response, error);
   return toTask(data);
+}
+
+export async function addAssignee(taskId: string, userId: string): Promise<void> {
+  const { error, response } = await api.POST('/api/v1/tasks/{id}/assignees', {
+    params: { path: { id: taskId } },
+    body: { userId },
+  });
+  if (!response.ok) throw toProblemError(response, error);
+}
+
+/** The assignment is kept with `removedAt` (AS-4). */
+export async function removeAssignee(taskId: string, userId: string): Promise<void> {
+  const { error, response } = await api.DELETE('/api/v1/tasks/{id}/assignees/{userId}', {
+    params: { path: { id: taskId, userId } },
+  });
+  if (!response.ok) throw toProblemError(response, error);
+}
+
+export type ArtifactInput = { type: 'FILE'; fileId: string } | { type: 'LINK'; url: string; title?: string };
+
+export async function addArtifact(taskId: string, input: ArtifactInput): Promise<TaskArtifact> {
+  const { data, error, response } = await api.POST('/api/v1/tasks/{id}/artifacts', {
+    params: { path: { id: taskId } },
+    body: input,
+  });
+  if (!data) throw toProblemError(response, error);
+  return toArtifact(data);
+}
+
+/** The artifact record is archived; an uploaded file stays in storage (AR-3). */
+export async function removeArtifact(taskId: string, artifactId: string): Promise<void> {
+  const { error, response } = await api.DELETE('/api/v1/tasks/{id}/artifacts/{artifactId}', {
+    params: { path: { id: taskId, artifactId } },
+  });
+  if (!response.ok) throw toProblemError(response, error);
 }
 
 /** Changes the status; with `expectedVersion` a concurrent change answers 409 `TASK_VERSION_CONFLICT`. */

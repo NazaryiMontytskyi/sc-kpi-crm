@@ -99,13 +99,15 @@ interface UploaderProps {
   disabled?: boolean;
   /** Reports whether an upload is running, so the owner can block submitting meanwhile. */
   onBusyChange?: (busy: boolean) => void;
+  /** Button labels when the default ones (task attachments) would be ambiguous on the same screen. */
+  labels?: { add?: string; takePhoto?: string };
 }
 
 /**
  * File picker buttons (files / camera) with a progress bar per upload and localized rejection messages.
  * The files are uploaded one after another so that one rejected file does not lose the others.
  */
-export function AttachmentUploader({ upload, onUploaded, slots, disabled, onBusyChange }: UploaderProps) {
+export function AttachmentUploader({ upload, onUploaded, slots, disabled, onBusyChange, labels }: UploaderProps) {
   const { t } = useTranslation();
   const [active, setActive] = useState<Progressing | null>(null);
   const [errors, setErrors] = useState<Array<{ name: string; key: string }>>([]);
@@ -147,7 +149,7 @@ export function AttachmentUploader({ upload, onUploaded, slots, disabled, onBusy
         <FileButton onChange={run} accept={ATTACH_ACCEPT} multiple disabled={off}>
           {(props) => (
             <Button {...props} mih={TOUCH} variant="default" loading={busy} disabled={off}>
-              {t('tasks.attachments.add')}
+              {labels?.add ?? t('tasks.attachments.add')}
             </Button>
           )}
         </FileButton>
@@ -155,7 +157,7 @@ export function AttachmentUploader({ upload, onUploaded, slots, disabled, onBusy
         <FileButton onChange={run} accept="image/*" capture="environment" disabled={off}>
           {(props) => (
             <Button {...props} mih={TOUCH} variant="default" disabled={off}>
-              {t('tasks.attachments.takePhoto')}
+              {labels?.takePhoto ?? t('tasks.attachments.takePhoto')}
             </Button>
           )}
         </FileButton>

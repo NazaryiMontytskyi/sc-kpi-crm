@@ -1071,13 +1071,80 @@
       "subtaskBadge": "Subtask",
       "openParent": "↑ To the parent task",
       "conflictTitle": "The task has changed",
-      "reload": "Reload the task"
+      "reload": "Reload the task",
+      "openSubtasksTitle": "Open subtasks",
+      "openSubtasksWarning": "Open subtasks: {{count}}. Move the task to “{{status}}” anyway?",
+      "moveAnyway": "Move anyway"
     },
     "errors": {
       "TASK_VERSION_CONFLICT": "Someone else has just changed this task. Reload it to see the current data and repeat your change.",
       "TASK_CONTRIBUTE_FORBIDDEN": "Only the task creator, its assignees or users allowed to edit any task can change the status.",
       "TASK_DEADLINE_BEFORE_SUBTASKS": "The deadline cannot be earlier than the deadlines of its subtasks.",
-      "SUBTASK_DEADLINE_AFTER_PARENT": "A subtask deadline cannot be later than the parent task deadline."
+      "SUBTASK_DEADLINE_AFTER_PARENT": "A subtask deadline cannot be later than the parent task deadline.",
+      "SUBTASK_DEPTH_EXCEEDED": "A subtask cannot have subtasks: add it to the parent task instead.",
+      "TASK_ASSIGN_FORBIDDEN": "Assigning other people requires the \"Assign tasks to others\" permission. You can assign yourself to a task you created or when you may edit any task.",
+      "TASK_ASSIGNEE_INACTIVE": "This user cannot be assigned: archived and blocked accounts cannot be assignees.",
+      "TASK_ASSIGNEE_DUPLICATE": "This user is already an assignee of the task.",
+      "TASK_ARTIFACT_INVALID": "An artifact must be either a file or a link.",
+      "TASK_ARTIFACT_FILE_INVALID": "The file does not exist or is archived.",
+      "TASK_ARTIFACT_DUPLICATE": "This file is already attached to the task.",
+      "TASK_ARTIFACT_URL_INVALID": "Only full http or https links with a host name are allowed, without spaces.",
+      "TASK_ARTIFACT_URL_TOO_LONG": "A link can be at most 2048 characters long."
+    },
+    "suggestClose": {
+      "title": "All subtasks are done",
+      "text": "All subtasks of this task are done. Close the task? The status changes only when you click.",
+      "statusLabel": "Closing status",
+      "confirm": "Close the task",
+      "confirmTo": "Close the task: “{{status}}”",
+      "dismiss": "Not now"
+    },
+    "deadline": {
+      "change": "Change deadline",
+      "inputLabel": "New deadline",
+      "save": "Save deadline",
+      "clear": "Remove deadline",
+      "conflictingSubtasks": "Subtasks with a later deadline",
+      "conflictItem": "“{{title}}” — due {{date}}"
+    },
+    "assigneeActions": {
+      "add": "Add assignee",
+      "placeholder": "Choose a member",
+      "nothingFound": "Nobody found",
+      "assignMe": "Assign me",
+      "remove": "Remove {{name}} from assignees"
+    },
+    "subtasks": {
+      "new": "New subtask",
+      "titleLabel": "Subtask title",
+      "deadlineLabel": "Subtask deadline",
+      "deadlineHint": "No later than {{date}} (the parent task deadline)",
+      "forWhom": "For whom",
+      "forMe": "For me",
+      "forSomeone": "For someone else",
+      "forMeNote": "The subtask will be assigned to you.",
+      "assigneeLabel": "Assignee",
+      "assigneeRequired": "Choose an assignee.",
+      "add": "Add subtask",
+      "toggleDone": "“{{title}}” done"
+    },
+    "artifacts": {
+      "addFile": "Add file",
+      "takePhoto": "Add photo from camera",
+      "addLink": "Add link",
+      "url": "Link",
+      "urlPlaceholder": "https://…",
+      "linkTitle": "Title (optional)",
+      "saveLink": "Attach link",
+      "remove": "Remove artifact {{name}}",
+      "added": "Added by {{name}}, {{date}}",
+      "forbidden": "Only the task creator, its assignees or users allowed to edit any task can add and remove artifacts.",
+      "validation": {
+        "urlRequired": "Enter a link.",
+        "urlInvalid": "Only full http or https links with a host name are allowed, without spaces.",
+        "urlTooLong": "A link can be at most 2048 characters long.",
+        "titleTooLong": "A title can be at most 300 characters long."
+      }
     }
   },
   "knowledge": {

@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  addArtifact,
+  addAssignee,
   addCustomField,
   addStatus,
   archiveCustomField,
@@ -10,12 +12,15 @@ import {
   createSavedFilter,
   createSpace,
   deleteSavedFilter,
+  createSubtask,
   createTask,
   getSpace,
   getTask,
   listSavedFilters,
   listSpaces,
   listTasks,
+  removeArtifact,
+  removeAssignee,
   reorderStatuses,
   restoreSpace,
   restoreTask,
@@ -23,12 +28,14 @@ import {
   updateSpace,
   updateStatus,
   updateTask,
+  type ArtifactInput,
   type CreateCustomFieldInput,
   type CreateTaskInput,
   type CustomFieldInput,
   type FilterCriteria,
   type SpaceInput,
   type StatusInput,
+  type SubtaskInput,
   type TaskInput,
   type TaskQuery,
   type TaskSummary,
@@ -90,6 +97,18 @@ export const useChangeTaskStatus = () =>
   );
 export const useArchiveTask = () => useInvalidating((id: string) => archiveTask(id), [TASKS_KEY]);
 export const useRestoreTask = () => useInvalidating((id: string) => restoreTask(id), [TASKS_KEY]);
+
+// Inline panel actions (spec UI-5): each refreshes the task detail, which carries assignees, subtasks and artifacts.
+export const useCreateSubtask = () =>
+  useInvalidating((v: { parentId: string; input: SubtaskInput }) => createSubtask(v.parentId, v.input), [TASKS_KEY]);
+export const useAddAssignee = () =>
+  useInvalidating((v: { taskId: string; userId: string }) => addAssignee(v.taskId, v.userId), [TASKS_KEY]);
+export const useRemoveAssignee = () =>
+  useInvalidating((v: { taskId: string; userId: string }) => removeAssignee(v.taskId, v.userId), [TASKS_KEY]);
+export const useAddArtifact = () =>
+  useInvalidating((v: { taskId: string; input: ArtifactInput }) => addArtifact(v.taskId, v.input), [TASKS_KEY]);
+export const useRemoveArtifact = () =>
+  useInvalidating((v: { taskId: string; artifactId: string }) => removeArtifact(v.taskId, v.artifactId), [TASKS_KEY]);
 
 export const useCreateSpace = () => useInvalidating((i: SpaceInput) => createSpace(i), [SPACES_KEY]);
 export const useUpdateSpace = () =>
