@@ -24,7 +24,7 @@ import {
   type TrackerSection,
 } from './taskLogic';
 import type { SortDirection, TaskQuery, TaskSortField } from './tasksApi';
-import { useSelectedTaskId } from './trackerNav';
+import { openTaskNavigation, useSelectedTaskId } from './trackerNav';
 import { useSpaceDetails, useSpaces, useTaskList } from './useTasks';
 
 const SORTS: { value: `${TaskSortField}:${SortDirection}`; key: string }[] = [
@@ -252,7 +252,7 @@ export function TasksPage() {
             setCreating(false);
             navigate(
               { pathname: `/tasks/${created.id}`, search: trackerSearch(location.search) },
-              { state: { fromTracker: true }, replace: !!selectedId },
+              openTaskNavigation(location.state, !!selectedId),
             );
           }}
         />

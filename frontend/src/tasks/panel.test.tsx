@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { configure, screen, waitFor, within } from '@testing-library/react';
+import { MantineProvider } from '@mantine/core';
+import { configure, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProblemError } from '../api/problem';
 import { CurrentUserProvider, STUB_AUTH_STATE, type AuthState } from '../auth/CurrentUser';
@@ -9,6 +10,8 @@ import i18n, { changeLanguage } from '../i18n';
 import * as commentsApi from './commentsApi';
 import * as memberApi from '../members/memberApi';
 import { renderWithProviders } from '../test/render';
+import { cssVariablesResolver, theme } from '../theme/theme';
+import { openTaskNavigation } from './trackerNav';
 import { TaskPanelRoute } from './TaskPanel';
 import { TasksPage } from './TasksPage';
 import * as api from './tasksApi';
@@ -209,6 +212,28 @@ function renderTracker(route: string, auth: AuthState = authAs('u1')) {
   );
 }
 
+/** Cold load of a deep link whose previous history entry is outside the tracker (e.g. another page or site). */
+function renderColdDeepLink(route: string, auth: AuthState = authAs('u1')) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+      <MemoryRouter initialEntries={['/', route]} initialIndex={1}>
+        <QueryClientProvider client={queryClient}>
+          <CurrentUserProvider value={auth}>
+            <Routes>
+              <Route path="/" element={<p>outside the tracker</p>} />
+              <Route path="/tasks" element={<TasksPage />}>
+                <Route path=":id" element={<TaskPanelRoute />} />
+              </Route>
+            </Routes>
+            <LocationProbe />
+          </CurrentUserProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
+    </MantineProvider>,
+  );
+}
+
 const location = () => screen.getByTestId('location').textContent;
 const cardLink = (title: string) => within(screen.getByTestId('task-list')).getByRole('link', { name: title });
 
@@ -241,6 +266,14 @@ describe('panel logic', () => {
     expect(trackerSearch('?tab=comments')).toBe('');
     expect(trackerSearch('?section=issued&tab=comments')).toBe('?section=issued');
     expect(trackerSearch('')).toBe('');
+  });
+
+  it('marks only entries pushed on top of the tracker, and keeps the marker when switching tasks', () => {
+    expect(openTaskNavigation(null, false)).toEqual({ state: { fromTracker: true }, replace: false });
+    expect(openTaskNavigation({ fromTracker: true }, true)).toEqual({ state: { fromTracker: true }, replace: true });
+    // Cold deep link: the entry below is not the tracker, so the replaced entry must stay unmarked.
+    expect(openTaskNavigation(null, true)).toEqual({ state: undefined, replace: true });
+    expect(openTaskNavigation({ other: 1 }, true)).toEqual({ state: undefined, replace: true });
   });
 
   it('renders only http(s) links', () => {
@@ -358,6 +391,32 @@ describe('master/detail at >= 1024 px', () => {
     expect(await screen.findByRole('link', { name: 'Друга фейкова задача' })).toBeInTheDocument();
     await user.click(within(panel).getByRole('button', { name: 'Закрити панель задачі' }));
     await waitFor(() => expect(location()).toBe('/tasks'));
+  });
+
+  it('after a cold deep link, switching tasks and closing returns to the tracker, never out of it', async () => {
+    const user = userEvent.setup();
+    renderColdDeepLink('/tasks/t1?section=all');
+    await screen.findByRole('region', { name: 'Фейкова задача' });
+    await user.click(await screen.findByRole('link', { name: 'Друга фейкова задача' }));
+    const panel = await screen.findByRole('region', { name: 'Друга фейкова задача' });
+    expect(location()).toBe('/tasks/t2?section=all');
+
+    await user.click(within(panel).getByRole('button', { name: 'Закрити панель задачі' }));
+    await waitFor(() => expect(screen.queryByTestId('task-panel')).toBeNull());
+    expect(location()).toBe('/tasks?section=all');
+    expect(screen.queryByText('outside the tracker')).toBeNull();
+  });
+
+  it('after a cold deep link, opening a subtask and closing returns to the tracker', async () => {
+    const user = userEvent.setup();
+    renderColdDeepLink('/tasks/t1');
+    const panel = await screen.findByRole('region', { name: 'Фейкова задача' });
+    await user.click(await within(panel).findByRole('link', { name: 'Фейкова підзадача' }));
+    expect(location()).toBe('/tasks/sub1');
+    const close = await screen.findAllByRole('button', { name: 'Закрити панель задачі' });
+    await user.click(close[0]);
+    await waitFor(() => expect(location()).toBe('/tasks'));
+    expect(screen.queryByText('outside the tracker')).toBeNull();
   });
 
   it('opens the same panel from a kanban card', async () => {
