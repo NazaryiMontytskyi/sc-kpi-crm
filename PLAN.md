@@ -1118,7 +1118,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** none.
 
 #### INC-079 — Frontend: "My tasks" overview and "Issued by me"
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Module(s):** frontend `tasks`
 - **Depends on:** INC-077, INC-073
 - **Scope:** default section of `/tasks`: groups Overdue, This week, Later, No deadline with counts plus an "Issued by me" tab, using the `assignee`/`creator`/`overdue` filters; grouping as a pure function in `taskLogic`; reuses the panel; component exported for the main-page widget (wired in INC-082); saved-filter labels renamed.
