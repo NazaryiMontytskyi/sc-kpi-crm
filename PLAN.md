@@ -1084,7 +1084,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** [ASSUMPTION] offsets (Q1); extension point `ReminderOffsetsProvider`.
 
 #### INC-077 — Frontend: master/detail tracker, side panel and mobile sheet
-- **Status:** IN_PROGRESS
+- **Status:** DONE
 - **Module(s):** frontend `tasks`, `layout` (route only)
 - **Depends on:** INC-073, INC-074, INC-075
 - **Scope:** `/tasks` master/detail with nested route `/tasks/:id` opening the panel in place; one panel component shown as right panel (>= 1024 px), overlay (tablet), full-screen sheet with back button (< 768 px) with focus trap and focus return; panel shows title, status selector, assignee avatars, issue date, deadline (overdue highlighted), description, artifacts and subtasks (read), comments (lazy); list and kanban cards open the same panel; browser back closes it; `TaskDetailPage` route redirects to the same URL; reduced motion; uk+en; tokens only; ARIA roles for list/detail; 409 shows a reload hint. Resolution UI remains untouched and working.
@@ -1132,7 +1132,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** none.
 
 #### INC-080 — Switch search, analytics and members to tasks
-- **Status:** TODO
+- **Status:** IN_VALIDATION
 - **Module(s):** backend `search`, `analytics`, `members`, `tasks` (public query interfaces)
 - **Depends on:** INC-072, INC-073, INC-074
 - **Scope:** public `PersonalTaskSummary` and `MemberTaskCounts` in `tasks` (active/overdue by assignee); `DashboardService` ("My metrics" and "My tasks" payload) and the member-profile task counts/list consume them; `SearchIndexer` indexes tasks with assignee names and subtask titles; resolution documents removed from the index (reindex); old resolution interfaces stay until INC-081 but are unused. OpenAPI + client regenerated.
