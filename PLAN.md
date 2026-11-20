@@ -1118,7 +1118,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** none.
 
 #### INC-079 — Frontend: "My tasks" overview and "Issued by me"
-- **Status:** TODO
+- **Status:** IN_PROGRESS
 - **Module(s):** frontend `tasks`
 - **Depends on:** INC-077, INC-073
 - **Scope:** default section of `/tasks`: groups Overdue, This week, Later, No deadline with counts plus an "Issued by me" tab, using the `assignee`/`creator`/`overdue` filters; grouping as a pure function in `taskLogic`; reuses the panel; component exported for the main-page widget (wired in INC-082); saved-filter labels renamed.
@@ -1132,7 +1132,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** none.
 
 #### INC-080 — Switch search, analytics and members to tasks
-- **Status:** IN_VALIDATION
+- **Status:** DONE
 - **Module(s):** backend `search`, `analytics`, `members`, `tasks` (public query interfaces)
 - **Depends on:** INC-072, INC-073, INC-074
 - **Scope:** public `PersonalTaskSummary` and `MemberTaskCounts` in `tasks` (active/overdue by assignee); `DashboardService` ("My metrics" and "My tasks" payload) and the member-profile task counts/list consume them; `SearchIndexer` indexes tasks with assignee names and subtask titles; resolution documents removed from the index (reindex); old resolution interfaces stay until INC-081 but are unused. OpenAPI + client regenerated.
