@@ -13,26 +13,51 @@ import com.kpi.studentcouncil.crm.tasks.ResolutionText;
 import com.kpi.studentcouncil.crm.tasks.TaskText;
 import com.kpi.studentcouncil.crm.tasks.TaskTextProvider;
 
-/** Plain-text view of tasks and resolutions for the search index. */
+/**
+ * Plain-text view of tasks for the search index: title, description, labels, active assignees and subtask titles.
+ * The resolution methods are legacy (no longer called by the index since INC-080; removed in INC-081).
+ */
 @Component
+@SuppressWarnings("removal")
 class TaskTextProviderImpl implements TaskTextProvider {
 
 	static final int MAX_TITLE = 120;
 	private static final int MAX_DEPTH = 64;
 
 	private final TaskRepository tasks;
+	private final TaskAssigneeRepository assignees;
 	private final ResolutionRepository resolutions;
 
-	TaskTextProviderImpl(TaskRepository tasks, ResolutionRepository resolutions) {
+	TaskTextProviderImpl(TaskRepository tasks, TaskAssigneeRepository assignees, ResolutionRepository resolutions) {
 		this.tasks = tasks;
+		this.assignees = assignees;
 		this.resolutions = resolutions;
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<TaskText> findTask(UUID taskId) {
-		return tasks.findById(taskId).map(t -> new TaskText(t.getId(), t.getSpaceId(), t.getTitle(),
-				plainText(t.getDescription()), Set.copyOf(t.getLabels()), t.isArchived()));
+		return tasks.findById(taskId).map(t -> {
+			List<UUID> assigneeIds = assignees.findByTaskIdAndRemovedAtIsNullOrderByAssignedAtAscIdAsc(t.getId())
+					.stream().map(TaskAssignee::getUserId).distinct().toList();
+			List<String> subtaskTitles = t.getParentTaskId() != null ? List.of()
+					: tasks.findByParentTaskIdOrderByIssuedAtAscIdAsc(t.getId()).stream()
+							.filter(s -> !s.isArchived()).map(Task::getTitle).toList();
+			return new TaskText(t.getId(), t.getSpaceId(), t.getParentTaskId(), t.getTitle(),
+					plainText(t.getDescription()), Set.copyOf(t.getLabels()), assigneeIds, subtaskTitles,
+					t.isArchived());
+		});
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<UUID> findActiveTaskIdsAssignedTo(UUID userId) {
+		List<UUID> taskIds = assignees.findByUserIdAndRemovedAtIsNull(userId).stream().map(TaskAssignee::getTaskId)
+				.distinct().toList();
+		if (taskIds.isEmpty()) {
+			return List.of();
+		}
+		return tasks.findByIdIn(taskIds).stream().filter(t -> !t.isArchived()).map(Task::getId).sorted().toList();
 	}
 
 	@Override

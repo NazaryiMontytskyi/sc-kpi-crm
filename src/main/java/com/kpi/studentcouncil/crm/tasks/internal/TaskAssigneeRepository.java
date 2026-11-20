@@ -22,4 +22,7 @@ interface TaskAssigneeRepository extends JpaRepository<TaskAssignee, UUID> {
 
 	boolean existsByTaskIdAndUserIdAndRemovedAtIsNull(UUID taskId, UUID userId);
 
+	/** Active assignments of the user (any task, archived ones too). */
+	List<TaskAssignee> findByUserIdAndRemovedAtIsNull(UUID userId);
+
 }

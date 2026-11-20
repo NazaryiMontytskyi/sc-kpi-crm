@@ -50,6 +50,33 @@ interface TaskRepository extends ArchivableRepository<Task, UUID> {
 	List<Task> findOpenWithDeadlineOnOrBefore(@Param("latest") LocalDate latest,
 			@Param("closed") Collection<StatusCategory> closed);
 
+	/**
+	 * Non-archived tasks the user is an active assignee of whose status has none of the {@code excluded} categories
+	 * ({@code PersonalTaskSummary}, {@code MemberTaskCounts}).
+	 */
+	@Query("select count(t) from Task t where t.archivedAt is null"
+			+ " and exists (select a.id from TaskAssignee a where a.taskId = t.id and a.userId = :userId"
+			+ " and a.removedAt is null)"
+			+ " and not exists (select s.id from SpaceStatus s where s.id = t.statusId and s.category in :excluded)")
+	long countAssignedNotInCategories(@Param("userId") UUID userId,
+			@Param("excluded") Collection<StatusCategory> excluded);
+
+	/** As {@link #countAssignedNotInCategories}, limited to deadlines before {@code before} (overdue). */
+	@Query("select count(t) from Task t where t.archivedAt is null and t.deadline is not null and t.deadline < :before"
+			+ " and exists (select a.id from TaskAssignee a where a.taskId = t.id and a.userId = :userId"
+			+ " and a.removedAt is null)"
+			+ " and not exists (select s.id from SpaceStatus s where s.id = t.statusId and s.category in :excluded)")
+	long countAssignedNotInCategoriesDueBefore(@Param("userId") UUID userId,
+			@Param("excluded") Collection<StatusCategory> excluded, @Param("before") LocalDate before);
+
+	/** Non-archived tasks the user is an active assignee of whose status has one of the {@code categories}. */
+	@Query("select count(t) from Task t where t.archivedAt is null"
+			+ " and exists (select a.id from TaskAssignee a where a.taskId = t.id and a.userId = :userId"
+			+ " and a.removedAt is null)"
+			+ " and exists (select s.id from SpaceStatus s where s.id = t.statusId and s.category in :categories)")
+	long countAssignedInCategories(@Param("userId") UUID userId,
+			@Param("categories") Collection<StatusCategory> categories);
+
 	/** Flushes pending changes so the incremented {@code version} is visible before the response is built. */
 	void flush();
 
