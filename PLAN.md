@@ -1101,7 +1101,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** none.
 
 #### INC-078 — Frontend: inline subtasks, assignees, artifacts and quick actions
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `tasks`
 - **Depends on:** INC-077
 - **Scope:** in the panel: add subtask inline (for me / for someone, the latter only with `tasks.assign`), inline status toggle on subtasks, add/remove assignees, add/remove artifacts (upload and link), set deadline and status without a dialog; `SuggestCloseBanner` driven by `suggestClose` (one click, never automatic); warning when moving the parent to DONE with open subtasks; rule errors (ST-3) list the conflicting subtasks; controls follow the user's permissions.
