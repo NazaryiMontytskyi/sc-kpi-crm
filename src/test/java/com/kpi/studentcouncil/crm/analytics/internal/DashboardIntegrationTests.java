@@ -33,7 +33,11 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.kpi.studentcouncil.crm.TestcontainersConfiguration;
 import com.kpi.studentcouncil.crm.access.AccessService;
 
-/** The personal dashboard: counts equal the personal lists, only the caller's data, permission enforced. */
+/**
+ * The personal dashboard ("My metrics", "My tasks"): built on tasks via active assignments (RR-5), counts equal the
+ * "My tasks" quick view, DONE/CANCELED categories and archived tasks excluded, only the caller's data, permission
+ * enforced. The deprecated resolution-shaped section mirrors the same task data.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -59,13 +63,16 @@ class DashboardIntegrationTests {
 	}
 
 	private final List<UUID> users = new ArrayList<>();
-	private final List<UUID> tasks = new ArrayList<>();
 	private UUID fullRole;
 	private UUID tasksOnlyRole;
 	private UUID space;
-	private UUID statusId;
+	private UUID todo;
+	private UUID inProgress;
+	private UUID done;
+	private UUID canceled;
 	private Account me;
 	private Account other;
+	private UUID overdueTask;
 
 	@BeforeEach
 	void setUp() throws Exception {
@@ -74,23 +81,18 @@ class DashboardIntegrationTests {
 		space = UUID.randomUUID();
 		jdbc.update("insert into task_space (id, name, is_general, created_at, updated_at) values (?, ?, true, now(),"
 				+ " now())", space, "Dashboard " + space);
-		statusId = UUID.randomUUID();
-		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
-				+ " values (?, ?, 'Todo', 'TODO', 0, now(), now())", statusId, space);
+		todo = statusRow("Todo", "TODO", 0);
+		inProgress = statusRow("Doing", "IN_PROGRESS", 1);
+		done = statusRow("Done", "DONE", 2);
+		canceled = statusRow("Dropped", "CANCELED", 3);
 		me = account(fullRole);
 		other = account(fullRole);
 	}
 
 	@AfterEach
 	void cleanUp() {
-		for (UUID task : tasks) {
-			for (UUID id : jdbc.queryForList("select id from resolution where task_id = ?", UUID.class, task)) {
-				jdbc.update("delete from resolution_history where resolution_id = ?", id);
-				jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
-			}
-			jdbc.update("delete from resolution where task_id = ?", task);
-			jdbc.update("delete from task where id = ?", task);
-		}
+		jdbc.update("delete from task_assignee where task_id in (select id from task where space_id = ?)", space);
+		jdbc.update("delete from task where space_id = ?", space);
 		jdbc.update("delete from task_space_status where space_id = ?", space);
 		jdbc.update("delete from task_space where id = ?", space);
 		for (UUID user : users) {
@@ -104,7 +106,6 @@ class DashboardIntegrationTests {
 			jdbc.update("delete from users where id = ?", user);
 		}
 		users.clear();
-		tasks.clear();
 	}
 
 	private UUID role(String... keys) {
@@ -114,6 +115,13 @@ class DashboardIntegrationTests {
 		for (String key : keys) {
 			jdbc.update("insert into role_permission (role_id, permission_key) values (?, ?)", id, key);
 		}
+		return id;
+	}
+
+	private UUID statusRow(String name, String category, int position) {
+		UUID id = UUID.randomUUID();
+		jdbc.update("insert into task_space_status (id, space_id, name, category, position, created_at, updated_at)"
+				+ " values (?, ?, ?, ?, ?, now(), now())", id, space, name, category, position);
 		return id;
 	}
 
@@ -134,27 +142,49 @@ class DashboardIntegrationTests {
 		return new Account(user, (MockHttpSession) result.getRequest().getSession(false));
 	}
 
-	private void resolution(String title, UUID author, UUID executor, String state, LocalDate due, boolean archived) {
-		UUID taskId = UUID.randomUUID();
-		tasks.add(taskId);
-		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id, issued_at) values (?, ?,"
-				+ " ?, ?, 'NORMAL', now(), now(), '00000000-0000-0000-0000-000000000000', now())", taskId, space, title, statusId);
-		jdbc.update("insert into resolution (id, task_id, author_id, executor_id, instruction, due_date, state,"
-				+ " created_at, updated_at, archived_at) values (?, ?, ?, ?, 'Do it', ?, ?, now(), now(), "
-				+ (archived ? "now()" : "null") + ")", UUID.randomUUID(), taskId, author, executor, due, state);
+	private UUID task(String title, UUID statusId, LocalDate deadline, boolean archived, UUID parentId) {
+		UUID id = UUID.randomUUID();
+		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id,"
+				+ " issued_at, deadline, parent_task_id, archived_at) values (?, ?, ?, ?, 'NORMAL', now(), now(), ?,"
+				+ " now(), ?, ?, " + (archived ? "now()" : "null") + ")", id, space, title, statusId, other.id(),
+				deadline, parentId);
+		return id;
 	}
 
-	/** "me" executes 9 live (1 overdue, 1 SUBMITTED, 6 later ones) and issued 1 SUBMITTED + 1 NEW. */
+	private void assign(UUID taskId, UUID userId, boolean removed) {
+		jdbc.update("insert into task_assignee (id, task_id, user_id, assigned_by, assigned_at, removed_at, created_at,"
+				+ " updated_at) values (?, ?, ?, ?, now(), " + (removed ? "now()" : "null") + ", now(), now())",
+				UUID.randomUUID(), taskId, userId, other.id());
+	}
+
+	private UUID mine(String title, UUID statusId, LocalDate deadline) {
+		UUID id = task(title, statusId, deadline, false, null);
+		assign(id, me.id(), false);
+		return id;
+	}
+
+	/**
+	 * "me" is assigned to 11 active tasks (1 overdue, 1 without deadline, 1 subtask, 1 shared with "other") plus a
+	 * DONE, a CANCELED, an archived and a removed-assignment task; "other" to the shared one and one overdue task.
+	 */
 	private void seed() {
-		resolution("a-overdue", other.id(), me.id(), "IN_PROGRESS", TODAY.minusDays(2), false);
-		resolution("b-future", other.id(), me.id(), "NEW", TODAY.plusDays(4), false);
-		resolution("c-accepted", other.id(), me.id(), "ACCEPTED", TODAY.minusDays(9), false);
-		resolution("d-archived", other.id(), me.id(), "NEW", TODAY.minusDays(3), true);
-		resolution("e-issued-submitted", me.id(), other.id(), "SUBMITTED", TODAY.plusDays(1), false);
-		resolution("f-issued-new", me.id(), other.id(), "NEW", TODAY.plusDays(1), false);
-		resolution("g-submitted-by-me", other.id(), me.id(), "SUBMITTED", TODAY.plusDays(2), false);
+		overdueTask = mine("a-overdue", inProgress, TODAY.minusDays(2));
+		UUID future = mine("b-future", todo, TODAY.plusDays(4));
+		mine("c-done", done, TODAY.minusDays(9));
+		mine("e-canceled", canceled, TODAY.minusDays(5));
+		UUID archived = task("d-archived", todo, TODAY.minusDays(3), true, null);
+		assign(archived, me.id(), false);
+		UUID removed = task("f-removed", todo, TODAY.minusDays(1), false, null);
+		assign(removed, me.id(), true);
+		UUID othersOverdue = task("g-other", todo, TODAY.minusDays(1), false, null);
+		assign(othersOverdue, other.id(), false);
+		UUID subtask = task("h-subtask", todo, TODAY.plusDays(2), false, future);
+		assign(subtask, me.id(), false);
+		mine("i-no-deadline", todo, null);
+		UUID shared = mine("j-shared", todo, TODAY.plusDays(3));
+		assign(shared, other.id(), false);
 		for (int i = 0; i < 6; i++) {
-			resolution("many-" + i, other.id(), me.id(), "NEW", TODAY.plusDays(10 + i), false);
+			mine("many-" + i, todo, TODAY.plusDays(10 + i));
 		}
 	}
 
@@ -168,42 +198,54 @@ class DashboardIntegrationTests {
 	}
 
 	@Test
-	void countsEqualThePersonalLists() throws Exception {
+	void myMetricsComeFromTasksViaAssigneesAndEqualTheMyTasksView() throws Exception {
 		seed();
-		String base = "/members/" + me.id() + "/resolutions";
+		int myTasksView = total(me, "/tasks?view=MY_TASKS");
+		int overdueFilter = total(me, "/tasks?assignee=" + me.id() + "&overdue=true");
 		api(me, "/dashboard/me").andExpect(status().isOk())
-				.andExpect(jsonPath("$.resolutions.active").value(total(me, base + "?active=true")))
-				.andExpect(jsonPath("$.resolutions.awaitingAcceptance")
-						.value(total(me, base + "?role=AUTHOR&state=SUBMITTED")))
-				.andExpect(jsonPath("$.resolutions.active").value(9))
-				.andExpect(jsonPath("$.resolutions.overdue").value(1))
-				.andExpect(jsonPath("$.resolutions.awaitingAcceptance").value(1));
-		String list = api(me, base + "?active=true&size=50").andReturn().getResponse().getContentAsString();
-		List<Boolean> flags = JsonPath.read(list, "$.content[?(@.overdue == true)].overdue");
-		assertThat(flags).hasSize(1);
+				.andExpect(jsonPath("$.tasks.active").value(11))
+				.andExpect(jsonPath("$.tasks.active").value(myTasksView))
+				.andExpect(jsonPath("$.tasks.overdue").value(1))
+				.andExpect(jsonPath("$.tasks.overdue").value(overdueFilter));
 	}
 
 	@Test
-	void upcomingIsTheHeadOfMyListLimitedToFive() throws Exception {
+	void upcomingAreTheFiveEarliestDeadlinesOverdueFirst() throws Exception {
 		seed();
 		String dash = api(me, "/dashboard/me").andReturn().getResponse().getContentAsString();
-		List<String> upcoming = JsonPath.read(dash, "$.resolutions.upcoming[*].taskTitle");
-		String list = api(me, "/members/" + me.id() + "/resolutions?active=true&size=5").andReturn().getResponse()
-				.getContentAsString();
-		List<String> head = JsonPath.read(list, "$.content[*].taskTitle");
-		assertThat(upcoming).hasSize(5).isEqualTo(head).startsWith("a-overdue");
-		api(me, "/dashboard/me").andExpect(jsonPath("$.resolutions.upcoming[0].overdue").value(true));
+		List<String> titles = JsonPath.read(dash, "$.tasks.upcoming[*].title");
+		assertThat(titles).containsExactly("a-overdue", "h-subtask", "j-shared", "b-future", "many-0");
+		api(me, "/dashboard/me").andExpect(jsonPath("$.tasks.upcoming[0].taskId").value(overdueTask.toString()))
+				.andExpect(jsonPath("$.tasks.upcoming[0].overdue").value(true))
+				.andExpect(jsonPath("$.tasks.upcoming[0].statusName").value("Doing"))
+				.andExpect(jsonPath("$.tasks.upcoming[0].statusCategory").value("IN_PROGRESS"))
+				.andExpect(jsonPath("$.tasks.upcoming[0].deadline").value(TODAY.minusDays(2).toString()))
+				.andExpect(jsonPath("$.tasks.upcoming[0].spaceId").value(space.toString()))
+				.andExpect(jsonPath("$.tasks.upcoming[1].parentId").isNotEmpty())
+				.andExpect(jsonPath("$.tasks.upcoming[1].overdue").value(false));
+	}
+
+	@Test
+	void legacyResolutionSectionMirrorsTheTaskData() throws Exception {
+		seed();
+		api(me, "/dashboard/me").andExpect(jsonPath("$.resolutions.active").value(11))
+				.andExpect(jsonPath("$.resolutions.overdue").value(1))
+				.andExpect(jsonPath("$.resolutions.awaitingAcceptance").value(0))
+				.andExpect(jsonPath("$.resolutions.upcoming.length()").value(5))
+				.andExpect(jsonPath("$.resolutions.upcoming[0].resolutionId").value(overdueTask.toString()))
+				.andExpect(jsonPath("$.resolutions.upcoming[0].taskId").value(overdueTask.toString()))
+				.andExpect(jsonPath("$.resolutions.upcoming[0].taskTitle").value("a-overdue"))
+				.andExpect(jsonPath("$.resolutions.upcoming[0].state").value("IN_PROGRESS"))
+				.andExpect(jsonPath("$.resolutions.upcoming[1].state").value("NEW"));
 	}
 
 	@Test
 	void showsOnlyTheCallersData() throws Exception {
 		seed();
-		// "other" executes e and f (2 live, none overdue) and issued exactly one SUBMITTED resolution (g)
-		api(other, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.resolutions.active").value(2))
-				.andExpect(jsonPath("$.resolutions.overdue").value(0))
-				.andExpect(jsonPath("$.resolutions.awaitingAcceptance").value(1));
+		api(other, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.tasks.active").value(2))
+				.andExpect(jsonPath("$.tasks.overdue").value(1));
 		// an id parameter is ignored
-		api(me, "/dashboard/me?userId=" + other.id()).andExpect(jsonPath("$.resolutions.active").value(9));
+		api(me, "/dashboard/me?userId=" + other.id()).andExpect(jsonPath("$.tasks.active").value(11));
 	}
 
 	@Test
@@ -214,8 +256,11 @@ class DashboardIntegrationTests {
 	}
 
 	@Test
-	void emptyDashboardForUserWithoutResolutions() throws Exception {
-		api(me, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.resolutions.active").value(0))
+	void emptyDashboardForUserWithoutTasks() throws Exception {
+		api(me, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.tasks.active").value(0))
+				.andExpect(jsonPath("$.tasks.overdue").value(0))
+				.andExpect(jsonPath("$.tasks.upcoming.length()").value(0))
+				.andExpect(jsonPath("$.resolutions.active").value(0))
 				.andExpect(jsonPath("$.resolutions.upcoming.length()").value(0));
 	}
 

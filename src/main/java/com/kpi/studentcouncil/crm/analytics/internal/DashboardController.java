@@ -23,10 +23,12 @@ class DashboardController {
 
 	@GetMapping("/me")
 	@PreAuthorize("hasAuthority('dashboard.view')")
-	@Operation(summary = "My resolutions mini-dashboard",
-			description = "Only for the caller: active and overdue resolutions I execute, resolutions I issued that "
-					+ "await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due "
-					+ "date first). Counts equal the personal resolution lists. Needs dashboard.view.")
+	@Operation(summary = "My tasks mini-dashboard (My metrics)",
+			description = "Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks "
+					+ "included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before "
+					+ "today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the \"My "
+					+ "tasks\" quick view. resolutions (deprecated, removed with resolutions): the same task data in the "
+					+ "legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.")
 	DashboardDtos.MyDashboardResponse myDashboard() {
 		return service.myDashboard();
 	}

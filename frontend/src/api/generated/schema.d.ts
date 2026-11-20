@@ -743,7 +743,7 @@ export interface paths {
         put?: never;
         /**
          * Rebuild the whole search index
-         * @description Reads every active task, resolution, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.
+         * @description Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction (resolutions are no longer indexed; their count is always 0). Audited. Needs settings.manage.
          */
         post: operations["reindex"];
         delete?: never;
@@ -1802,7 +1802,7 @@ export interface paths {
         };
         /**
          * Search everything the caller may see, grouped by type
-         * @description Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups.
+         * @description Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks. The resolutions group is deprecated and always empty (resolutions became subtasks).
          */
         get: operations["search"];
         put?: never;
@@ -2021,6 +2021,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Active tasks of a member (paginated; earliest deadline first, no deadline last)
+         * @description Tasks and subtasks the member is an active assignee of whose status is neither in the DONE nor in the CANCELED category; archived tasks are excluded. The order is fixed (sort is not accepted). overdue = deadline before today in Europe/Kyiv. 404 for an unknown member.
+         */
+        get: operations["list_12"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/members/{id}/tasks/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Task counters of a member
+         * @description active (status neither DONE nor CANCELED category), overdue (active, deadline before today in Europe/Kyiv) and done (DONE category) over the non-archived tasks and subtasks the member is an active assignee of. 404 for an unknown member.
+         */
+        get: operations["counts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{id}/resolutions": {
         parameters: {
             query?: never;
@@ -2032,7 +2072,7 @@ export interface paths {
          * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
          * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
          */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2052,7 +2092,7 @@ export interface paths {
          * Counters of the resolutions a member executes
          * @description active (NEW, IN_PROGRESS, SUBMITTED, REWORK), overdue (due date passed in Europe/Kyiv, state not ACCEPTED/CANCELED) and accepted; archived resolutions are not counted.
          */
-        get: operations["counts"];
+        get: operations["counts_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2106,8 +2146,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * My resolutions mini-dashboard
-         * @description Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.
+         * My tasks mini-dashboard (My metrics)
+         * @description Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the "My tasks" quick view. resolutions (deprecated, removed with resolutions): the same task data in the legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.
          */
         get: operations["myDashboard"];
         put?: never;
@@ -2146,7 +2186,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3031,7 +3071,10 @@ export interface components {
         ReindexResponse: {
             /** Format: int32 */
             tasks?: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @deprecated
+             */
             resolutions?: number;
             /** Format: int32 */
             articles?: number;
@@ -3390,6 +3433,7 @@ export interface components {
         SearchResponse: {
             query: string;
             tasks: components["schemas"]["SearchGroup"];
+            /** @deprecated */
             resolutions: components["schemas"]["SearchGroup"];
             articles: components["schemas"]["SearchGroup"];
             people: components["schemas"]["SearchGroup"];
@@ -3537,6 +3581,43 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
+        MemberTaskResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** Format: uuid */
+            spaceId: string;
+            title: string;
+            /** Format: uuid */
+            statusId: string;
+            statusName: string;
+            statusCategory?: string;
+            /** Format: date */
+            deadline?: string;
+            overdue?: boolean;
+        };
+        PageResponseMemberTaskResponse: {
+            content?: components["schemas"]["MemberTaskResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            first?: boolean;
+            last?: boolean;
+        };
+        MemberTaskCountsResponse: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            overdue?: number;
+            /** Format: int64 */
+            done?: number;
+        };
         MemberResolutionResponse: {
             /** Format: uuid */
             id?: string;
@@ -3607,8 +3688,11 @@ export interface components {
             last?: boolean;
         };
         MyDashboardResponse: {
+            /** @deprecated */
             resolutions?: components["schemas"]["MyResolutions"];
+            tasks: components["schemas"]["MyTasks"];
         };
+        /** @deprecated */
         MyResolutions: {
             /** Format: int64 */
             active?: number;
@@ -3618,6 +3702,14 @@ export interface components {
             awaitingAcceptance?: number;
             upcoming?: components["schemas"]["UpcomingResolution"][];
         };
+        MyTasks: {
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            overdue?: number;
+            upcoming: components["schemas"]["UpcomingTask"][];
+        };
+        /** @deprecated */
         UpcomingResolution: {
             /** Format: uuid */
             resolutionId?: string;
@@ -3627,6 +3719,22 @@ export interface components {
             /** Format: date */
             dueDate?: string;
             state?: string;
+            overdue?: boolean;
+        };
+        UpcomingTask: {
+            /** Format: uuid */
+            taskId: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** Format: uuid */
+            spaceId: string;
+            title: string;
+            /** Format: uuid */
+            statusId: string;
+            statusName: string;
+            statusCategory?: string;
+            /** Format: date */
+            deadline: string;
             overdue?: boolean;
         };
         PageResponseCommentResponse: {
@@ -7017,6 +7125,54 @@ export interface operations {
                 page?: number;
                 size?: number;
                 sort?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseMemberTaskResponse"];
+                };
+            };
+        };
+    };
+    counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberTaskCountsResponse"];
+                };
+            };
+        };
+    };
+    list_13: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+                sort?: string;
                 role?: "EXECUTOR" | "AUTHOR";
                 active?: boolean;
                 state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
@@ -7040,7 +7196,7 @@ export interface operations {
             };
         };
     };
-    counts: {
+    counts_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7168,7 +7324,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: {
                 page?: number;

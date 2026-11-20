@@ -2418,7 +2418,7 @@
           "Search"
         ],
         "summary": "Rebuild the whole search index",
-        "description": "Reads every active task, resolution, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.",
+        "description": "Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction (resolutions are no longer indexed; their count is always 0). Audited. Needs settings.manage.",
         "operationId": "reindex",
         "responses": {
           "200": {
@@ -5013,7 +5013,7 @@
           "Search"
         ],
         "summary": "Search everything the caller may see, grouped by type",
-        "description": "Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups.",
+        "description": "Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks. The resolutions group is deprecated and always empty (resolutions became subtasks).",
         "operationId": "search",
         "parameters": [
           {
@@ -5532,6 +5532,101 @@
         }
       }
     },
+    "/api/v1/members/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Active tasks of a member (paginated; earliest deadline first, no deadline last)",
+        "description": "Tasks and subtasks the member is an active assignee of whose status is neither in the DONE nor in the CANCELED category; archived tasks are excluded. The order is fixed (sort is not accepted). overdue = deadline before today in Europe/Kyiv. 404 for an unknown member.",
+        "operationId": "list_12",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseMemberTaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/{id}/tasks/counts": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Task counters of a member",
+        "description": "active (status neither DONE nor CANCELED category), overdue (active, deadline before today in Europe/Kyiv) and done (DONE category) over the non-archived tasks and subtasks the member is an active assignee of. 404 for an unknown member.",
+        "operationId": "counts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberTaskCountsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/members/{id}/resolutions": {
       "get": {
         "tags": [
@@ -5539,7 +5634,7 @@
         ],
         "summary": "Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)",
         "description": "role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.",
-        "operationId": "list_12",
+        "operationId": "list_13",
         "parameters": [
           {
             "name": "id",
@@ -5640,7 +5735,7 @@
         ],
         "summary": "Counters of the resolutions a member executes",
         "description": "active (NEW, IN_PROGRESS, SUBMITTED, REWORK), overdue (due date passed in Europe/Kyiv, state not ACCEPTED/CANCELED) and accepted; archived resolutions are not counted.",
-        "operationId": "counts",
+        "operationId": "counts_1",
         "parameters": [
           {
             "name": "id",
@@ -5776,8 +5871,8 @@
         "tags": [
           "Dashboard"
         ],
-        "summary": "My resolutions mini-dashboard",
-        "description": "Only for the caller: active and overdue resolutions I execute, resolutions I issued that await my acceptance (SUBMITTED), and up to 5 upcoming resolutions I execute (earliest due date first). Counts equal the personal resolution lists. Needs dashboard.view.",
+        "summary": "My tasks mini-dashboard (My metrics)",
+        "description": "Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the \"My tasks\" quick view. resolutions (deprecated, removed with resolutions): the same task data in the legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.",
         "operationId": "myDashboard",
         "responses": {
           "200": {
@@ -5831,7 +5926,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_13",
+        "operationId": "list_14",
         "parameters": [
           {
             "name": "page",
@@ -8363,7 +8458,8 @@
           },
           "resolutions": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "deprecated": true
           },
           "articles": {
             "type": "integer",
@@ -9388,7 +9484,8 @@
             "$ref": "#/components/schemas/SearchGroup"
           },
           "resolutions": {
-            "$ref": "#/components/schemas/SearchGroup"
+            "$ref": "#/components/schemas/SearchGroup",
+            "deprecated": true
           },
           "articles": {
             "$ref": "#/components/schemas/SearchGroup"
@@ -9787,6 +9884,100 @@
           }
         }
       },
+      "MemberTaskResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "statusCategory": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          },
+          "overdue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "spaceId",
+          "statusId",
+          "statusName",
+          "title"
+        ]
+      },
+      "PageResponseMemberTaskResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberTaskResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberTaskCountsResponse": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "overdue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "done": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MemberResolutionResponse": {
         "type": "object",
         "properties": {
@@ -9968,12 +10159,20 @@
         "type": "object",
         "properties": {
           "resolutions": {
-            "$ref": "#/components/schemas/MyResolutions"
+            "$ref": "#/components/schemas/MyResolutions",
+            "deprecated": true
+          },
+          "tasks": {
+            "$ref": "#/components/schemas/MyTasks"
           }
-        }
+        },
+        "required": [
+          "tasks"
+        ]
       },
       "MyResolutions": {
         "type": "object",
+        "deprecated": true,
         "properties": {
           "active": {
             "type": "integer",
@@ -9995,8 +10194,31 @@
           }
         }
       },
+      "MyTasks": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "overdue": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpcomingTask"
+            }
+          }
+        },
+        "required": [
+          "upcoming"
+        ]
+      },
       "UpcomingResolution": {
         "type": "object",
+        "deprecated": true,
         "properties": {
           "resolutionId": {
             "type": "string",
@@ -10020,6 +10242,51 @@
             "type": "boolean"
           }
         }
+      },
+      "UpcomingTask": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "statusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statusName": {
+            "type": "string"
+          },
+          "statusCategory": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          },
+          "overdue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deadline",
+          "spaceId",
+          "statusId",
+          "statusName",
+          "taskId",
+          "title"
+        ]
       },
       "PageResponseCommentResponse": {
         "type": "object",
