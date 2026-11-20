@@ -33,6 +33,7 @@ import {
   type CreateTaskInput,
   type CustomFieldInput,
   type FilterCriteria,
+  type QuickView,
   type SpaceInput,
   type StatusInput,
   type SubtaskInput,
@@ -61,6 +62,18 @@ export function useSpaceDetails(ids: string[]) {
       const map = new Map<string, NonNullable<(typeof results)[number]['data']>>();
       for (const r of results) if (r.data) map.set(r.data.id, r.data);
       return map;
+    },
+  });
+}
+
+/** Like `useSpaceDetails`, plus whether any of them is still loading (a failed one counts as settled). */
+export function useSpaceDetailsState(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({ queryKey: [...SPACES_KEY, 'one', id], queryFn: () => getSpace(id) })),
+    combine: (results) => {
+      const details = new Map<string, NonNullable<(typeof results)[number]['data']>>();
+      for (const r of results) if (r.data) details.set(r.data.id, r.data);
+      return { details, pending: results.some((r) => r.isPending) };
     },
   });
 }
@@ -167,6 +180,43 @@ export function useBoardTasks(spaceId: string | undefined) {
         if (page + 1 >= res.totalPages) break;
       }
       return all;
+    },
+  });
+}
+
+/** Quick views behind the "My tasks" overview (spec UI-4): assignee of open tasks, and issued to others. */
+export type OverviewView = Extract<QuickView, 'MY_TASKS' | 'ISSUED_BY_ME'>;
+
+const OVERVIEW_PAGE_SIZE = 100;
+/** A personal overview rarely exceeds a few dozen tasks; beyond this the list says it is truncated. */
+export const OVERVIEW_MAX_PAGES = 5;
+
+export interface OverviewTasks {
+  items: TaskSummary[];
+  /** More tasks exist than were loaded (`OVERVIEW_MAX_PAGES` pages). */
+  truncated: boolean;
+}
+
+/** Every task of a personal quick view (evaluated by the backend for the caller), soonest deadline first. */
+export function useTaskOverview(view: OverviewView) {
+  return useQuery({
+    queryKey: [...TASKS_KEY, 'overview', view],
+    queryFn: async (): Promise<OverviewTasks> => {
+      const items: TaskSummary[] = [];
+      for (let page = 0; page < OVERVIEW_MAX_PAGES; page++) {
+        const res = await listTasks({
+          view,
+          labels: [],
+          includeArchived: false,
+          sortBy: 'deadline',
+          direction: 'asc',
+          page,
+          size: OVERVIEW_PAGE_SIZE,
+        });
+        items.push(...res.items);
+        if (page + 1 >= res.totalPages) return { items, truncated: false };
+      }
+      return { items, truncated: true };
     },
   });
 }

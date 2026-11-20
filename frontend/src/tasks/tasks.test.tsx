@@ -195,7 +195,7 @@ describe('task logic', () => {
 
 describe('TasksPage', () => {
   it('lists tasks as cards with the status name', async () => {
-    renderIn(<TasksPage />, authWith(['tasks.view']), '/tasks');
+    renderIn(<TasksPage />, authWith(['tasks.view']), '/tasks?section=all');
     expect(await screen.findByText('Фейкова задача')).toBeInTheDocument();
     expect(await screen.findByText(STATUS_TODO.name)).toBeInTheDocument();
     expect(screen.getAllByTestId('task-card')).toHaveLength(1);
@@ -212,7 +212,7 @@ describe('TasksPage', () => {
 
   it('keeps all filters inside a drawer and queries with them', async () => {
     const user = userEvent.setup();
-    renderIn(<TasksPage />, authWith(['tasks.view']));
+    renderIn(<TasksPage />, authWith(['tasks.view']), '/tasks?section=all');
     await screen.findByText('Фейкова задача');
     expect(screen.queryByLabelText('Дедлайн від')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Фільтри' }));

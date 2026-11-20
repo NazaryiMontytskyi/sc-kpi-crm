@@ -38,7 +38,7 @@ function renderPage() {
         <TasksPage />
       </CurrentUserProvider>
     </QueryClientProvider>,
-    '/tasks',
+    '/tasks?section=all',
   );
 }
 
@@ -79,11 +79,11 @@ describe('quick views and saved filters', () => {
     renderPage();
     await waitFor(() => expect(api.listTasks).toHaveBeenCalled());
     expect(lastQuery().view).toBeUndefined();
-    await user.click(screen.getByLabelText('Мої завдання'));
+    await user.click(screen.getByLabelText('Мої завдання', { selector: 'input' }));
     await waitFor(() => expect(lastQuery().view).toBe('MY_TASKS'));
-    await user.click(screen.getByLabelText('Прострочені'));
+    await user.click(screen.getByLabelText('Прострочені', { selector: 'input' }));
     await waitFor(() => expect(lastQuery().view).toBe('OVERDUE'));
-    await user.click(screen.getByLabelText('Прострочені'));
+    await user.click(screen.getByLabelText('Прострочені', { selector: 'input' }));
     await waitFor(() => expect(lastQuery().view).toBeUndefined());
   });
 
@@ -99,7 +99,7 @@ describe('quick views and saved filters', () => {
     const user = userEvent.setup();
     vi.mocked(api.createSavedFilter).mockResolvedValue({ id: 'f2', name: 'Мій', criteria: { labels: [], view: 'ISSUED_BY_ME' } });
     renderPage();
-    await user.click(await screen.findByLabelText('Видані мною'));
+    await user.click(await screen.findByLabelText('Видані мною', { selector: 'input' }));
     await waitFor(() => expect(lastQuery().view).toBe('ISSUED_BY_ME'));
     await user.click(screen.getByRole('button', { name: /Збережені фільтри/ }));
     await user.click(await screen.findByRole('menuitem', { name: /Зберегти поточний фільтр/ }));

@@ -239,6 +239,7 @@ describe('panel logic', () => {
   it('keeps only the tracker params when opening or closing a task', () => {
     expect(trackerSearch('?layout=board&space=sp1&tab=resolutions')).toBe('?layout=board&space=sp1');
     expect(trackerSearch('?tab=comments')).toBe('');
+    expect(trackerSearch('?section=issued&tab=comments')).toBe('?section=issued');
     expect(trackerSearch('')).toBe('');
   });
 
@@ -290,10 +291,10 @@ describe('panel logic', () => {
 describe('master/detail at >= 1024 px', () => {
   it('opens the side panel in place on /tasks/:id with every field, in one task request', async () => {
     const user = userEvent.setup();
-    renderTracker('/tasks');
+    renderTracker('/tasks?section=all');
     await user.click(await screen.findByRole('link', { name: 'Фейкова задача' }));
 
-    expect(location()).toBe('/tasks/t1');
+    expect(location()).toBe('/tasks/t1?section=all');
     const panel = await screen.findByRole('region', { name: 'Фейкова задача' });
     expect(panel).toHaveAttribute('data-variant', 'side');
     // The list stays on screen next to the panel and marks the open task.
@@ -325,29 +326,29 @@ describe('master/detail at >= 1024 px', () => {
 
   it('moves focus to the panel heading and back to the card link on close', async () => {
     const user = userEvent.setup();
-    renderTracker('/tasks');
+    renderTracker('/tasks?section=all');
     await user.click(await screen.findByRole('link', { name: 'Фейкова задача' }));
     const panel = await screen.findByRole('region', { name: 'Фейкова задача' });
     await waitFor(() => expect(within(panel).getByRole('heading', { level: 2, name: 'Фейкова задача' })).toHaveFocus());
 
     await user.click(within(panel).getByRole('button', { name: 'Закрити панель задачі' }));
     await waitFor(() => expect(screen.queryByTestId('task-panel')).toBeNull());
-    expect(location()).toBe('/tasks');
+    expect(location()).toBe('/tasks?section=all');
     await waitFor(() => expect(cardLink('Фейкова задача')).toHaveFocus());
   });
 
   it('switches tasks in place and the browser back closes the panel instead of walking through tasks', async () => {
     const user = userEvent.setup();
-    renderTracker('/tasks');
+    renderTracker('/tasks?section=all');
     await user.click(await screen.findByRole('link', { name: 'Фейкова задача' }));
     await screen.findByRole('region', { name: 'Фейкова задача' });
     await user.click(cardLink('Друга фейкова задача'));
     await screen.findByRole('region', { name: 'Друга фейкова задача' });
-    expect(location()).toBe('/tasks/t2');
+    expect(location()).toBe('/tasks/t2?section=all');
 
     await user.click(screen.getByTestId('history-back'));
     await waitFor(() => expect(screen.queryByTestId('task-panel')).toBeNull());
-    expect(location()).toBe('/tasks');
+    expect(location()).toBe('/tasks?section=all');
   });
 
   it('opens a deep link on a cold load and closes to the plain tracker', async () => {
@@ -421,7 +422,7 @@ describe('panel presentation below 1024 px', () => {
   it('opens a full-screen sheet at 375 px with a back control, a focus trap and focus return', async () => {
     setViewport(375);
     const user = userEvent.setup();
-    renderTracker('/tasks');
+    renderTracker('/tasks?section=all');
     await user.click(await screen.findByRole('link', { name: 'Фейкова задача' }));
 
     const dialog = await screen.findByRole('dialog');
@@ -433,20 +434,20 @@ describe('panel presentation below 1024 px', () => {
 
     await user.click(back);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(location()).toBe('/tasks');
+    expect(location()).toBe('/tasks?section=all');
     await waitFor(() => expect(cardLink('Фейкова задача')).toHaveFocus());
   });
 
   it('closes the sheet with Escape', async () => {
     setViewport(375);
     const user = userEvent.setup();
-    renderTracker('/tasks');
+    renderTracker('/tasks?section=all');
     await user.click(await screen.findByRole('link', { name: 'Фейкова задача' }));
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(location()).toBe('/tasks');
+    expect(location()).toBe('/tasks?section=all');
   });
 
   /** Inline transition durations Mantine writes on the drawer while it animates. */

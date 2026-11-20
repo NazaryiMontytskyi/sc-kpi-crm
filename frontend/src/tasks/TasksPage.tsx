@@ -1,30 +1,30 @@
-import { Alert, Anchor, Badge, Box, Button, Card, Group, Loader, Pagination, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Box, Button, Group, Loader, Pagination, Select, Stack, Tabs, Text, Title } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePermission } from '../auth/CurrentUser';
 import { usePageTitle } from '../layout/pageTitle';
-import { formatDate } from '../members/memberFormat';
 import { TaskBoard } from './BoardPage';
+import { MyTasksOverview } from './MyTasksOverview';
 import { QuickViews } from './QuickViews';
+import { TaskCard } from './TaskCard';
 import { TaskFiltersDrawer } from './TaskFiltersDrawer';
 import { TaskFormModal } from './TaskFormModal';
 import {
   activeFilterCount,
   DEFAULT_QUERY,
-  isOpenAndOverdue,
   PANEL_DESKTOP_QUERY,
-  priorityColor,
-  SELECTED_CARD_STYLE,
   TASKS_ARCHIVE,
   TASKS_CREATE,
   taskErrorKey,
-  todayKyiv,
   trackerSearch,
+  trackerSection,
+  TRACKER_SECTIONS,
+  type TrackerSection,
 } from './taskLogic';
-import type { Space, SortDirection, TaskQuery, TaskSortField, TaskSummary } from './tasksApi';
-import { useSelectedTaskId, useTaskLink } from './trackerNav';
+import type { SortDirection, TaskQuery, TaskSortField } from './tasksApi';
+import { useSelectedTaskId } from './trackerNav';
 import { useSpaceDetails, useSpaces, useTaskList } from './useTasks';
 
 const SORTS: { value: `${TaskSortField}:${SortDirection}`; key: string }[] = [
@@ -38,69 +38,6 @@ const SORTS: { value: `${TaskSortField}:${SortDirection}`; key: string }[] = [
 ];
 
 const TOUCH = 44;
-
-export function TaskCard({ task, space, selected = false }: { task: TaskSummary; space: Space | undefined; selected?: boolean }) {
-  const { t } = useTranslation();
-  const linkTo = useTaskLink();
-  const status = space?.statuses.find((s) => s.id === task.statusId);
-  const overdue = isOpenAndOverdue(task, todayKyiv(), status?.category);
-  return (
-    <Card withBorder padding="sm" component="article" data-testid="task-card" style={selected ? SELECTED_CARD_STYLE : undefined}>
-      <Stack gap={6}>
-        <Anchor
-          component={Link}
-          {...linkTo(task.id)}
-          data-task-link={task.id}
-          aria-current={selected ? 'true' : undefined}
-          fw={600}
-          style={{ overflowWrap: 'anywhere', display: 'inline-block', minHeight: TOUCH, paddingBlock: 10 }}
-        >
-          {task.title}
-        </Anchor>
-        <Group gap={6} wrap="wrap">
-          {status && (
-            <Badge variant="light" color="gray" size="sm">
-              {status.name}
-            </Badge>
-          )}
-          <Badge variant="light" color={priorityColor(task.priority)} size="sm">
-            {t(`tasks.priority.${task.priority}`)}
-          </Badge>
-          {task.parentId && (
-            <Badge variant="outline" color="gray" size="sm">
-              {t('tasks.panel.subtaskBadge')}
-            </Badge>
-          )}
-          {task.archived && (
-            <Badge variant="outline" color="gray" size="sm">
-              {t('tasks.archivedBadge')}
-            </Badge>
-          )}
-          {space && (
-            <Text size="xs" c="dimmed">
-              {space.name}
-            </Text>
-          )}
-        </Group>
-        {task.deadline && (
-          <Text size="sm" c={overdue ? 'red' : 'dimmed'}>
-            {t('tasks.due', { date: formatDate(task.deadline) })}
-            {overdue ? ` · ${t('tasks.overdue')}` : ''}
-          </Text>
-        )}
-        {task.labels.length > 0 && (
-          <Group gap={4}>
-            {task.labels.map((l) => (
-              <Badge key={l} variant="outline" color="gray" size="xs" tt="none">
-                {l}
-              </Badge>
-            ))}
-          </Group>
-        )}
-      </Stack>
-    </Card>
-  );
-}
 
 interface ListProps {
   query: TaskQuery;
@@ -192,9 +129,10 @@ function useFocusReturn(selectedId: string | undefined, fallback: RefObject<HTML
 }
 
 /**
- * Master/detail tracker (spec UI-1): the list or the board on the left and the task panel of the nested route
- * `/tasks/:id` on the right (>= 1024 px) or over it (tablet overlay, phone sheet). The view (`layout=board`) and
- * the board's space live in the URL, so they survive opening and closing tasks.
+ * Master/detail tracker (spec UI-1): the sections "My tasks" (default, spec UI-4), "Issued by me" and "All tasks"
+ * or the board on the left, and the task panel of the nested route `/tasks/:id` on the right (>= 1024 px) or over it
+ * (tablet overlay, phone sheet). The section (`section`), the view (`layout=board`) and the board's space live in
+ * the URL, so they survive opening and closing tasks.
  */
 export function TasksPage() {
   const { t } = useTranslation();
@@ -203,6 +141,7 @@ export function TasksPage() {
   const [params] = useSearchParams();
   const board = params.get('layout') === 'board';
   const boardSpace = params.get('space') ?? undefined;
+  const section = trackerSection(params.get('section'));
   usePageTitle(board ? 'tasks.board.title' : 'nav.tasks');
   const canCreate = usePermission(TASKS_CREATE);
   const [query, setQuery] = useState<TaskQuery>({ ...DEFAULT_QUERY, spaceId: params.get('space') ?? undefined });
@@ -217,6 +156,17 @@ export function TasksPage() {
   const boardSearch = new URLSearchParams({ layout: 'board' });
   const spaceForBoard = boardSpace ?? query.spaceId;
   if (spaceForBoard) boardSearch.set('space', spaceForBoard);
+  // Leaving the board returns to the list of all tasks of the board's space.
+  const listSearch = new URLSearchParams({ section: 'all' });
+  if (boardSpace) listSearch.set('space', boardSpace);
+
+  const openSection = (next: TrackerSection) => {
+    const search = new URLSearchParams(trackerSearch(location.search));
+    if (next === 'my') search.delete('section');
+    else search.set('section', next);
+    const out = search.toString();
+    navigate({ pathname: location.pathname, search: out ? `?${out}` : '' });
+  };
 
   return (
     <Stack gap="md">
@@ -227,7 +177,7 @@ export function TasksPage() {
         {board ? (
           <Anchor
             component={Link}
-            to={{ pathname: location.pathname, search: boardSpace ? `?space=${boardSpace}` : '' }}
+            to={{ pathname: location.pathname, search: `?${listSearch.toString()}` }}
             onClick={() => boardSpace && setQuery({ ...query, spaceId: boardSpace, page: 0 })}
             size="sm"
             style={{ display: 'inline-block', minHeight: TOUCH, paddingBlock: 12 }}
@@ -269,7 +219,24 @@ export function TasksPage() {
           {board ? (
             <TaskBoard spaceId={boardSpace} selectedId={selectedId} />
           ) : (
-            <TaskListView query={query} onQueryChange={setQuery} selectedId={selectedId} />
+            <Tabs value={section} onChange={(v) => openSection(trackerSection(v))} keepMounted={false}>
+              <Tabs.List aria-label={t('tasks.sections.label')}>
+                {TRACKER_SECTIONS.map((s) => (
+                  <Tabs.Tab key={s} value={s} mih={TOUCH}>
+                    {t(`tasks.sections.${s}`)}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+              <Tabs.Panel value="my" pt="md">
+                <MyTasksOverview view="MY_TASKS" selectedId={selectedId} />
+              </Tabs.Panel>
+              <Tabs.Panel value="issued" pt="md">
+                <MyTasksOverview view="ISSUED_BY_ME" selectedId={selectedId} />
+              </Tabs.Panel>
+              <Tabs.Panel value="all" pt="md">
+                <TaskListView query={query} onQueryChange={setQuery} selectedId={selectedId} />
+              </Tabs.Panel>
+            </Tabs>
           )}
         </Box>
         <Outlet />

@@ -45,11 +45,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const seeded = await seedTask(admin, author);
 
       await signIn(page, author);
-      await page.goto('/tasks');
+      await page.goto('/tasks?section=all');
       await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', colorScheme);
       const link = page.getByTestId('task-list').getByRole('link', { name: seeded.title });
       await link.click();
-      await expect(page).toHaveURL(new RegExp(`/tasks/${seeded.taskId}$`));
+      await expect(page).toHaveURL(new RegExp(`/tasks/${seeded.taskId}\\?section=all$`));
 
       const mobile = info.project.name === 'mobile-375';
       const panel = mobile ? page.getByRole('dialog', { name: seeded.title }) : page.getByRole('region', { name: seeded.title });
@@ -84,7 +84,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       }
 
       await expect(page.getByTestId('task-panel')).toHaveCount(0);
-      await expect(page).toHaveURL(/\/tasks$/);
+      await expect(page).toHaveURL(/\/tasks\?section=all$/);
       await expect(link).toBeFocused();
       await noHorizontalScroll(page);
     });

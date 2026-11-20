@@ -1034,6 +1034,27 @@
       "ISSUED_BY_ME": "Issued by me",
       "OVERDUE": "Overdue"
     },
+    "sections": {
+      "label": "Task sections",
+      "my": "My tasks",
+      "issued": "Issued by me",
+      "all": "All tasks"
+    },
+    "overview": {
+      "groups": {
+        "OVERDUE": "Overdue",
+        "THIS_WEEK": "This week",
+        "LATER": "Later",
+        "NO_DEADLINE": "No deadline",
+        "CLOSED": "Closed"
+      },
+      "emptyMine": "You have no open tasks.",
+      "emptyIssued": "You have not issued tasks to others yet.",
+      "emptyGroup": "No tasks.",
+      "more": "More tasks: {{count}}",
+      "truncated": "Showing the first {{count}} tasks.",
+      "assignees": "Assignees: {{names}}"
+    },
     "savedFilters": {
       "menu": "Saved filters",
       "none": "No saved filters yet.",

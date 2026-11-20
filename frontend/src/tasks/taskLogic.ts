@@ -156,6 +156,86 @@ export function isOpenAndOverdue(
   return category !== 'DONE' && category !== 'CANCELED' && isOverdue(task, today);
 }
 
+// ---- "My tasks" overview (spec UI-4) -----------------------------------------------------------
+
+/** Deadline groups of the overview, in display order. */
+export const DEADLINE_GROUPS = ['OVERDUE', 'THIS_WEEK', 'LATER', 'NO_DEADLINE'] as const;
+export type DeadlineGroup = (typeof DEADLINE_GROUPS)[number];
+
+/** `YYYY-MM-DD` shifted by whole calendar days (pure date arithmetic, no time zone involved). */
+export function addDays(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * Last day (Sunday) of the calendar week containing `today`. Weeks run Monday to Sunday as in Ukraine
+ * [ASSUMPTION: "This week" means the rest of the current calendar week, today included].
+ */
+export function endOfWeek(today: string): string {
+  const [y, m, d] = today.split('-').map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday
+  return addDays(today, (7 - weekday) % 7);
+}
+
+/**
+ * Group of one deadline relative to `today` (a Europe/Kyiv calendar date, see `todayKyiv`): a deadline is due at the
+ * end of its day in Kyiv, so it is overdue only from the next Kyiv day on.
+ */
+export function deadlineGroup(deadline: string | null, today: string): DeadlineGroup {
+  if (!deadline) return 'NO_DEADLINE';
+  if (deadline < today) return 'OVERDUE';
+  return deadline <= endOfWeek(today) ? 'THIS_WEEK' : 'LATER';
+}
+
+export interface TaskOverviewGroups<T> {
+  groups: Record<DeadlineGroup, T[]>;
+  /** Closed tasks (status category DONE/CANCELED); never overdue and kept apart from the deadline groups. */
+  closed: T[];
+  /** Open tasks in all deadline groups. */
+  openCount: number;
+}
+
+type GroupableTask = Pick<TaskSummary, 'id' | 'deadline' | 'title' | 'createdAt' | 'archived'>;
+
+const byDeadline = (a: GroupableTask, b: GroupableTask) =>
+  (a.deadline ?? '').localeCompare(b.deadline ?? '') || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+const newestFirst = (a: GroupableTask, b: GroupableTask) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id);
+
+/**
+ * Splits tasks into the overview groups (spec UI-4) using Europe/Kyiv day boundaries of `now`. Archived tasks are
+ * left out; closed ones go to `closed`. Dated groups are sorted by deadline (soonest first), the others newest first.
+ */
+export function groupTasksByDeadline<T extends GroupableTask>(
+  tasks: readonly T[],
+  now: Date,
+  isClosed: (task: T) => boolean = () => false,
+): TaskOverviewGroups<T> {
+  const today = todayKyiv(now);
+  const groups: Record<DeadlineGroup, T[]> = { OVERDUE: [], THIS_WEEK: [], LATER: [], NO_DEADLINE: [] };
+  const closed: T[] = [];
+  for (const task of tasks) {
+    if (task.archived) continue;
+    if (isClosed(task)) closed.push(task);
+    else groups[deadlineGroup(task.deadline, today)].push(task);
+  }
+  groups.OVERDUE.sort(byDeadline);
+  groups.THIS_WEEK.sort(byDeadline);
+  groups.LATER.sort(byDeadline);
+  groups.NO_DEADLINE.sort(newestFirst);
+  closed.sort(newestFirst);
+  const openCount = DEADLINE_GROUPS.reduce((n, g) => n + groups[g].length, 0);
+  return { groups, closed, openCount };
+}
+
+/** Sections of `/tasks` (search param `section`); "My tasks" is the default and has no param. */
+export const TRACKER_SECTIONS = ['my', 'issued', 'all'] as const;
+export type TrackerSection = (typeof TRACKER_SECTIONS)[number];
+
+export function trackerSection(value: string | null): TrackerSection {
+  return (TRACKER_SECTIONS as readonly string[]).includes(value ?? '') ? (value as TrackerSection) : 'my';
+}
+
 // ---- master/detail panel ---------------------------------------------------------------------
 
 /** >= 1024 px: side panel next to the list. */
@@ -177,8 +257,11 @@ export function panelVariant(desktop: boolean, tablet: boolean): PanelVariant {
   return tablet ? 'overlay' : 'sheet';
 }
 
-/** Search params of the tracker itself (view mode and space) kept while tasks open and close; `tab` etc. are dropped. */
-export const TRACKER_PARAMS = ['layout', 'space'] as const;
+/**
+ * Search params of the tracker itself (section, view mode and space) kept while tasks open and close; `tab` etc. are
+ * dropped.
+ */
+export const TRACKER_PARAMS = ['section', 'layout', 'space'] as const;
 
 export function trackerSearch(search: string): string {
   const from = new URLSearchParams(search);

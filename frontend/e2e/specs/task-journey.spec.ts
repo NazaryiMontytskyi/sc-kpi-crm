@@ -39,14 +39,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       // Browse: the task is in the list.
       await signIn(page, author);
-      await page.goto('/tasks');
+      await page.goto('/tasks?section=all');
       await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', colorScheme);
       const link = page.getByTestId('task-list').getByRole('link', { name: title });
       await expect(link).toBeVisible();
 
       // Open: the panel shows the task in place.
       await link.click();
-      await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}$`));
+      await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}\\?section=all$`));
       const mobile = info.project.name === 'mobile-375';
       const panel = mobile ? page.getByRole('dialog', { name: title }) : page.getByRole('region', { name: title });
       await expect(panel).toBeVisible();
