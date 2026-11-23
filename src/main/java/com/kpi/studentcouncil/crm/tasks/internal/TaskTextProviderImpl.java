@@ -9,29 +9,23 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.kpi.studentcouncil.crm.tasks.ResolutionText;
 import com.kpi.studentcouncil.crm.tasks.TaskText;
 import com.kpi.studentcouncil.crm.tasks.TaskTextProvider;
 
 /**
  * Plain-text view of tasks for the search index: title, description, labels, active assignees and subtask titles.
- * The resolution methods are legacy (no longer called by the index since INC-080; removed in INC-081).
  */
 @Component
-@SuppressWarnings("removal")
 class TaskTextProviderImpl implements TaskTextProvider {
 
-	static final int MAX_TITLE = 120;
 	private static final int MAX_DEPTH = 64;
 
 	private final TaskRepository tasks;
 	private final TaskAssigneeRepository assignees;
-	private final ResolutionRepository resolutions;
 
-	TaskTextProviderImpl(TaskRepository tasks, TaskAssigneeRepository assignees, ResolutionRepository resolutions) {
+	TaskTextProviderImpl(TaskRepository tasks, TaskAssigneeRepository assignees) {
 		this.tasks = tasks;
 		this.assignees = assignees;
-		this.resolutions = resolutions;
 	}
 
 	@Override
@@ -62,37 +56,8 @@ class TaskTextProviderImpl implements TaskTextProvider {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Optional<ResolutionText> findResolution(UUID resolutionId) {
-		return resolutions.findById(resolutionId).map(r -> {
-			boolean taskArchived = tasks.findById(r.getTaskId()).map(Task::isArchived).orElse(true);
-			String note = r.getCompletionNote() == null ? "" : "\n" + r.getCompletionNote();
-			return new ResolutionText(r.getId(), r.getTaskId(), titleOf(r.getInstruction()),
-					r.getInstruction() + note, r.isArchived() || taskArchived);
-		});
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<UUID> findResolutionIdsOfTask(UUID taskId) {
-		return resolutions.findByTaskId(taskId).stream().map(Resolution::getId).toList();
-	}
-
-	@Override
-	@Transactional(readOnly = true)
 	public List<UUID> findActiveTaskIds() {
 		return tasks.findByArchivedAtIsNull().stream().map(Task::getId).toList();
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<UUID> findActiveResolutionIds() {
-		return resolutions.findByArchivedAtIsNull().stream().map(Resolution::getId).toList();
-	}
-
-	/** First non-blank line of the instruction, shortened to {@link #MAX_TITLE} characters. */
-	static String titleOf(String instruction) {
-		String first = instruction == null ? "" : instruction.strip().lines().findFirst().orElse("").strip();
-		return first.length() <= MAX_TITLE ? first : first.substring(0, MAX_TITLE - 1).stripTrailing() + "\u2026";
 	}
 
 	/** Text nodes of a TipTap document, one line per block; blank for null. */

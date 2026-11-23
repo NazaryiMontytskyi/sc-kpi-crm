@@ -8,7 +8,7 @@ import java.util.UUID;
  * of the change; it is persisted in that same transaction.
  *
  * @param action     what happened
- * @param entityType logical entity type, e.g. "Resolution"
+ * @param entityType logical entity type, e.g. "Task"
  * @param entityId   id of the entity, may be null (e.g. a failed sign-in)
  * @param before     state before the change (any JSON-serialisable object), may be null
  * @param after      state after the change (any JSON-serialisable object), may be null

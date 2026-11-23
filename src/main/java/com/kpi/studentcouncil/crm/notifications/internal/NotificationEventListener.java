@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import com.kpi.studentcouncil.crm.notifications.NotificationTarget;
 import com.kpi.studentcouncil.crm.notifications.NotificationType;
 import com.kpi.studentcouncil.crm.tasks.ActiveTaskQuery;
-import com.kpi.studentcouncil.crm.tasks.CommentTargetType;
 import com.kpi.studentcouncil.crm.tasks.TaskEvent;
 import com.kpi.studentcouncil.crm.tasks.UserMentioned;
 
@@ -20,10 +19,7 @@ import com.kpi.studentcouncil.crm.tasks.UserMentioned;
  * Turns domain events of {@code tasks} into notifications. Runs in the publisher's transaction, so a rolled-back
  * change leaves no notification. Knows only the channel-agnostic {@link NotificationDispatcher} and reads assignees
  * through the public {@link ActiveTaskQuery}.
- *
- * <p>Resolution events ({@code ResolutionEvent}, {@code ChildResolutionAccepted}) are deliberately no longer handled:
- * resolutions are replaced by tasks with assignees and subtasks, and the {@code RESOLUTION_*} notification types are
- * deprecated and never emitted (NT-6).
+ * The deprecated {@code RESOLUTION_*} notification types are never emitted (NT-6).
  */
 @Component
 class NotificationEventListener {
@@ -61,9 +57,8 @@ class NotificationEventListener {
 		payload.put("targetType", event.targetType().name());
 		payload.put("targetId", event.targetId().toString());
 		payload.put("actorId", String.valueOf(event.authorId()));
-		String type = event.targetType() == CommentTargetType.RESOLUTION ? "RESOLUTION" : TASK_TARGET;
 		dispatcher.dispatch(Set.of(event.userId()), event.authorId(), NotificationType.MENTION,
-				new NotificationTarget(type, event.targetId()), payload);
+				new NotificationTarget(event.targetType().name(), event.targetId()), payload);
 	}
 
 	/** The task the notification links to: the new subtask for {@code SUBTASK_ADDED}, else the task itself. */

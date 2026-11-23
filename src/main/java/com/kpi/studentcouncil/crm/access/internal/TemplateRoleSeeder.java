@@ -28,8 +28,8 @@ class TemplateRoleSeeder implements Seeder {
 	static final List<Permission> VIEW = List.of(MEMBERS_VIEW, ORG_VIEW, TASKS_VIEW, KB_VIEW, DASHBOARD_VIEW);
 
 	/**
-	 * Template roles in display order: name to description and permissions. Every role with resolutions.create also has
-	 * tasks.assign (ADR-0010); Advisor has neither.
+	 * Template roles in display order: name to description and permissions. Every role except Advisor holds
+	 * tasks.assign (ADR-0010).
 	 */
 	static final Map<String, Template> TEMPLATES = templates();
 
@@ -68,24 +68,21 @@ class TemplateRoleSeeder implements Seeder {
 		Map<String, Template> map = new LinkedHashMap<>();
 		map.put("Head", template("Голова / Head of the Council",
 				VIEW, MEMBERS_EDIT, ORG_MANAGE, POSITIONS_MANAGE, POSITIONS_APPOINT, ROLES_ASSIGN, TASKS_CREATE,
-				TASKS_EDIT_ANY, TASKS_ARCHIVE, TASKS_ASSIGN, SPACES_MANAGE, RESOLUTIONS_CREATE, RESOLUTIONS_REDIRECT,
-				KB_EDIT, KB_ARCHIVE, ONBOARDING_MANAGE, MEETINGS_MANAGE, POLLS_CREATE, VOTING_CAST, HANDOVER_PERFORM,
-				AUDIT_VIEW));
+				TASKS_EDIT_ANY, TASKS_ARCHIVE, TASKS_ASSIGN, SPACES_MANAGE, KB_EDIT, KB_ARCHIVE,
+				ONBOARDING_MANAGE, MEETINGS_MANAGE, POLLS_CREATE, VOTING_CAST, HANDOVER_PERFORM, AUDIT_VIEW));
 		map.put("Deputy Head", template("Заступник голови / Deputy Head",
 				VIEW, MEMBERS_EDIT, POSITIONS_APPOINT, TASKS_CREATE, TASKS_EDIT_ANY, TASKS_ARCHIVE, TASKS_ASSIGN,
-				SPACES_MANAGE, RESOLUTIONS_CREATE, RESOLUTIONS_REDIRECT, KB_EDIT, KB_ARCHIVE, ONBOARDING_MANAGE,
-				MEETINGS_MANAGE, POLLS_CREATE, VOTING_CAST));
+				SPACES_MANAGE, KB_EDIT, KB_ARCHIVE, ONBOARDING_MANAGE, MEETINGS_MANAGE, POLLS_CREATE, VOTING_CAST));
 		map.put("Head of Department", template("Керівник департаменту / Head of Department",
-				VIEW, TASKS_CREATE, TASKS_EDIT_ANY, TASKS_ARCHIVE, TASKS_ASSIGN, SPACES_MANAGE, RESOLUTIONS_CREATE,
-				RESOLUTIONS_REDIRECT, KB_EDIT, POLLS_CREATE, VOTING_CAST));
+				VIEW, TASKS_CREATE, TASKS_EDIT_ANY, TASKS_ARCHIVE, TASKS_ASSIGN, SPACES_MANAGE, KB_EDIT,
+				POLLS_CREATE, VOTING_CAST));
 		map.put("Head of Division", template("Керівник відділу / Head of Division",
-				VIEW, TASKS_CREATE, TASKS_EDIT_ANY, TASKS_ASSIGN, RESOLUTIONS_CREATE, RESOLUTIONS_REDIRECT, KB_EDIT));
+				VIEW, TASKS_CREATE, TASKS_EDIT_ANY, TASKS_ASSIGN, KB_EDIT));
 		map.put("Member", template("Член Студентської ради / Council member",
-				VIEW, TASKS_CREATE, TASKS_ASSIGN, RESOLUTIONS_CREATE, RESOLUTIONS_REDIRECT, KB_EDIT));
+				VIEW, TASKS_CREATE, TASKS_ASSIGN, KB_EDIT));
 		map.put("HR", template("HR-департамент / HR department",
 				VIEW, MEMBERS_CREATE, MEMBERS_EDIT, MEMBERS_ARCHIVE, MEMBERS_ACTIVITY_SET, POSITIONS_APPOINT,
-				ROLES_ASSIGN, ONBOARDING_MANAGE, TASKS_CREATE, TASKS_ASSIGN, RESOLUTIONS_CREATE, RESOLUTIONS_REDIRECT,
-				KB_EDIT));
+				ROLES_ASSIGN, ONBOARDING_MANAGE, TASKS_CREATE, TASKS_ASSIGN, KB_EDIT));
 		map.put("Advisor", template("Радник (перегляд і коментування) / Advisor (view and comment)", VIEW));
 		return map;
 	}

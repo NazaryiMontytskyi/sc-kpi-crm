@@ -61,9 +61,7 @@ class TaskController {
 					+ "(inclusive dates, compared with the deadline), assignee (an active assignee), creator, "
 					+ "overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never "
 					+ "archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created "
-					+ "it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). "
-					+ "Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState "
-					+ "match tasks having a non-archived resolution that satisfies all of them at once.")
+					+ "it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller).")
 	PageResponse<TaskSummaryResponse> list(@ParameterObject @Valid PageParams page, @RequestParam(required = false) UUID spaceId,
 			@RequestParam(required = false) UUID statusId, @RequestParam(required = false) List<String> labels,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deadlineFrom,
@@ -72,11 +70,9 @@ class TaskController {
 			@RequestParam(required = false) UUID assignee, @RequestParam(required = false) UUID creator,
 			@RequestParam(defaultValue = "false") boolean overdue,
 			@RequestParam(required = false) TaskQuickView view,
-			@RequestParam(required = false) UUID executorId, @RequestParam(required = false) UUID authorId,
-			@RequestParam(required = false) ResolutionState resolutionState,
 			@RequestParam(required = false) UUID parentId) {
 		TaskFilter filter = new TaskFilter(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived,
-				assignee, creator, overdue, view, executorId, authorId, resolutionState, parentId);
+				assignee, creator, overdue, view, parentId);
 		return PageResponse.of(service.list(filter, page.toPageable(SORTABLE, DEFAULT_SORT)),
 				TaskController::summary);
 	}
@@ -161,7 +157,7 @@ class TaskController {
 				t.getStatusId(), t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
 				t.getLabels().stream().sorted().toList(), t.getCustomFieldValues(), attachments,
 				view.relatedTaskIds().stream().sorted().toList(), t.getAuthorId(), t.isArchived(), t.getArchivedAt(),
-				view.suggestDone(), t.getVersion(), t.getCreatedAt(), t.getUpdatedAt(),
+				t.getVersion(), t.getCreatedAt(), t.getUpdatedAt(),
 				view.assignees().stream().map(TaskAssigneeController::response).toList(),
 				view.subtasks() == null ? List.of() : view.subtasks().stream().map(TaskController::summary).toList(),
 				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose(),
@@ -174,7 +170,7 @@ class TaskController {
 		return new TaskSummaryResponse(t.getId(), t.getSpaceId(), t.getParentTaskId(), t.getTitle(), t.getStatusId(),
 				t.getPriority(), t.getDeadline(), t.getIssuedAt(), t.getCreatorId(),
 				t.getLabels().stream().sorted().toList(), t.getAttachmentIds().size(), view.relatedTaskIds().size(),
-				t.getAuthorId(), t.isArchived(), t.getArchivedAt(), view.suggestDone(), t.getVersion(),
+				t.getAuthorId(), t.isArchived(), t.getArchivedAt(), t.getVersion(),
 				t.getCreatedAt(), t.getUpdatedAt(), view.assignees().stream().map(TaskAssignee::getUserId).toList(),
 				view.subtaskProgress().total(), view.subtaskProgress().open(), view.subtaskProgress().suggestClose());
 	}

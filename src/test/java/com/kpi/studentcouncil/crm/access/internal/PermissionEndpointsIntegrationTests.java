@@ -96,13 +96,13 @@ class PermissionEndpointsIntegrationTests {
 		MockHttpSession session = signIn(createUser("en"));
 
 		mvc.perform(get("/api/v1/permissions").session(session)).andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(8))).andExpect(jsonPath("$[0].code").value("members"))
+				.andExpect(jsonPath("$", hasSize(7))).andExpect(jsonPath("$[0].code").value("members"))
 				.andExpect(jsonPath("$[0].label").value("Members"))
 				.andExpect(jsonPath("$[0].permissions", hasSize(5)))
 				.andExpect(jsonPath("$[0].permissions[0].key").value("members.view"))
 				.andExpect(jsonPath("$[0].permissions[0].label").value("View members"))
 				.andExpect(jsonPath("$..permissions[*].key", hasSize(Permission.values().length)))
-				.andExpect(jsonPath("$[7].code").value("other"));
+				.andExpect(jsonPath("$[6].code").value("other"));
 	}
 
 	@Test

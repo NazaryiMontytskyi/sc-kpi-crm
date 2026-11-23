@@ -16,8 +16,8 @@ import com.kpi.studentcouncil.crm.shared.error.BusinessRuleException;
  * <li><b>Depth</b> ({@code [ASSUMPTION]} one level): a subtask cannot have subtasks.</li>
  * <li><b>Deadline bound</b> ({@code [ASSUMPTION]}): a subtask deadline must not be later than the parent deadline; a
  * parent without a deadline imposes no limit, and a subtask without a deadline is always within the bound. The rule
- * applies to <em>new edits</em> only: an edit that does not touch the deadline is never checked, so subtasks migrated
- * from resolutions (not clamped, INC-072) stay editable.</li>
+ * applies to <em>new edits</em> only: an edit that does not touch the deadline is never checked, so subtasks created
+ * by migration V28 (not clamped, INC-072) stay editable.</li>
  * <li><b>Moving the parent deadline</b>: rejected while it would leave a non-archived subtask with a later deadline,
  * naming those subtasks. A pre-existing violation (a migrated subtask that was already later than the previous
  * parent deadline) is tolerated when the parent deadline moves later, because that move does not make anything

@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -94,14 +93,6 @@ class SearchIntegrationTests {
 		if (space != null) {
 			List<UUID> spaceTasks = jdbc.queryForList("select id from task where space_id = ?", UUID.class, space);
 			everything.addAll(spaceTasks);
-			for (UUID t : spaceTasks) {
-				for (UUID id : jdbc.queryForList("select id from resolution where task_id = ?", UUID.class, t)) {
-					everything.add(id);
-					jdbc.update("delete from resolution_history where resolution_id = ?", id);
-					jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
-				}
-				jdbc.update("delete from resolution where task_id = ?", t);
-			}
 			jdbc.update("delete from task_assignee where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task_label where task_id in (select id from task where space_id = ?)", space);
 			jdbc.update("delete from task where space_id = ?", space);
@@ -228,13 +219,6 @@ class SearchIntegrationTests {
 		return task;
 	}
 
-	private UUID resolution(String instruction) throws Exception {
-		UUID executor = user("ACTIVE");
-		return id(send(admin, "/tasks/" + task + "/resolutions", "{\"executorId\":\"" + executor
-				+ "\",\"instruction\":\"" + instruction + "\",\"dueDate\":\"" + LocalDate.now().plusDays(7) + "\"}")
-				.andExpect(status().isCreated()));
-	}
-
 	/** An active user with a member profile (obviously fake data). */
 	private UUID memberProfile(String lastName, String firstName) {
 		UUID faculty = UUID.randomUUID();
@@ -317,19 +301,16 @@ class SearchIntegrationTests {
 	}
 
 	@Test
-	void resolutionsAreNeitherIndexedNorReturned() throws Exception {
+	void theRetiredResolutionGroupAndTypeAreGone() throws Exception {
 		taskFixture();
 		task("Legacy " + RUN);
-		UUID resolution = resolution("Резолюція застаріла " + RUN);
 
-		search(admin, "резолюція застаріла " + RUN).andExpect(status().isOk())
-				.andExpect(jsonPath("$.resolutions.items", empty())).andExpect(jsonPath("$.resolutions.total").value(0));
-		mvc.perform(get("/api/v1/search").param("q", "застаріла " + RUN).param("types", "RESOLUTION").session(admin))
-				.andExpect(status().isOk()).andExpect(jsonPath("$.resolutions.items", empty()));
+		search(admin, "legacy " + RUN).andExpect(status().isOk()).andExpect(jsonPath("$.resolutions").doesNotExist())
+				.andExpect(jsonPath(ids("tasks"), hasItem(task.toString())));
+		mvc.perform(get("/api/v1/search").param("q", "legacy " + RUN).param("types", "RESOLUTION").session(admin))
+				.andExpect(status().isBadRequest());
 		assertThat(jdbc.queryForObject("select count(*) from search_document where entity_type = 'RESOLUTION'",
 				Long.class)).isZero();
-		assertThat(jdbc.queryForObject("select count(*) from search_document where entity_id = ?", Long.class,
-				resolution)).isZero();
 	}
 
 	@Test
@@ -366,8 +347,7 @@ class SearchIntegrationTests {
 		MockHttpSession kbOnly = sessionWith("kb.view");
 		MockHttpSession tasksOnly = sessionWith("tasks.view");
 
-		search(kbOnly, "perm " + RUN).andExpect(jsonPath("$.tasks.items", empty()))
-				.andExpect(jsonPath("$.resolutions.items", empty()));
+		search(kbOnly, "perm " + RUN).andExpect(jsonPath("$.tasks.items", empty()));
 		search(tasksOnly, "perm " + RUN).andExpect(jsonPath(ids("tasks"), hasItem(task.toString())))
 				.andExpect(jsonPath("$.people.items", empty()));
 	}
@@ -480,7 +460,7 @@ class SearchIntegrationTests {
 	}
 
 	@Test
-	void reindexWritesTasksWithAssigneeNamesAndSubtaskTitlesAndNoResolutions() throws Exception {
+	void reindexWritesTasksWithAssigneeNamesAndSubtaskTitles() throws Exception {
 		taskFixture();
 		UUID parent = task("Rebuilt " + RUN);
 		String lastName = "Реіндексенко" + unique();
@@ -491,11 +471,10 @@ class SearchIntegrationTests {
 		jdbc.update("insert into task (id, space_id, title, status_id, priority, created_at, updated_at, creator_id,"
 				+ " issued_at, parent_task_id) select ?, space_id, ?, status_id, 'NORMAL', now(), now(), creator_id, now(),"
 				+ " id from task where id = ?", UUID.randomUUID(), "Мігрована " + word, parent);
-		resolution("Резолюція до реіндексу " + RUN);
-		// a subtask written by plain SQL (as the resolution migration did) is not in the index yet
+		// a subtask written by plain SQL (as migration V28 did) is not in the index yet
 		search(admin, word).andExpect(jsonPath(ids("tasks"), empty()));
 
-		send(admin, "/search/reindex", "{}").andExpect(status().isOk()).andExpect(jsonPath("$.resolutions").value(0))
+		send(admin, "/search/reindex", "{}").andExpect(status().isOk()).andExpect(jsonPath("$.resolutions").doesNotExist())
 				.andExpect(jsonPath("$.tasks").isNumber());
 
 		search(admin, word).andExpect(jsonPath(ids("tasks"), hasItem(parent.toString())));

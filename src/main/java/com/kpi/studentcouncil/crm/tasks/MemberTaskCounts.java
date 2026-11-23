@@ -3,8 +3,7 @@ package com.kpi.studentcouncil.crm.tasks;
 import java.util.UUID;
 
 /**
- * Public API of the {@code tasks} module: simple task counters of a person for the member profile (RR-5). Successor
- * of {@code MemberResolutionCounts}. Counts cover non-archived tasks (subtasks included) the person is an active
+ * Public API of the {@code tasks} module: simple task counters of a person for the member profile (RR-5). Counts cover non-archived tasks (subtasks included) the person is an active
  * assignee of.
  */
 public interface MemberTaskCounts {

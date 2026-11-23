@@ -27,7 +27,7 @@ import com.kpi.studentcouncil.crm.tasks.PersonalTaskSummary;
 /**
  * Tasks of a member for the profile (RR-5): counters and the list of active tasks the member is an active assignee
  * of. Read through the public {@code tasks} APIs only. Member id equals user id. Reads need {@code tasks.view}
- * (openness by default): any such user sees any member's tasks. Successor of the resolution section of the profile.
+ * (openness by default): any such user sees any member's tasks.
  */
 @ApiV1
 @RequestMapping("/members/{id}/tasks")

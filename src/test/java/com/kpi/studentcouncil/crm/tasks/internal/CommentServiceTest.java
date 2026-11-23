@@ -124,7 +124,9 @@ class CommentServiceTest {
 
 	@Test
 	void aTargetTypeWithoutAnImplementationIsRejected() {
-		assertThatThrownBy(() -> service.create(CommentTargetType.RESOLUTION, UUID.randomUUID(), body(), null, null))
+		CommentService withoutTargets = new CommentService(comments, List.of(), files, users, access, policy, audit,
+				actors, events, Clock.systemUTC());
+		assertThatThrownBy(() -> withoutTargets.create(CommentTargetType.TASK, UUID.randomUUID(), body(), null, null))
 				.isInstanceOfSatisfying(DomainException.class,
 						e -> assertThat(e.getCode()).isEqualTo("COMMENT_TARGET_UNSUPPORTED"));
 	}

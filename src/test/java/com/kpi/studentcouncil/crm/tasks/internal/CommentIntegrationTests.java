@@ -375,9 +375,9 @@ class CommentIntegrationTests {
 	void targetsAreValidated() throws Exception {
 		UUID task = task();
 		send(admin, "/comments", create(UUID.randomUUID(), doc("x"), new UUID[0])).andExpect(status().isNotFound());
+		// the retired RESOLUTION target type is no longer a valid value
 		send(admin, "/comments", "{\"targetType\":\"RESOLUTION\",\"targetId\":\"" + UUID.randomUUID()
-				+ "\",\"body\":" + doc("x") + "}").andExpect(status().isUnprocessableContent())
-				.andExpect(jsonPath("$.code").value("COMMENT_TARGET_UNSUPPORTED"));
+				+ "\",\"body\":" + doc("x") + "}").andExpect(status().isBadRequest());
 		send(admin, "/comments", "{\"targetType\":\"PLANET\",\"targetId\":\"" + task + "\",\"body\":" + doc("x") + "}")
 				.andExpect(status().isBadRequest());
 		send(admin, "/tasks/" + task + "/archive", "").andExpect(status().isOk());

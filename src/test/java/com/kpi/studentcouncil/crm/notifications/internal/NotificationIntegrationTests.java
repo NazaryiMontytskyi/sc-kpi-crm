@@ -38,7 +38,7 @@ import com.kpi.studentcouncil.crm.access.AccessService;
 
 /**
  * Notifications created by real task, assignee, subtask and comment flows (NT-6, NT-7, spec §8 Q5), the absence of
- * resolution notifications (NT-6), and the inbox API.
+ * the retired resolution notifications (NT-6), legacy ones still rendering, and the inbox API.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -101,13 +101,6 @@ class NotificationIntegrationTests {
 		jdbc.update("delete from comment_mention where comment_id in (select id from comment where target_id in "
 				+ inSpace + ")", space);
 		jdbc.update("delete from comment where target_id in " + inSpace, space);
-		List<UUID> ids = jdbc.queryForList("select id from resolution where task_id in " + inSpace, UUID.class, space);
-		for (UUID id : ids) {
-			jdbc.update("delete from resolution_history where resolution_id = ?", id);
-			jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
-		}
-		jdbc.update("update resolution set parent_resolution_id = null where task_id in " + inSpace, space);
-		jdbc.update("delete from resolution where task_id in " + inSpace, space);
 		jdbc.update("delete from task_assignee where task_id in " + inSpace, space);
 		jdbc.update("delete from task_label where task_id in " + inSpace, space);
 		jdbc.update("delete from task where space_id = ? and parent_task_id is not null", space);
@@ -153,7 +146,7 @@ class NotificationIntegrationTests {
 	}
 
 	private Account member() throws Exception {
-		return account("tasks.view", "tasks.create", "tasks.assign", "resolutions.create", "resolutions.redirect");
+		return account("tasks.view", "tasks.create", "tasks.assign");
 	}
 
 	private ResultActions send(Account who, String path, String json) throws Exception {
@@ -286,13 +279,13 @@ class NotificationIntegrationTests {
 	}
 
 	@Test
-	void resolutionFlowsNoLongerEmitResolutionNotifications() throws Exception {
+	void theRetiredResolutionEndpointIsGoneAndEmitsNothing() throws Exception {
 		Account author = member();
 		Account executor = member();
 		task(author);
 		send(author, "/tasks/" + task + "/resolutions", "{\"executorId\":\"" + executor.id()
 				+ "\",\"coExecutorIds\":[],\"instruction\":\"Do it\",\"dueDate\":\"" + LocalDate.now().plusDays(7)
-				+ "\"}").andExpect(status().isCreated());
+				+ "\"}").andExpect(status().isNotFound());
 
 		assertThat(count(executor)).isZero();
 		assertThat(count(author)).isZero();

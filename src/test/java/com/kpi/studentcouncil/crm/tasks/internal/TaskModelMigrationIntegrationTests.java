@@ -33,7 +33,7 @@ import com.kpi.studentcouncil.crm.access.AccessService;
 import com.kpi.studentcouncil.crmtest.SharedAdmin;
 
 /**
- * INC-071 migrations (V25 task model, V26 tasks.assign grant) on a dedicated database of the shared container: once on
+ * INC-071 migrations (V25 task model, V26 tasks.assign grant; V31 later drops the retired keys) on a dedicated database of the shared container: once on
  * an empty database and once on a database stopped at V24 and filled with fake V24-era rows. The application database
  * is never touched, so the data shapes of the other tests do not matter here.
  */
@@ -138,6 +138,16 @@ class TaskModelMigrationIntegrationTests {
 		UUID redirectOnly = role(jdbc, "Fake redirect only", false, "resolutions.redirect");
 		long permissionRowsBefore = jdbc.queryForObject("select count(*) from role_permission", Long.class);
 
+		// spec 9.10 at V26: tasks.assign for every role that held resolutions.create, nobody else; old keys kept
+		flyway(ds, "26").migrate();
+		assertThat(keys(jdbc, head)).contains("tasks.assign", "resolutions.create", "resolutions.redirect");
+		assertThat(keys(jdbc, member)).contains("tasks.assign", "resolutions.create");
+		assertThat(keys(jdbc, archived)).contains("tasks.assign");
+		assertThat(keys(jdbc, advisor)).doesNotContain("tasks.assign");
+		assertThat(keys(jdbc, redirectOnly)).doesNotContain("tasks.assign");
+		assertThat(jdbc.queryForObject("select count(*) from role_permission", Long.class))
+				.isEqualTo(permissionRowsBefore + 3);
+
 		flyway(ds, null).migrate();
 
 		// TM-1/TM-2: deadline preserved, creator and issue date backfilled, version starts at 0, no parent
@@ -159,14 +169,14 @@ class TaskModelMigrationIntegrationTests {
 		assertThat(jdbc.queryForObject("select due_date from resolution where id = ?", Date.class, resolution)
 				.toLocalDate()).isEqualTo(LocalDate.of(2026, 5, 20));
 
-		// spec 9.10: tasks.assign for every role that held resolutions.create, nobody else; old keys stay for now
-		assertThat(keys(jdbc, head)).contains("tasks.assign", "resolutions.create", "resolutions.redirect");
-		assertThat(keys(jdbc, member)).contains("tasks.assign", "resolutions.create");
-		assertThat(keys(jdbc, archived)).contains("tasks.assign");
-		assertThat(keys(jdbc, advisor)).doesNotContain("tasks.assign");
-		assertThat(keys(jdbc, redirectOnly)).doesNotContain("tasks.assign");
+		// after V31 the grant stays and the five rows of the retired keys are gone (RR-3)
+		assertThat(keys(jdbc, head)).containsExactlyInAnyOrder("tasks.view", "tasks.assign");
+		assertThat(keys(jdbc, member)).containsExactlyInAnyOrder("tasks.view", "tasks.create", "tasks.assign");
+		assertThat(keys(jdbc, archived)).containsExactly("tasks.assign");
+		assertThat(keys(jdbc, advisor)).containsExactlyInAnyOrder("tasks.view", "kb.view");
+		assertThat(keys(jdbc, redirectOnly)).isEmpty();
 		assertThat(jdbc.queryForObject("select count(*) from role_permission", Long.class))
-				.isEqualTo(permissionRowsBefore + 3);
+				.isEqualTo(permissionRowsBefore + 3 - 5);
 
 		// indexes of the new model (spec 7)
 		assertThat(indexes(jdbc, "task")).contains("ix_task_parent", "ix_task_deadline", "ix_task_creator");

@@ -1,7 +1,6 @@
 package com.kpi.studentcouncil.crm.tasks;
 
-/** The kinds of record that can be commented. {@code RESOLUTION} is accepted by the model before resolutions exist. */
+/** The kinds of record that can be commented; each needs a {@link CommentTarget} bean. */
 public enum CommentTargetType {
-	TASK,
-	RESOLUTION
+	TASK
 }

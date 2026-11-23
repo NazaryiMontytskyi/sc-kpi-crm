@@ -406,7 +406,7 @@ export interface paths {
         };
         /**
          * Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)
-         * @description Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.
+         * @description Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller).
          */
         get: operations["list"];
         put?: never;
@@ -415,27 +415,6 @@ export interface paths {
          * @description The status must belong to the space (default: its first TODO status); custom field values are validated by type against the space definition (422); attachments are ids of uploaded files; related tasks must exist and not be archived. The caller becomes the creator and issuedAt is the creation time.
          */
         post: operations["create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/{taskId}/resolutions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Resolutions of a task (paginated, sortable by createdAt, updatedAt, dueDate, state) */
-        get: operations["listByTask"];
-        put?: never;
-        /**
-         * Issue a resolution on a task
-         * @description The caller becomes the author; any executor is allowed (top-down, horizontal or bottom-up). Executor and co-executors must be ACTIVE users (422), the due date must not be in the past (422), 409 when the task is archived. A task may have several resolutions. Starts in NEW.
-         */
-        post: operations["issue"];
         delete?: never;
         options?: never;
         head?: never;
@@ -743,7 +722,7 @@ export interface paths {
         put?: never;
         /**
          * Rebuild the whole search index
-         * @description Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction (resolutions are no longer indexed; their count is always 0). Audited. Needs settings.manage.
+         * @description Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.
          */
         post: operations["reindex"];
         delete?: never;
@@ -790,143 +769,6 @@ export interface paths {
          * @description Allowed while assigned: holders lose its permissions. 403 for the Admin role.
          */
         post: operations["archive_2"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Executor submits the result (IN_PROGRESS to SUBMITTED)
-         * @description The completion note is mandatory (422). 403 RESOLUTION_NOT_EXECUTOR for anybody else.
-         */
-        post: operations["submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Executor accepts the resolution into work (NEW to IN_PROGRESS)
-         * @description 403 RESOLUTION_NOT_EXECUTOR for anybody else, 422 RESOLUTION_TRANSITION_NOT_ALLOWED.
-         */
-        post: operations["start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/rework": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Author returns the result for rework (SUBMITTED to REWORK)
-         * @description The comment is mandatory (422). 403 RESOLUTION_NOT_AUTHOR for anybody else.
-         */
-        post: operations["rework"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/resume": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Executor resumes work after rework (REWORK to IN_PROGRESS) */
-        post: operations["resume"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/redirect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Executor redirects the resolution to a new executor (IN_PROGRESS to REDIRECTED)
-         * @description Creates exactly one child resolution (authored by the caller) and moves this one to REDIRECTED in one transaction. 403 RESOLUTION_NOT_EXECUTOR for anybody but the executor, 422 RESOLUTION_TRANSITION_NOT_ALLOWED unless IN_PROGRESS, 422 RESOLUTION_REDIRECT_TO_SELF, 422 RESOLUTION_REDIRECT_CYCLE for anybody already in the chain, 422 RESOLUTION_EXECUTOR_INVALID for a non-active executor. A due date later than the parent's is accepted; the response then carries the warning RESOLUTION_CHILD_DUE_AFTER_PARENT.
-         */
-        post: operations["redirect"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Author cancels the resolution (any non-final state to CANCELED)
-         * @description Non-final resolutions redirected from it are canceled with it, atomically. 403 RESOLUTION_NOT_AUTHOR for anybody else.
-         */
-        post: operations["cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Author accepts the result (SUBMITTED to ACCEPTED)
-         * @description 403 RESOLUTION_NOT_AUTHOR for anybody else.
-         */
-        post: operations["accept"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1095,7 +937,7 @@ export interface paths {
          * Add a person to a unit
          * @description 409 when the person already has an active membership in the unit or the unit is archived.
          */
-        post: operations["start_1"];
+        post: operations["start"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1802,66 +1644,9 @@ export interface paths {
         };
         /**
          * Search everything the caller may see, grouped by type
-         * @description Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks. The resolutions group is deprecated and always empty (resolutions became subtasks).
+         * @description Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks.
          */
         get: operations["search"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)
-         * @description Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.
-         */
-        get: operations["list_11"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a resolution with its full history */
-        get: operations["get_10"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/resolutions/{id}/chain": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * The redirect chain of a resolution as a tree rooted at the first resolution
-         * @description Works from any resolution of the chain; the root is returned with nested children.
-         */
-        get: operations["chain"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1935,7 +1720,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get one membership */
-        get: operations["get_11"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2032,7 +1817,7 @@ export interface paths {
          * Active tasks of a member (paginated; earliest deadline first, no deadline last)
          * @description Tasks and subtasks the member is an active assignee of whose status is neither in the DONE nor in the CANCELED category; archived tasks are excluded. The order is fixed (sort is not accepted). overdue = deadline before today in Europe/Kyiv. 404 for an unknown member.
          */
-        get: operations["list_12"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2053,46 +1838,6 @@ export interface paths {
          * @description active (status neither DONE nor CANCELED category), overdue (active, deadline before today in Europe/Kyiv) and done (DONE category) over the non-archived tasks and subtasks the member is an active assignee of. 404 for an unknown member.
          */
         get: operations["counts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/members/{id}/resolutions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)
-         * @description role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.
-         */
-        get: operations["list_13"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/members/{id}/resolutions/counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Counters of the resolutions a member executes
-         * @description active (NEW, IN_PROGRESS, SUBMITTED, REWORK), overdue (due date passed in Europe/Kyiv, state not ACCEPTED/CANCELED) and accepted; archived resolutions are not counted.
-         */
-        get: operations["counts_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2147,7 +1892,7 @@ export interface paths {
         };
         /**
          * My tasks mini-dashboard (My metrics)
-         * @description Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the "My tasks" quick view. resolutions (deprecated, removed with resolutions): the same task data in the legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.
+         * @description Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the "My tasks" quick view. Needs dashboard.view.
          */
         get: operations["myDashboard"];
         put?: never;
@@ -2186,7 +1931,7 @@ export interface paths {
          * Global audit log, newest first (paginated)
          * @description Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.
          */
-        get: operations["list_14"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2488,7 +2233,6 @@ export interface components {
             archived?: boolean;
             /** Format: date-time */
             archivedAt?: string;
-            suggestDone?: boolean;
             /** Format: int64 */
             version?: number;
             /** Format: date-time */
@@ -2532,7 +2276,6 @@ export interface components {
             archived?: boolean;
             /** Format: date-time */
             archivedAt?: string;
-            suggestDone?: boolean;
             /** Format: int64 */
             version?: number;
             /** Format: date-time */
@@ -2567,12 +2310,6 @@ export interface components {
             deadlineFrom?: string;
             /** Format: date */
             deadlineTo?: string;
-            /** Format: uuid */
-            executorId?: string;
-            /** Format: uuid */
-            authorId?: string;
-            /** @enum {string} */
-            resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
         };
         SavedFilterResponse: {
             /** Format: uuid */
@@ -2857,7 +2594,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            targetType?: "TASK" | "RESOLUTION";
+            targetType?: "TASK";
             /** Format: uuid */
             targetId?: string;
             /** Format: uuid */
@@ -2970,52 +2707,6 @@ export interface components {
             attachmentIds?: string[];
             relatedTaskIds?: string[];
         };
-        IssueResolutionRequest: {
-            /** Format: uuid */
-            executorId: string;
-            coExecutorIds?: string[];
-            instruction: string;
-            /** Format: date */
-            dueDate: string;
-        };
-        ResolutionHistoryResponse: {
-            /** Format: uuid */
-            actorId?: string;
-            /** @enum {string} */
-            from?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            /** @enum {string} */
-            to?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            comment?: string;
-            /** Format: date-time */
-            at?: string;
-            /** Format: uuid */
-            causedByResolutionId?: string;
-        };
-        ResolutionResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            taskId?: string;
-            /** Format: uuid */
-            authorId?: string;
-            /** Format: uuid */
-            executorId?: string;
-            coExecutorIds?: string[];
-            instruction?: string;
-            /** Format: date */
-            dueDate?: string;
-            /** Format: uuid */
-            parentResolutionId?: string;
-            /** @enum {string} */
-            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            overdue?: boolean;
-            completionNote?: string;
-            history?: components["schemas"]["ResolutionHistoryResponse"][];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
         CreateSubtaskRequest: {
             title: string;
             description?: {
@@ -3071,38 +2762,12 @@ export interface components {
         ReindexResponse: {
             /** Format: int32 */
             tasks?: number;
-            /**
-             * Format: int32
-             * @deprecated
-             */
-            resolutions?: number;
             /** Format: int32 */
             articles?: number;
             /** Format: int32 */
             people?: number;
             /** Format: int32 */
             orgUnits?: number;
-        };
-        SubmitResolutionRequest: {
-            completionNote: string;
-        };
-        ReworkResolutionRequest: {
-            comment: string;
-        };
-        RedirectResolutionRequest: {
-            /** Format: uuid */
-            executorId: string;
-            instruction: string;
-            /** Format: date */
-            dueDate: string;
-        };
-        RedirectResolutionResponse: {
-            child?: components["schemas"]["ResolutionResponse"];
-            parent?: components["schemas"]["ResolutionResponse"];
-            warnings?: string[];
-        };
-        CancelResolutionRequest: {
-            comment?: string;
         };
         AppointRequest: {
             /** Format: uuid */
@@ -3270,7 +2935,7 @@ export interface components {
         };
         CreateCommentRequest: {
             /** @enum {string} */
-            targetType: "TASK" | "RESOLUTION";
+            targetType: "TASK";
             /** Format: uuid */
             targetId: string;
             body: {
@@ -3339,42 +3004,6 @@ export interface components {
             first?: boolean;
             last?: boolean;
         };
-        PageResponseResolutionSummaryResponse: {
-            content?: components["schemas"]["ResolutionSummaryResponse"][];
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
-            first?: boolean;
-            last?: boolean;
-        };
-        ResolutionSummaryResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            taskId?: string;
-            /** Format: uuid */
-            authorId?: string;
-            /** Format: uuid */
-            executorId?: string;
-            coExecutorIds?: string[];
-            instruction?: string;
-            /** Format: date */
-            dueDate?: string;
-            /** Format: uuid */
-            parentResolutionId?: string;
-            /** @enum {string} */
-            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            overdue?: boolean;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
         PageResponseSavedFilterResponse: {
             content?: components["schemas"]["SavedFilterResponse"][];
             /** Format: int32 */
@@ -3433,8 +3062,6 @@ export interface components {
         SearchResponse: {
             query: string;
             tasks: components["schemas"]["SearchGroup"];
-            /** @deprecated */
-            resolutions: components["schemas"]["SearchGroup"];
             articles: components["schemas"]["SearchGroup"];
             people: components["schemas"]["SearchGroup"];
             orgUnits: components["schemas"]["SearchGroup"];
@@ -3451,30 +3078,6 @@ export interface components {
             totalPages?: number;
             first?: boolean;
             last?: boolean;
-        };
-        ResolutionChainNode: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            taskId?: string;
-            /** Format: uuid */
-            authorId?: string;
-            /** Format: uuid */
-            executorId?: string;
-            coExecutorIds?: string[];
-            instruction?: string;
-            /** Format: date */
-            dueDate?: string;
-            /** Format: uuid */
-            parentResolutionId?: string;
-            /** @enum {string} */
-            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            overdue?: boolean;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            children?: components["schemas"]["ResolutionChainNode"][];
         };
         PageResponseAppointmentResponse: {
             content?: components["schemas"]["AppointmentResponse"][];
@@ -3618,49 +3221,6 @@ export interface components {
             /** Format: int64 */
             done?: number;
         };
-        MemberResolutionResponse: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            taskId?: string;
-            taskTitle?: string;
-            /** Format: uuid */
-            authorId?: string;
-            /** Format: uuid */
-            executorId?: string;
-            coExecutorIds?: string[];
-            instruction?: string;
-            /** Format: date */
-            dueDate?: string;
-            /** @enum {string} */
-            state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            overdue?: boolean;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        PageResponseMemberResolutionResponse: {
-            content?: components["schemas"]["MemberResolutionResponse"][];
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
-            first?: boolean;
-            last?: boolean;
-        };
-        MemberResolutionCountsResponse: {
-            /** Format: int64 */
-            active?: number;
-            /** Format: int64 */
-            overdue?: number;
-            /** Format: int64 */
-            accepted?: number;
-        };
         PageResponseChangeResponse: {
             content?: components["schemas"]["ChangeResponse"][];
             /** Format: int32 */
@@ -3688,19 +3248,7 @@ export interface components {
             last?: boolean;
         };
         MyDashboardResponse: {
-            /** @deprecated */
-            resolutions?: components["schemas"]["MyResolutions"];
             tasks: components["schemas"]["MyTasks"];
-        };
-        /** @deprecated */
-        MyResolutions: {
-            /** Format: int64 */
-            active?: number;
-            /** Format: int64 */
-            overdue?: number;
-            /** Format: int64 */
-            awaitingAcceptance?: number;
-            upcoming?: components["schemas"]["UpcomingResolution"][];
         };
         MyTasks: {
             /** Format: int64 */
@@ -3708,18 +3256,6 @@ export interface components {
             /** Format: int64 */
             overdue?: number;
             upcoming: components["schemas"]["UpcomingTask"][];
-        };
-        /** @deprecated */
-        UpcomingResolution: {
-            /** Format: uuid */
-            resolutionId?: string;
-            /** Format: uuid */
-            taskId?: string;
-            taskTitle?: string;
-            /** Format: date */
-            dueDate?: string;
-            state?: string;
-            overdue?: boolean;
         };
         UpcomingTask: {
             /** Format: uuid */
@@ -4670,9 +4206,6 @@ export interface operations {
                 creator?: string;
                 overdue?: boolean;
                 view?: "MY_TASKS" | "ISSUED_BY_ME" | "OVERDUE";
-                executorId?: string;
-                authorId?: string;
-                resolutionState?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
                 parentId?: string;
             };
             header?: never;
@@ -4712,58 +4245,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TaskResponse"];
-                };
-            };
-        };
-    };
-    listByTask: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-                sort?: string;
-            };
-            header?: never;
-            path: {
-                taskId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PageResponseResolutionSummaryResponse"];
-                };
-            };
-        };
-    };
-    issue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                taskId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IssueResolutionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
                 };
             };
         };
@@ -5367,176 +4848,6 @@ export interface operations {
             };
         };
     };
-    submit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubmitResolutionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    start: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    rework: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReworkResolutionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    resume: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    redirect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RedirectResolutionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RedirectResolutionResponse"];
-                };
-            };
-        };
-    };
-    cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CancelResolutionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    accept: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
     restore_2: {
         parameters: {
             query?: never;
@@ -5786,7 +5097,7 @@ export interface operations {
             };
         };
     };
-    start_1: {
+    start: {
         parameters: {
             query?: never;
             header?: never;
@@ -6313,7 +5624,7 @@ export interface operations {
                 page?: number;
                 size?: number;
                 sort?: string;
-                targetType: "TASK" | "RESOLUTION";
+                targetType: "TASK";
                 targetId: string;
             };
             header?: never;
@@ -6851,7 +6162,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
-                types?: ("TASK" | "RESOLUTION" | "ARTICLE" | "PERSON" | "ORG_UNIT")[];
+                types?: ("TASK" | "ARTICLE" | "PERSON" | "ORG_UNIT")[];
                 limit?: number;
             };
             header?: never;
@@ -6867,79 +6178,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SearchResponse"];
-                };
-            };
-        };
-    };
-    list_11: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-                sort?: string;
-                taskId?: string;
-                executorId?: string;
-                authorId?: string;
-                state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-                mine?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PageResponseResolutionSummaryResponse"];
-                };
-            };
-        };
-    };
-    get_10: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionResponse"];
-                };
-            };
-        };
-    };
-    chain: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResolutionChainNode"];
                 };
             };
         };
@@ -7012,7 +6250,7 @@ export interface operations {
             };
         };
     };
-    get_11: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -7119,7 +6357,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_11: {
         parameters: {
             query?: {
                 page?: number;
@@ -7163,57 +6401,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MemberTaskCountsResponse"];
-                };
-            };
-        };
-    };
-    list_13: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-                sort?: string;
-                role?: "EXECUTOR" | "AUTHOR";
-                active?: boolean;
-                state?: "NEW" | "IN_PROGRESS" | "SUBMITTED" | "REWORK" | "ACCEPTED" | "REDIRECTED" | "CANCELED";
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PageResponseMemberResolutionResponse"];
-                };
-            };
-        };
-    };
-    counts_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MemberResolutionCountsResponse"];
                 };
             };
         };
@@ -7324,7 +6511,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_12: {
         parameters: {
             query?: {
                 page?: number;

@@ -38,7 +38,7 @@ import com.kpi.studentcouncil.crm.access.AccessService;
 
 /**
  * Built-in quick views ("My tasks", "Issued by me", "Overdue") and the assignee/creator/overdue/deadline filters of
- * the task list (INC-073), the legacy resolution filters, and saved filters.
+ * the task list (INC-073), and saved filters.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -104,12 +104,6 @@ class TaskQuickViewIntegrationTests {
 			jdbc.update("delete from task_saved_filter where owner_id = ?", user);
 		}
 		for (UUID task : tasks) {
-			List<UUID> ids = jdbc.queryForList("select id from resolution where task_id = ?", UUID.class, task);
-			for (UUID id : ids) {
-				jdbc.update("delete from resolution_history where resolution_id = ?", id);
-				jdbc.update("delete from resolution_co_executor where resolution_id = ?", id);
-			}
-			jdbc.update("delete from resolution where task_id = ?", task);
 			jdbc.update("delete from task_assignee where task_id = ?", task);
 			jdbc.update("delete from task_label where task_id = ?", task);
 			jdbc.update("delete from task where id = ?", task);
@@ -201,34 +195,6 @@ class TaskQuickViewIntegrationTests {
 		assign(t10, me.id(), false);
 	}
 
-	private UUID resolution(UUID task, UUID author, UUID executor, String state, LocalDate due, boolean archived) {
-		UUID id = UUID.randomUUID();
-		jdbc.update("insert into resolution (id, task_id, author_id, executor_id, instruction, due_date, state,"
-				+ " created_at, updated_at, archived_at) values (?, ?, ?, ?, 'Do it', ?, ?, now(), now(), "
-				+ (archived ? "now()" : "null") + ")", id, task, author, executor, due, state);
-		return id;
-	}
-
-	/** Seed (viewed as "me"): see the expectations in the tests. */
-	private void seed() {
-		UUID t1 = task("t1-mine-in-progress");
-		resolution(t1, other.id(), me.id(), "IN_PROGRESS", TODAY.plusDays(5), false);
-		UUID t2 = task("t2-mine-co-executor");
-		UUID r2 = resolution(t2, other.id(), third.id(), "NEW", TODAY.plusDays(5), false);
-		jdbc.update("insert into resolution_co_executor (resolution_id, user_id) values (?, ?)", r2, me.id());
-		UUID t3 = task("t3-issued-overdue");
-		resolution(t3, me.id(), other.id(), "SUBMITTED", TODAY.minusDays(3), false);
-		UUID t4 = task("t4-accepted-in-the-past");
-		resolution(t4, other.id(), me.id(), "ACCEPTED", TODAY.minusDays(10), false);
-		UUID t5 = task("t5-issued-canceled");
-		resolution(t5, me.id(), other.id(), "CANCELED", TODAY.minusDays(10), false);
-		UUID t6 = task("t6-archived-resolution");
-		resolution(t6, me.id(), me.id(), "NEW", TODAY.minusDays(2), true);
-		task("t7-no-resolution");
-		UUID t8 = task("t8-due-today");
-		resolution(t8, other.id(), me.id(), "IN_PROGRESS", TODAY, false);
-	}
-
 	private ResultActions list(Account who, String query) throws Exception {
 		return mvc.perform(get("/api/v1/tasks?spaceId=" + space + "&size=50" + query).session(who.session()));
 	}
@@ -307,31 +273,9 @@ class TaskQuickViewIntegrationTests {
 		mvc.perform(get("/api/v1/tasks?view=MY_RESOLUTIONS").session(me.session())).andExpect(status().isBadRequest());
 	}
 
-	@Test
-	void resolutionFiltersCombineOnTheSameResolutionAndWorkWithLabels() throws Exception {
-		seed();
-		assertThat(titles(me, "&executorId=" + me.id())).containsExactly("t1-mine-in-progress", "t2-mine-co-executor",
-				"t4-accepted-in-the-past", "t8-due-today");
-		assertThat(titles(me, "&authorId=" + me.id())).containsExactly("t3-issued-overdue", "t5-issued-canceled");
-		assertThat(titles(me, "&resolutionState=ACCEPTED")).containsExactly("t4-accepted-in-the-past");
-		// both conditions on one resolution: executor me and state NEW exists only as co-executor of t2
-		assertThat(titles(me, "&executorId=" + me.id() + "&resolutionState=NEW")).containsExactly("t2-mine-co-executor");
-		assertThat(titles(me, "&authorId=" + me.id() + "&executorId=" + me.id())).isEmpty();
-		jdbc.update("insert into task_label (task_id, label) select id, 'urgent' from task where title = 't3-issued-overdue'");
-		assertThat(titles(me, "&authorId=" + me.id() + "&labels=urgent")).containsExactly("t3-issued-overdue");
-		assertThat(titles(me, "&labels=urgent&authorId=" + other.id())).isEmpty();
-	}
-
-	@Test
-	void withoutResolutionFiltersEveryTaskIsListed() throws Exception {
-		seed();
-		assertThat(titles(me, "")).hasSize(8);
-	}
-
 	// ---- saved filters ----
 
-	private static final String BODY = "{\"name\":\"%s\",\"criteria\":{\"view\":\"OVERDUE\",\"labels\":[\"Urgent\"],"
-			+ "\"resolutionState\":\"NEW\"}}";
+	private static final String BODY = "{\"name\":\"%s\",\"criteria\":{\"view\":\"OVERDUE\",\"labels\":[\"Urgent\"]}}";
 
 	private ResultActions send(Account who, org.springframework.http.HttpMethod method, String path, String json)
 			throws Exception {
@@ -361,7 +305,7 @@ class TaskQuickViewIntegrationTests {
 				.andExpect(jsonPath("$.content[0].name").value("Overdue urgent"))
 				.andExpect(jsonPath("$.content[0].criteria.view").value("OVERDUE"))
 				.andExpect(jsonPath("$.content[0].criteria.labels[0]").value("urgent"))
-				.andExpect(jsonPath("$.content[0].criteria.resolutionState").value("NEW"));
+				.andExpect(jsonPath("$.content[0].criteria.executorId").doesNotExist());
 		send(me, org.springframework.http.HttpMethod.PUT, "/task-filters/" + id,
 				"{\"name\":\"Renamed\",\"criteria\":{\"view\":\"MY_TASKS\",\"assignee\":\"" + other.id()
 						+ "\",\"creator\":\"" + me.id() + "\",\"overdue\":true,\"deadlineFrom\":\"2031-01-01\","

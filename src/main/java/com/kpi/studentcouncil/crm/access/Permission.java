@@ -33,9 +33,6 @@ public enum Permission {
 	TASKS_ASSIGN("tasks.assign", PermissionGroup.TASKS),
 	SPACES_MANAGE("spaces.manage", PermissionGroup.TASKS),
 
-	RESOLUTIONS_CREATE("resolutions.create", PermissionGroup.RESOLUTIONS),
-	RESOLUTIONS_REDIRECT("resolutions.redirect", PermissionGroup.RESOLUTIONS),
-
 	KB_VIEW("kb.view", PermissionGroup.KNOWLEDGE_BASE),
 	KB_EDIT("kb.edit", PermissionGroup.KNOWLEDGE_BASE),
 	KB_ARCHIVE("kb.archive", PermissionGroup.KNOWLEDGE_BASE),

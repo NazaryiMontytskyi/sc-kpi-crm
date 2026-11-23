@@ -54,12 +54,6 @@ class SearchIndex {
 				.param("type", type.name()).param("id", id).update();
 	}
 
-	/** Removes the documents of the type whose parent is {@code parentId} (e.g. the resolutions of a task). */
-	void deleteByParent(SearchType type, UUID parentId) {
-		jdbc.sql("delete from search_document where entity_type = :type and parent_id = :parentId")
-				.param("type", type.name()).param("parentId", parentId).update();
-	}
-
 	void deleteAll() {
 		jdbc.sql("delete from search_document").update();
 	}

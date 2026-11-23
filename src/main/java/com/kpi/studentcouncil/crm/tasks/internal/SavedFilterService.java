@@ -99,8 +99,7 @@ class SavedFilterService {
 
 	private static Criteria normalized(Criteria c) {
 		return new Criteria(c.spaceId(), c.statusId(), TaskRules.normalizeLabels(c.labels()), c.assignee(),
-				c.creator(), c.overdue(), c.view(), c.deadlineFrom(), c.deadlineTo(), c.executorId(), c.authorId(),
-				c.resolutionState());
+				c.creator(), c.overdue(), c.view(), c.deadlineFrom(), c.deadlineTo());
 	}
 
 }

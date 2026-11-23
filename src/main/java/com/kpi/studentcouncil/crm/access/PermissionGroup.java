@@ -7,7 +7,6 @@ public enum PermissionGroup {
 	ORG("org"),
 	ROLES("roles"),
 	TASKS("tasks"),
-	RESOLUTIONS("resolutions"),
 	KNOWLEDGE_BASE("kb"),
 	MEETINGS_VOTING("voting"),
 	OTHER("other");

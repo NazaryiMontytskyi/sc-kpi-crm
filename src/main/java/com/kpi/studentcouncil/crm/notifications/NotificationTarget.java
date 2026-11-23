@@ -6,7 +6,7 @@ import java.util.UUID;
 /**
  * Reference to the object a notification is about, used by the client for deep links.
  *
- * @param type logical type, e.g. "RESOLUTION", "TASK"
+ * @param type logical type, e.g. "TASK"; legacy rows may hold other types
  * @param id   id of the object
  */
 public record NotificationTarget(String type, UUID id) {

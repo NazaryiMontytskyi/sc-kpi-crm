@@ -29,7 +29,7 @@ import org.hibernate.type.SqlTypes;
 import com.kpi.studentcouncil.crm.shared.domain.ArchivableEntity;
 import com.kpi.studentcouncil.crm.tasks.CommentTargetType;
 
-/** A comment on a record (task, later resolution). The author is the creating user ({@code createdBy}). */
+/** A comment on a record (currently a task). The author is the creating user ({@code createdBy}). */
 @Entity
 @Table(name = "comment")
 class Comment extends ArchivableEntity {

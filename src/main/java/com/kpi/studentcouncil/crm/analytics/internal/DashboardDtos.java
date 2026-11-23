@@ -14,26 +14,9 @@ final class DashboardDtos {
 
 	/**
 	 * The caller's personal dashboard. {@code tasks} is the "My metrics" / "My tasks" section built on tasks via
-	 * assignees (RR-5). {@code resolutions} is the legacy shape kept for the current frontend until INC-082; since
-	 * INC-080 it is filled from the same task data (see {@link MyResolutions}).
+	 * assignees (RR-5).
 	 */
-	record MyDashboardResponse(@Deprecated MyResolutions resolutions,
-			@Schema(requiredMode = Schema.RequiredMode.REQUIRED) MyTasks tasks) {
-	}
-
-	/**
-	 * Legacy section (deprecated, removed with resolutions). Since INC-080: {@code active}/{@code overdue} equal
-	 * {@link MyTasks#active()}/{@link MyTasks#overdue()}; {@code awaitingAcceptance} is always 0 (tasks have no
-	 * acceptance step); {@code upcoming} lists the same tasks as {@link MyTasks#upcoming()} with
-	 * {@code resolutionId = taskId} and {@code state} NEW (TODO category) or IN_PROGRESS.
-	 */
-	@Schema(deprecated = true)
-	record MyResolutions(long active, long overdue, long awaitingAcceptance, List<UpcomingResolution> upcoming) {
-	}
-
-	@Schema(deprecated = true)
-	record UpcomingResolution(UUID resolutionId, UUID taskId, String taskTitle, LocalDate dueDate, String state,
-			boolean overdue) {
+	record MyDashboardResponse(@Schema(requiredMode = Schema.RequiredMode.REQUIRED) MyTasks tasks) {
 	}
 
 	/**

@@ -4,9 +4,8 @@ import java.util.UUID;
 
 /**
  * Extension point: one bean per {@link CommentTargetType} tells the comments how to treat the commented record. The
- * tasks module implements it for {@code TASK}; the governance module implements it for {@code RESOLUTION} once
- * resolutions exist. Until a bean exists for a type, commenting on it is rejected with
- * {@code COMMENT_TARGET_UNSUPPORTED}.
+ * tasks module implements it for {@code TASK}; a new commentable record adds a type and a bean. Until a bean exists
+ * for a type, commenting on it is rejected with {@code COMMENT_TARGET_UNSUPPORTED}.
  */
 public interface CommentTarget {
 

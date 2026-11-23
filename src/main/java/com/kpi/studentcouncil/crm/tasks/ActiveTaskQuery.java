@@ -7,8 +7,7 @@ import java.util.UUID;
 
 /**
  * Public API of the {@code tasks} module: read-only access to open tasks and their active assignees for other
- * modules (the deadline reminders and task notifications of {@code notifications}). Successor of the
- * resolution query ({@code ActiveResolutionQuery}). Exposes no entities.
+ * modules (the deadline reminders and task notifications of {@code notifications}). Exposes no entities.
  */
 public interface ActiveTaskQuery {
 

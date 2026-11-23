@@ -9,8 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 /**
  * Public API of the {@code tasks} module: the tasks one person works on, through active assignments (RR-5), for the
- * personal dashboard ("My metrics", "My tasks") and the member profile. Successor of
- * {@code PersonalResolutionSummary}. "Active" uses the same rule as the "My tasks" quick view, so counts match the
+ * personal dashboard ("My metrics", "My tasks") and the member profile. "Active" uses the same rule as the "My tasks" quick view, so counts match the
  * list: the person is an active (not removed) assignee, the task is not archived and its status is neither in the
  * DONE nor in the CANCELED category. Subtasks are tasks too and are included. Exposes no entities and checks no
  * permission (the caller does).

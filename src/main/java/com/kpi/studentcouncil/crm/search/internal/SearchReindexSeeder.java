@@ -7,7 +7,7 @@ import com.kpi.studentcouncil.crm.shared.seed.Seeder;
 
 /**
  * One-off full reindex after the switch of search to tasks (INC-080, RR-5): task documents gain assignee names and
- * subtask titles, and the subtasks created by the resolution migration (V28, plain SQL, so no domain events) enter
+ * subtask titles, and the subtasks created by migration V28 (plain SQL, so no domain events) enter
  * the index. Runs once per environment through the seed history, after every other seeder; audited like a manual
  * reindex (system actor). With seeding disabled, an administrator runs {@code POST /search/reindex} instead.
  */

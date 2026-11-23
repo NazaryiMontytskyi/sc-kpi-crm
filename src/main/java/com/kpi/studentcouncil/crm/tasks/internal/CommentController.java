@@ -32,7 +32,7 @@ import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.CreateCommentRequest;
 import com.kpi.studentcouncil.crm.tasks.internal.TasksDtos.EditCommentRequest;
 
 /**
- * Comments on tasks (and later resolutions). Writing needs authentication only (no comment permission in the
+ * Comments on tasks. Writing needs authentication only (no comment permission in the
  * catalog); reading needs the view permission of the target; edit and archive are decided by {@link CommentPolicy}
  * (author or Admin).
  */

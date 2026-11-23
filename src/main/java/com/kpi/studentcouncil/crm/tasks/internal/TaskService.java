@@ -49,30 +49,27 @@ class TaskService {
 	static final String TASK = "Task";
 
 	/**
-	 * A task together with the data that lives outside its row: related ids, the legacy resolution hint, its active
-	 * assignees and the progress of its subtasks ({@link SuggestCloseRule}). {@code attachments}, {@code subtasks} and
+	 * A task together with the data that lives outside its row: related ids, its active assignees and the progress of its subtasks ({@link SuggestCloseRule}). {@code attachments}, {@code subtasks} and
 	 * {@code artifacts} are null in list results; in a detail they hold the attachments, the subtasks as list views and
 	 * the active artifacts (spec §7: one request for task, assignees, subtasks and artifacts).
 	 */
-	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, boolean suggestDone,
-			List<TaskAssignee> assignees, SuggestCloseRule.Progress subtaskProgress, List<TaskView> subtasks,
+	record TaskView(Task task, Set<UUID> relatedTaskIds, List<FileInfo> attachments, List<TaskAssignee> assignees,
+			SuggestCloseRule.Progress subtaskProgress, List<TaskView> subtasks,
 			List<TaskArtifactService.ArtifactView> artifacts) {
 	}
 
 	/**
 	 * Filters of the task list. {@code assignee} matches an active assignee, {@code creator} the creator,
 	 * {@code overdue} (when true) open, non-archived tasks past their deadline, {@code view} a quick view evaluated for
-	 * the caller ({@link TaskSpecs}), {@code parentId} the subtasks of that task. The legacy resolution filters ({@code executorId} incl. co-executors,
-	 * {@code authorId}, {@code resolutionState}) are combined on one and the same non-archived resolution of the task.
+	 * the caller ({@link TaskSpecs}), {@code parentId} the subtasks of that task.
 	 */
 	record TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
 			LocalDate deadlineTo, boolean includeArchived, UUID assignee, UUID creator, boolean overdue,
-			TaskQuickView view, UUID executorId, UUID authorId, ResolutionState resolutionState, UUID parentId) {
+			TaskQuickView view, UUID parentId) {
 
 		TaskFilter(UUID spaceId, UUID statusId, Collection<String> labels, LocalDate deadlineFrom,
 				LocalDate deadlineTo, boolean includeArchived) {
-			this(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived, null, null, false, null, null,
-					null, null, null);
+			this(spaceId, statusId, labels, deadlineFrom, deadlineTo, includeArchived, null, null, false, null, null);
 		}
 	}
 
@@ -83,7 +80,6 @@ class TaskService {
 	private final TaskLinkRepository links;
 	private final SpaceRepository spaces;
 	private final SpaceStatusRepository statuses;
-	private final ResolutionRepository resolutions;
 	private final CustomFieldDefinitionRepository fields;
 	private final FileService files;
 	private final UserDirectory users;
@@ -95,8 +91,8 @@ class TaskService {
 	private final Clock clock;
 
 	TaskService(TaskRepository tasks, TaskAssigneeRepository assignees, TaskLinkRepository links,
-			SpaceRepository spaces, SpaceStatusRepository statuses, ResolutionRepository resolutions,
-			CustomFieldDefinitionRepository fields, FileService files, UserDirectory users, TaskEditPolicy editPolicy,
+			SpaceRepository spaces, SpaceStatusRepository statuses, CustomFieldDefinitionRepository fields,
+			FileService files, UserDirectory users, TaskEditPolicy editPolicy,
 			TaskArtifactService artifacts, AuditPublisher audit, ActorProvider actors, ApplicationEventPublisher events,
 			Clock clock) {
 		this.tasks = tasks;
@@ -104,7 +100,6 @@ class TaskService {
 		this.links = links;
 		this.spaces = spaces;
 		this.statuses = statuses;
-		this.resolutions = resolutions;
 		this.fields = fields;
 		this.files = files;
 		this.users = users;
@@ -212,7 +207,7 @@ class TaskService {
 	 * {@code DEADLINE_CHANGED}. Only a changed deadline is checked against the subtask rules (ST-3,
 	 * {@link SubtaskRules}): a subtask's against its parent (422 {@code SUBTASK_DEADLINE_AFTER_PARENT}), a parent's
 	 * against its non-archived subtasks (422 {@code TASK_DEADLINE_BEFORE_SUBTASKS} naming them); a rejected edit
-	 * changes nothing. Edits that keep the deadline never fail on it (subtasks migrated from resolutions).
+	 * changes nothing. Edits that keep the deadline never fail on it (subtasks created by migration V28).
 	 */
 	@Transactional
 	TaskView update(UUID id, Long expectedVersion, String title, Map<String, Object> description,
@@ -511,17 +506,10 @@ class TaskService {
 			spec = spec.and((root, query, cb) -> cb.or(labels.stream()
 					.map(label -> cb.isMember(label, root.<Set<String>>get("labels"))).toArray(jakarta.persistence.criteria.Predicate[]::new)));
 		}
-		spec = spec.and(TaskResolutionSpecs.of(filter));
 		Page<Task> page = tasks.findAll(spec, pageable);
 		Map<UUID, TaskView> built = new HashMap<>();
 		views(page.getContent(), false).forEach(v -> built.put(v.task().getId(), v));
 		return page.map(t -> built.get(t.getId()));
-	}
-
-	/** Whether the "all resolutions accepted" suggestion applies to the task ({@link SuggestDoneRule}); never changes it. */
-	@Transactional(readOnly = true)
-	boolean suggestDone(UUID taskId) {
-		return suggestDoneOfAll(List.of(require(taskId))).getOrDefault(taskId, false);
 	}
 
 	// ---- status usage (SpaceStatusUsageGuard) ----
@@ -553,7 +541,7 @@ class TaskService {
 	}
 
 	/**
-	 * Views of the given tasks, in order, with a fixed number of batched queries (links, resolution states, active
+	 * Views of the given tasks, in order, with a fixed number of batched queries (links, active
 	 * assignees, subtasks, status categories). A detail ({@code detail}) adds attachments, the active artifacts (one
 	 * more query) and the subtasks: the non-archived ones, or every subtask when the task itself is archived (so an
 	 * archived task still shows what was archived with it).
@@ -564,7 +552,6 @@ class TaskService {
 		}
 		List<UUID> ids = list.stream().map(Task::getId).toList();
 		Map<UUID, Set<UUID>> related = relatedOfAll(ids);
-		Map<UUID, Boolean> suggestions = suggestDoneOfAll(list);
 		Map<UUID, List<TaskAssignee>> active = new HashMap<>();
 		assignees.findByTaskIdInAndRemovedAtIsNullOrderByAssignedAtAscIdAsc(ids)
 				.forEach(a -> active.computeIfAbsent(a.getTaskId(), k -> new ArrayList<>()).add(a));
@@ -605,34 +592,8 @@ class TaskService {
 			List<TaskView> subtasks = !detail ? null
 					: children.stream().map(c -> subtaskViews.get(c.getId())).filter(Objects::nonNull).toList();
 			result.add(new TaskView(t, related.getOrDefault(t.getId(), Set.of()), detail ? attachmentInfos(t) : null,
-					suggestions.getOrDefault(t.getId(), false), List.copyOf(active.getOrDefault(t.getId(), List.of())),
+					List.copyOf(active.getOrDefault(t.getId(), List.of())),
 					progress, subtasks, detail ? List.copyOf(artifactsOf.getOrDefault(t.getId(), List.of())) : null));
-		}
-		return result;
-	}
-
-	/** Two batched queries (resolution states, status categories) for any number of tasks. */
-	private Map<UUID, Boolean> suggestDoneOfAll(Collection<Task> list) {
-		Map<UUID, Boolean> result = new HashMap<>();
-		if (list.isEmpty()) {
-			return result;
-		}
-		Map<UUID, List<SuggestDoneRule.Node>> states = new HashMap<>();
-		for (ResolutionRepository.TaskResolutionState row : resolutions
-				.findActiveStatesByTaskIdIn(list.stream().map(Task::getId).toList())) {
-			states.computeIfAbsent(row.taskId(), k -> new ArrayList<>()).add(new SuggestDoneRule.Node(row.id(), row.parentResolutionId(), row.state()));
-		}
-		Set<UUID> statusIds = new HashSet<>();
-		list.forEach(t -> statusIds.add(t.getStatusId()));
-		Set<UUID> doneStatuses = new HashSet<>();
-		statuses.findByIdIn(statusIds).forEach(s -> {
-			if (s.getCategory() == StatusCategory.DONE) {
-				doneStatuses.add(s.getId());
-			}
-		});
-		for (Task t : list) {
-			result.put(t.getId(), SuggestDoneRule.suggest(states.getOrDefault(t.getId(), List.of()),
-					doneStatuses.contains(t.getStatusId())));
 		}
 		return result;
 	}

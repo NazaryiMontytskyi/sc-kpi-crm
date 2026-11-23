@@ -33,8 +33,7 @@ import com.kpi.studentcouncil.crm.tasks.TaskTextProvider;
  * archived or gone. Handlers run in the publisher's transaction (ADR-0007).
  *
  * <p>A task document holds the title, the description, the labels, the full names of the active assignees (read
- * through {@link MemberTextProvider}) and the titles of the non-archived subtasks (RR-5). Resolutions are no longer
- * indexed (INC-080): resolution events are ignored, and the documents left over were deleted by migration V30.
+ * through {@link MemberTextProvider}) and the titles of the non-archived subtasks (RR-5).
  */
 @Component
 class SearchIndexer {
@@ -95,7 +94,6 @@ class SearchIndexer {
 		index.deleteAll();
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		counts.put("tasks", count(tasks.findActiveTaskIds(), this::indexTask));
-		counts.put("resolutions", 0); // no longer indexed (INC-080); kept for the response shape
 		counts.put("articles", count(articles.findActiveIds(), this::indexArticle));
 		counts.put("people", count(members.findActiveIds(), this::indexPerson));
 		int units = 0;

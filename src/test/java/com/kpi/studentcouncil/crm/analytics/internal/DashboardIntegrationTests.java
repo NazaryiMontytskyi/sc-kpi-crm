@@ -36,7 +36,7 @@ import com.kpi.studentcouncil.crm.access.AccessService;
 /**
  * The personal dashboard ("My metrics", "My tasks"): built on tasks via active assignments (RR-5), counts equal the
  * "My tasks" quick view, DONE/CANCELED categories and archived tasks excluded, only the caller's data, permission
- * enforced. The deprecated resolution-shaped section mirrors the same task data.
+ * enforced.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -226,17 +226,10 @@ class DashboardIntegrationTests {
 	}
 
 	@Test
-	void legacyResolutionSectionMirrorsTheTaskData() throws Exception {
+	void theRetiredLegacySectionIsGone() throws Exception {
 		seed();
-		api(me, "/dashboard/me").andExpect(jsonPath("$.resolutions.active").value(11))
-				.andExpect(jsonPath("$.resolutions.overdue").value(1))
-				.andExpect(jsonPath("$.resolutions.awaitingAcceptance").value(0))
-				.andExpect(jsonPath("$.resolutions.upcoming.length()").value(5))
-				.andExpect(jsonPath("$.resolutions.upcoming[0].resolutionId").value(overdueTask.toString()))
-				.andExpect(jsonPath("$.resolutions.upcoming[0].taskId").value(overdueTask.toString()))
-				.andExpect(jsonPath("$.resolutions.upcoming[0].taskTitle").value("a-overdue"))
-				.andExpect(jsonPath("$.resolutions.upcoming[0].state").value("IN_PROGRESS"))
-				.andExpect(jsonPath("$.resolutions.upcoming[1].state").value("NEW"));
+		api(me, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.tasks.active").value(11))
+				.andExpect(jsonPath("$.resolutions").doesNotExist());
 	}
 
 	@Test
@@ -259,9 +252,7 @@ class DashboardIntegrationTests {
 	void emptyDashboardForUserWithoutTasks() throws Exception {
 		api(me, "/dashboard/me").andExpect(status().isOk()).andExpect(jsonPath("$.tasks.active").value(0))
 				.andExpect(jsonPath("$.tasks.overdue").value(0))
-				.andExpect(jsonPath("$.tasks.upcoming.length()").value(0))
-				.andExpect(jsonPath("$.resolutions.active").value(0))
-				.andExpect(jsonPath("$.resolutions.upcoming.length()").value(0));
+				.andExpect(jsonPath("$.tasks.upcoming.length()").value(0));
 	}
 
 }

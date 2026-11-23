@@ -27,8 +27,7 @@ class DashboardController {
 			description = "Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks "
 					+ "included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before "
 					+ "today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the \"My "
-					+ "tasks\" quick view. resolutions (deprecated, removed with resolutions): the same task data in the "
-					+ "legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.")
+					+ "tasks\" quick view. Needs dashboard.view.")
 	DashboardDtos.MyDashboardResponse myDashboard() {
 		return service.myDashboard();
 	}

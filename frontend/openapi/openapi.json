@@ -1235,7 +1235,7 @@
           "Tasks"
         ],
         "summary": "Tasks (paginated, sortable by createdAt, updatedAt, deadline, title; default newest first)",
-        "description": "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller). Legacy resolution filters executorId (executor or co-executor), authorId and resolutionState match tasks having a non-archived resolution that satisfies all of them at once.",
+        "description": "Archived tasks only with includeArchived=true. Filters (all combined): spaceId, statusId, labels (repeat the parameter; a task matches when it has any of them), deadlineFrom/deadlineTo (inclusive dates, compared with the deadline), assignee (an active assignee), creator, overdue=true (deadline before today in Europe/Kyiv, status category not DONE/CANCELED, never archived), parentId (the subtasks of that task) and view (MY_TASKS: I am an active assignee of an open task; ISSUED_BY_ME: I created it and assigned it to someone else; OVERDUE: as overdue=true; evaluated for the caller).",
         "operationId": "list",
         "parameters": [
           {
@@ -1364,41 +1364,6 @@
             }
           },
           {
-            "name": "executorId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "authorId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "resolutionState",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "NEW",
-                "IN_PROGRESS",
-                "SUBMITTED",
-                "REWORK",
-                "ACCEPTED",
-                "REDIRECTED",
-                "CANCELED"
-              ]
-            }
-          },
-          {
             "name": "parentId",
             "in": "query",
             "required": false,
@@ -1445,108 +1410,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/TaskResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/tasks/{taskId}/resolutions": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Resolutions of a task (paginated, sortable by createdAt, updatedAt, dueDate, state)",
-        "operationId": "listByTask",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "maximum": 100,
-              "minimum": 1
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseResolutionSummaryResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Issue a resolution on a task",
-        "description": "The caller becomes the author; any executor is allowed (top-down, horizontal or bottom-up). Executor and co-executors must be ACTIVE users (422), the due date must not be in the past (422), 409 when the task is archived. A task may have several resolutions. Starts in NEW.",
-        "operationId": "issue",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IssueResolutionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
                 }
               }
             }
@@ -2418,7 +2281,7 @@
           "Search"
         ],
         "summary": "Rebuild the whole search index",
-        "description": "Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction (resolutions are no longer indexed; their count is always 0). Audited. Needs settings.manage.",
+        "description": "Reads every active task, article, member and org unit through the public APIs of the owning modules and replaces the index in one transaction. Audited. Needs settings.manage.",
         "operationId": "reindex",
         "responses": {
           "200": {
@@ -2552,275 +2415,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/RoleResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/submit": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Executor submits the result (IN_PROGRESS to SUBMITTED)",
-        "description": "The completion note is mandatory (422). 403 RESOLUTION_NOT_EXECUTOR for anybody else.",
-        "operationId": "submit",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubmitResolutionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/start": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Executor accepts the resolution into work (NEW to IN_PROGRESS)",
-        "description": "403 RESOLUTION_NOT_EXECUTOR for anybody else, 422 RESOLUTION_TRANSITION_NOT_ALLOWED.",
-        "operationId": "start",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/rework": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Author returns the result for rework (SUBMITTED to REWORK)",
-        "description": "The comment is mandatory (422). 403 RESOLUTION_NOT_AUTHOR for anybody else.",
-        "operationId": "rework",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReworkResolutionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/resume": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Executor resumes work after rework (REWORK to IN_PROGRESS)",
-        "operationId": "resume",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/redirect": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Executor redirects the resolution to a new executor (IN_PROGRESS to REDIRECTED)",
-        "description": "Creates exactly one child resolution (authored by the caller) and moves this one to REDIRECTED in one transaction. 403 RESOLUTION_NOT_EXECUTOR for anybody but the executor, 422 RESOLUTION_TRANSITION_NOT_ALLOWED unless IN_PROGRESS, 422 RESOLUTION_REDIRECT_TO_SELF, 422 RESOLUTION_REDIRECT_CYCLE for anybody already in the chain, 422 RESOLUTION_EXECUTOR_INVALID for a non-active executor. A due date later than the parent's is accepted; the response then carries the warning RESOLUTION_CHILD_DUE_AFTER_PARENT.",
-        "operationId": "redirect",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RedirectResolutionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/RedirectResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/cancel": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Author cancels the resolution (any non-final state to CANCELED)",
-        "description": "Non-final resolutions redirected from it are canceled with it, atomically. 403 RESOLUTION_NOT_AUTHOR for anybody else.",
-        "operationId": "cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CancelResolutionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/accept": {
-      "post": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Author accepts the result (SUBMITTED to ACCEPTED)",
-        "description": "403 RESOLUTION_NOT_AUTHOR for anybody else.",
-        "operationId": "accept",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
                 }
               }
             }
@@ -3301,7 +2895,7 @@
         ],
         "summary": "Add a person to a unit",
         "description": "409 when the person already has an active membership in the unit or the unit is archived.",
-        "operationId": "start_1",
+        "operationId": "start",
         "parameters": [
           {
             "name": "id",
@@ -4190,8 +3784,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "TASK",
-                "RESOLUTION"
+                "TASK"
               ]
             }
           },
@@ -5013,7 +4606,7 @@
           "Search"
         ],
         "summary": "Search everything the caller may see, grouped by type",
-        "description": "Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks and resolutions, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks. The resolutions group is deprecated and always empty (resolutions became subtasks).",
+        "description": "Matches whole words, word beginnings, parts of words and small typos, in Ukrainian and English. Queries shorter than 2 characters return empty groups. Each group is limited to `limit` hits (default 5, max 20) and reports the total number of matches. A group is empty unless the caller holds the view permission of its type (tasks.view for tasks, kb.view for articles, members.view for people, org.view for org units); restricted articles need kb.restricted.view. Archived items are never returned. `types` restricts the search to some groups. Tasks also match the full names of their active assignees and the titles of their subtasks.",
         "operationId": "search",
         "parameters": [
           {
@@ -5035,7 +4628,6 @@
                 "type": "string",
                 "enum": [
                   "TASK",
-                  "RESOLUTION",
                   "ARTICLE",
                   "PERSON",
                   "ORG_UNIT"
@@ -5061,177 +4653,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/SearchResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Resolutions (paginated, sortable by createdAt, updatedAt, dueDate, state; default newest first)",
-        "description": "Filters: taskId, executorId, authorId, state; mine=true returns those where the caller is the author, the executor or a co-executor.",
-        "operationId": "list_11",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "maximum": 100,
-              "minimum": 1
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "taskId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "executorId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "authorId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "NEW",
-                "IN_PROGRESS",
-                "SUBMITTED",
-                "REWORK",
-                "ACCEPTED",
-                "REDIRECTED",
-                "CANCELED"
-              ]
-            }
-          },
-          {
-            "name": "mine",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseResolutionSummaryResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Get a resolution with its full history",
-        "operationId": "get_10",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/resolutions/{id}/chain": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "The redirect chain of a resolution as a tree rooted at the first resolution",
-        "description": "Works from any resolution of the chain; the root is returned with nested children.",
-        "operationId": "chain",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResolutionChainNode"
                 }
               }
             }
@@ -5376,7 +4797,7 @@
           "Org memberships"
         ],
         "summary": "Get one membership",
-        "operationId": "get_11",
+        "operationId": "get_10",
         "parameters": [
           {
             "name": "id",
@@ -5539,7 +4960,7 @@
         ],
         "summary": "Active tasks of a member (paginated; earliest deadline first, no deadline last)",
         "description": "Tasks and subtasks the member is an active assignee of whose status is neither in the DONE nor in the CANCELED category; archived tasks are excluded. The order is fixed (sort is not accepted). overdue = deadline before today in Europe/Kyiv. 404 for an unknown member.",
-        "operationId": "list_12",
+        "operationId": "list_11",
         "parameters": [
           {
             "name": "id",
@@ -5620,140 +5041,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberTaskCountsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/members/{id}/resolutions": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Resolutions of a member (paginated, sortable by createdAt, updatedAt, dueDate, state; default earliest due date first)",
-        "description": "role=EXECUTOR (default) returns those the member executes as executor or co-executor, role=AUTHOR those the member issued. active=true keeps NEW, IN_PROGRESS, SUBMITTED and REWORK; state filters one state. Archived resolutions are excluded. 404 for an unknown member.",
-        "operationId": "list_13",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "maximum": 100,
-              "minimum": 1
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "EXECUTOR",
-              "enum": [
-                "EXECUTOR",
-                "AUTHOR"
-              ]
-            }
-          },
-          {
-            "name": "active",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "NEW",
-                "IN_PROGRESS",
-                "SUBMITTED",
-                "REWORK",
-                "ACCEPTED",
-                "REDIRECTED",
-                "CANCELED"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageResponseMemberResolutionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/members/{id}/resolutions/counts": {
-      "get": {
-        "tags": [
-          "Resolutions"
-        ],
-        "summary": "Counters of the resolutions a member executes",
-        "description": "active (NEW, IN_PROGRESS, SUBMITTED, REWORK), overdue (due date passed in Europe/Kyiv, state not ACCEPTED/CANCELED) and accepted; archived resolutions are not counted.",
-        "operationId": "counts_1",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberResolutionCountsResponse"
                 }
               }
             }
@@ -5872,7 +5159,7 @@
           "Dashboard"
         ],
         "summary": "My tasks mini-dashboard (My metrics)",
-        "description": "Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the \"My tasks\" quick view. resolutions (deprecated, removed with resolutions): the same task data in the legacy shape; awaitingAcceptance is always 0. Needs dashboard.view.",
+        "description": "Only for the caller. tasks: active and overdue tasks I am an active assignee of (subtasks included; archived tasks and DONE/CANCELED status categories excluded; overdue = deadline before today in Europe/Kyiv) and up to 5 of them with the earliest deadlines. Counts equal the \"My tasks\" quick view. Needs dashboard.view.",
         "operationId": "myDashboard",
         "responses": {
           "200": {
@@ -5926,7 +5213,7 @@
         ],
         "summary": "Global audit log, newest first (paginated)",
         "description": "Filters (all optional): actorId, entityId (UUIDs), entityType, action (AuditAction name), from (inclusive) and to (exclusive) as ISO-8601 instant or date (date = start of that UTC day). Invalid values yield 422 INVALID_FILTER.",
-        "operationId": "list_14",
+        "operationId": "list_12",
         "parameters": [
           {
             "name": "page",
@@ -6710,9 +5997,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "suggestDone": {
-            "type": "boolean"
-          },
           "version": {
             "type": "integer",
             "format": "int64"
@@ -6824,9 +6108,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "suggestDone": {
-            "type": "boolean"
-          },
           "version": {
             "type": "integer",
             "format": "int64"
@@ -6919,26 +6200,6 @@
           "deadlineTo": {
             "type": "string",
             "format": "date"
-          },
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "resolutionState": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
           }
         }
       },
@@ -7805,8 +7066,7 @@
           "targetType": {
             "type": "string",
             "enum": [
-              "TASK",
-              "RESOLUTION"
+              "TASK"
             ]
           },
           "targetId": {
@@ -8133,151 +7393,6 @@
           "title"
         ]
       },
-      "IssueResolutionRequest": {
-        "type": "object",
-        "properties": {
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coExecutorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "instruction": {
-            "type": "string",
-            "maxLength": 5000,
-            "minLength": 0
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          }
-        },
-        "required": [
-          "dueDate",
-          "executorId",
-          "instruction"
-        ]
-      },
-      "ResolutionHistoryResponse": {
-        "type": "object",
-        "properties": {
-          "actorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "from": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "to": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "comment": {
-            "type": "string"
-          },
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "causedByResolutionId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      },
-      "ResolutionResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coExecutorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "instruction": {
-            "type": "string"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "parentResolutionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "overdue": {
-            "type": "boolean"
-          },
-          "completionNote": {
-            "type": "string"
-          },
-          "history": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ResolutionHistoryResponse"
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "CreateSubtaskRequest": {
         "type": "object",
         "properties": {
@@ -8456,11 +7571,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "resolutions": {
-            "type": "integer",
-            "format": "int32",
-            "deprecated": true
-          },
           "articles": {
             "type": "integer",
             "format": "int32"
@@ -8472,82 +7582,6 @@
           "orgUnits": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "SubmitResolutionRequest": {
-        "type": "object",
-        "properties": {
-          "completionNote": {
-            "type": "string",
-            "maxLength": 5000,
-            "minLength": 0
-          }
-        },
-        "required": [
-          "completionNote"
-        ]
-      },
-      "ReworkResolutionRequest": {
-        "type": "object",
-        "properties": {
-          "comment": {
-            "type": "string",
-            "maxLength": 5000,
-            "minLength": 0
-          }
-        },
-        "required": [
-          "comment"
-        ]
-      },
-      "RedirectResolutionRequest": {
-        "type": "object",
-        "properties": {
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "instruction": {
-            "type": "string",
-            "maxLength": 5000,
-            "minLength": 0
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          }
-        },
-        "required": [
-          "dueDate",
-          "executorId",
-          "instruction"
-        ]
-      },
-      "RedirectResolutionResponse": {
-        "type": "object",
-        "properties": {
-          "child": {
-            "$ref": "#/components/schemas/ResolutionResponse"
-          },
-          "parent": {
-            "$ref": "#/components/schemas/ResolutionResponse"
-          },
-          "warnings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "CancelResolutionRequest": {
-        "type": "object",
-        "properties": {
-          "comment": {
-            "type": "string",
-            "maxLength": 5000,
-            "minLength": 0
           }
         }
       },
@@ -9013,8 +8047,7 @@
           "targetType": {
             "type": "string",
             "enum": [
-              "TASK",
-              "RESOLUTION"
+              "TASK"
             ]
           },
           "targetId": {
@@ -9234,101 +8267,6 @@
           }
         }
       },
-      "PageResponseResolutionSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ResolutionSummaryResponse"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ResolutionSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coExecutorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "instruction": {
-            "type": "string"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "parentResolutionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "overdue": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "PageResponseSavedFilterResponse": {
         "type": "object",
         "properties": {
@@ -9483,10 +8421,6 @@
           "tasks": {
             "$ref": "#/components/schemas/SearchGroup"
           },
-          "resolutions": {
-            "$ref": "#/components/schemas/SearchGroup",
-            "deprecated": true
-          },
           "articles": {
             "$ref": "#/components/schemas/SearchGroup"
           },
@@ -9502,7 +8436,6 @@
           "orgUnits",
           "people",
           "query",
-          "resolutions",
           "tasks"
         ]
       },
@@ -9536,74 +8469,6 @@
           },
           "last": {
             "type": "boolean"
-          }
-        }
-      },
-      "ResolutionChainNode": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coExecutorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "instruction": {
-            "type": "string"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "parentResolutionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "overdue": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "children": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ResolutionChainNode"
-            }
           }
         }
       },
@@ -9978,117 +8843,6 @@
           }
         }
       },
-      "MemberResolutionResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskTitle": {
-            "type": "string"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "executorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "coExecutorIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "instruction": {
-            "type": "string"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "IN_PROGRESS",
-              "SUBMITTED",
-              "REWORK",
-              "ACCEPTED",
-              "REDIRECTED",
-              "CANCELED"
-            ]
-          },
-          "overdue": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "PageResponseMemberResolutionResponse": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MemberResolutionResponse"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          }
-        }
-      },
-      "MemberResolutionCountsResponse": {
-        "type": "object",
-        "properties": {
-          "active": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "overdue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "accepted": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
       "PageResponseChangeResponse": {
         "type": "object",
         "properties": {
@@ -10158,10 +8912,6 @@
       "MyDashboardResponse": {
         "type": "object",
         "properties": {
-          "resolutions": {
-            "$ref": "#/components/schemas/MyResolutions",
-            "deprecated": true
-          },
           "tasks": {
             "$ref": "#/components/schemas/MyTasks"
           }
@@ -10169,30 +8919,6 @@
         "required": [
           "tasks"
         ]
-      },
-      "MyResolutions": {
-        "type": "object",
-        "deprecated": true,
-        "properties": {
-          "active": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "overdue": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "awaitingAcceptance": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "upcoming": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpcomingResolution"
-            }
-          }
-        }
       },
       "MyTasks": {
         "type": "object",
@@ -10215,33 +8941,6 @@
         "required": [
           "upcoming"
         ]
-      },
-      "UpcomingResolution": {
-        "type": "object",
-        "deprecated": true,
-        "properties": {
-          "resolutionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "taskTitle": {
-            "type": "string"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "state": {
-            "type": "string"
-          },
-          "overdue": {
-            "type": "boolean"
-          }
-        }
       },
       "UpcomingTask": {
         "type": "object",

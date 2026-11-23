@@ -100,10 +100,6 @@ final class TasksDtos {
 
 	/** List item: no description, custom fields or attachment details. */
 	/**
-	 * {@code suggestDone}: computed hint that every resolution of the task is accepted (see SuggestDoneRule); the task
-	 * is never moved automatically.
-	 */
-	/**
 	 * {@code deadline} is due at the end of that day (Europe/Kyiv); {@code issuedAt} is the issue instant (UTC);
 	 * {@code creatorId} issued the task ({@code authorId} is the same user, kept for compatibility); {@code parentId}
 	 * is set for a subtask; {@code version} is the optimistic-locking version to send back as {@code expectedVersion}.
@@ -117,7 +113,7 @@ final class TasksDtos {
 	record TaskSummaryResponse(UUID id, UUID spaceId, UUID parentId, String title, UUID statusId,
 			TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId, List<String> labels,
 			int attachmentCount, int relatedCount, UUID authorId, boolean archived, Instant archivedAt,
-			boolean suggestDone, long version, Instant createdAt, Instant updatedAt, List<UUID> assigneeIds,
+			long version, Instant createdAt, Instant updatedAt, List<UUID> assigneeIds,
 			int subtaskCount, int openSubtaskCount, boolean suggestClose) {
 	}
 
@@ -129,7 +125,7 @@ final class TasksDtos {
 	record TaskResponse(UUID id, UUID spaceId, UUID parentId, String title, Map<String, Object> description,
 			UUID statusId, TaskPriority priority, LocalDate deadline, Instant issuedAt, UUID creatorId,
 			List<String> labels, Map<String, Object> customFieldValues, List<AttachmentResponse> attachments,
-			List<UUID> relatedTaskIds, UUID authorId, boolean archived, Instant archivedAt, boolean suggestDone,
+			List<UUID> relatedTaskIds, UUID authorId, boolean archived, Instant archivedAt,
 			long version, Instant createdAt, Instant updatedAt, List<TaskAssigneeResponse> assignees,
 			List<TaskSummaryResponse> subtasks, int subtaskCount, int openSubtaskCount, boolean suggestClose,
 			List<TaskArtifactResponse> artifacts) {
@@ -181,12 +177,10 @@ final class TasksDtos {
 
 	/**
 	 * Task list criteria with the names of the list query parameters; every part is optional ({@code overdue}
-	 * defaults to false). {@code view} is one of the built-in quick views; {@code executorId}, {@code authorId} and
-	 * {@code resolutionState} are the legacy resolution filters.
+	 * defaults to false). {@code view} is one of the built-in quick views.
 	 */
 	record SavedFilterCriteria(UUID spaceId, UUID statusId, List<String> labels, UUID assignee, UUID creator,
-			Boolean overdue, TaskQuickView view, LocalDate deadlineFrom, LocalDate deadlineTo, UUID executorId,
-			UUID authorId, ResolutionState resolutionState) {
+			Boolean overdue, TaskQuickView view, LocalDate deadlineFrom, LocalDate deadlineTo) {
 	}
 
 	/** Create or replace a saved filter of the caller. */
@@ -216,68 +210,6 @@ final class TasksDtos {
 			Map<String, Object> body, List<UUID> mentionUserIds, List<AttachmentResponse> attachments,
 			boolean edited, Instant editedAt, boolean archived, Instant archivedAt, Instant createdAt,
 			Instant updatedAt) {
-	}
-
-	// ---- resolutions ----
-
-	/** The caller becomes the author. Executor and co-executors must be ACTIVE users; the due date must not be in the past. */
-	record IssueResolutionRequest(@NotNull UUID executorId, List<@NotNull UUID> coExecutorIds,
-			@NotBlank @Size(max = 5000) String instruction, @NotNull LocalDate dueDate) {
-	}
-
-	/** Completion note, mandatory when submitting. */
-	record SubmitResolutionRequest(@NotBlank @Size(max = 5000) String completionNote) {
-	}
-
-	/** Comment, mandatory when returning a result for rework. */
-	record ReworkResolutionRequest(@NotBlank @Size(max = 5000) String comment) {
-	}
-
-	/** Optional reason of a cancel; recorded in the history of the resolution and of every canceled descendant. */
-	record CancelResolutionRequest(@Size(max = 5000) String comment) {
-	}
-
-	record ResolutionHistoryResponse(UUID actorId, ResolutionState from, ResolutionState to, String comment,
-			Instant at, UUID causedByResolutionId) {
-	}
-
-	/** List item: no completion note and no history. */
-	record ResolutionSummaryResponse(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
-			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
-			Instant createdAt, Instant updatedAt) {
-	}
-
-	/** Redirect: the caller (executor of the resolution) hands it over to a new executor with an own instruction and due date. */
-	record RedirectResolutionRequest(@NotNull UUID executorId, @NotBlank @Size(max = 5000) String instruction,
-			@NotNull LocalDate dueDate) {
-	}
-
-	/**
-	 * Result of a redirect: the child and the parent (now REDIRECTED). {@code warnings} may contain
-	 * {@code RESOLUTION_CHILD_DUE_AFTER_PARENT} when the child's due date is later than the parent's (not enforced).
-	 */
-	record RedirectResolutionResponse(ResolutionResponse child, ResolutionResponse parent, List<String> warnings) {
-	}
-
-	/** A node of the redirect chain tree; {@code children} are the resolutions redirected from it. */
-	record ResolutionChainNode(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
-			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
-			Instant createdAt, Instant updatedAt, List<ResolutionChainNode> children) {
-	}
-
-	record ResolutionResponse(UUID id, UUID taskId, UUID authorId, UUID executorId, List<UUID> coExecutorIds,
-			String instruction, LocalDate dueDate, UUID parentResolutionId, ResolutionState state, boolean overdue,
-			String completionNote, List<ResolutionHistoryResponse> history, Instant createdAt, Instant updatedAt) {
-	}
-
-	/** A resolution of a member's list with the title of its task. */
-	record MemberResolutionResponse(UUID id, UUID taskId, String taskTitle, UUID authorId, UUID executorId,
-			List<UUID> coExecutorIds, String instruction, LocalDate dueDate, ResolutionState state, boolean overdue,
-			Instant createdAt, Instant updatedAt) {
-	}
-
-	/** Counters of the resolutions a member executes (archived excluded). */
-	record MemberResolutionCountsResponse(long active, long overdue, long accepted) {
 	}
 
 }

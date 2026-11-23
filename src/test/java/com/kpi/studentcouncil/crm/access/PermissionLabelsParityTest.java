@@ -34,8 +34,8 @@ class PermissionLabelsParityTest {
 	}
 
 	@Test
-	void everyPermissionBelongsToAGroupAndThereAre31() {
-		assertThat(Permission.values()).hasSize(31).allMatch(p -> p.group() != null);
+	void everyPermissionBelongsToAGroupAndThereAre29() {
+		assertThat(Permission.values()).hasSize(29).allMatch(p -> p.group() != null);
 	}
 
 }
