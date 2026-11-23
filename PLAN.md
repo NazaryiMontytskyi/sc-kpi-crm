@@ -1147,7 +1147,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Handover (v2) not planned; assignee queries are the extension point.
 
 #### INC-081 — Remove resolutions in the backend (endpoints, code, permission keys)
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`, `access` (catalog + migration only), `audit`, `notifications`, `analytics`, `search`
 - **Depends on:** INC-072, INC-076, INC-080, INC-082
 - **Scope:** delete `Resolution*` classes, `ResolutionController`, `MemberResolutionController`, state machine, cascade, `SuggestDoneRule`, `ActiveResolutionQuery`, `ChildResolutionAccepted`, `ResolutionEvent`, `ResolutionText`, `PersonalResolutionSummary`, `MemberResolutionCounts`, `TaskResolutionSpecs`, listeners; remove `resolutions.create` and `resolutions.redirect` from `Permission` and the role builder, with a migration deleting both keys from role-permission rows (after `tasks.assign` was granted in INC-071); legacy audit entity types stay readable (RR-7); legacy tables retained, never written; OpenAPI regenerated without `/resolutions`.
