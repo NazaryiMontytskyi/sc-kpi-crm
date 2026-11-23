@@ -154,6 +154,38 @@ describe('PermissionEditor', () => {
   });
 });
 
+describe('permission catalog mapping', () => {
+  it('uses the backend labels, so tasks.assign needs no frontend key', () => {
+    const [group] = api.toPermissionGroups([
+      { code: 'tasks', label: 'Задачі', permissions: [{ key: 'tasks.assign', label: 'Призначення виконавців завдань' }] },
+    ]);
+    expect(group.permissions).toEqual([{ key: 'tasks.assign', label: 'Призначення виконавців завдань' }]);
+  });
+
+  it('renders keys the frontend does not know by their key when the label is missing or blank', () => {
+    const groups = api.toPermissionGroups([
+      {
+        code: 'legacy',
+        label: ' ',
+        permissions: [{ key: 'legacy.something' }, { key: 'legacy.other', label: '' }, { label: 'No key' }],
+      },
+    ]);
+    expect(groups).toEqual([
+      {
+        code: 'legacy',
+        label: 'legacy',
+        permissions: [
+          { key: 'legacy.something', label: 'legacy.something' },
+          { key: 'legacy.other', label: 'legacy.other' },
+        ],
+      },
+    ]);
+    renderIn(<PermissionEditor value={['legacy.other']} onChange={() => undefined} groups={groups} />, []);
+    expect(screen.getByLabelText('legacy.something')).not.toBeChecked();
+    expect(screen.getByLabelText('legacy.other')).toBeChecked();
+  });
+});
+
 describe('RolesPage', () => {
   it('hides mutating actions without roles.manage', async () => {
     renderIn(<RolesPage />, []);

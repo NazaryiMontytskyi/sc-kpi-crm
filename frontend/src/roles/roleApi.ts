@@ -73,15 +73,24 @@ export async function archiveRole(id: string): Promise<Role> {
   return toRole(data);
 }
 
+/**
+ * Maps the catalog response. Labels are localized by the backend, so the UI keeps no per-key labels: any key the
+ * backend lists (including ones it adds or retires later) renders generically, and a missing or blank label falls
+ * back to the key itself instead of an empty checkbox. Entries without a key are dropped.
+ */
+export function toPermissionGroups(data: readonly components['schemas']['PermissionGroupDto'][]): PermissionGroup[] {
+  return data.map((g) => ({
+    code: g.code ?? '',
+    label: g.label?.trim() || g.code || '',
+    permissions: (g.permissions ?? []).flatMap((p) => (p.key ? [{ key: p.key, label: p.label?.trim() || p.key }] : [])),
+  }));
+}
+
 /** The permission catalog grouped as in CONTEXT.md 5.2, labels in the language of the signed-in user. */
 export async function listPermissionGroups(): Promise<PermissionGroup[]> {
   const { data, error, response } = await api.GET('/api/v1/permissions');
   if (!data) throw toProblemError(response, error);
-  return data.map((g) => ({
-    code: g.code ?? '',
-    label: g.label ?? '',
-    permissions: (g.permissions ?? []).map((p) => ({ key: p.key ?? '', label: p.label ?? p.key ?? '' })),
-  }));
+  return toPermissionGroups(data);
 }
 
 export async function listUserRoles(userId: string): Promise<Role[]> {
