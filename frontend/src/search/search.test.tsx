@@ -17,7 +17,6 @@ const empty = { total: 0, items: [] };
 const result = (over: Partial<api.SearchResult> = {}): api.SearchResult => ({
   query: 'abc',
   tasks: empty,
-  resolutions: empty,
   articles: empty,
   people: empty,
   orgUnits: empty,
@@ -25,7 +24,7 @@ const result = (over: Partial<api.SearchResult> = {}): api.SearchResult => ({
 });
 const full = result({
   tasks: { total: 7, items: [{ id: 't1', title: 'Task one', snippet: 'snip' }] },
-  resolutions: { total: 1, items: [{ id: 'r1', title: 'Res one', snippet: '', parentId: 't9' }] },
+  articles: { total: 1, items: [{ id: 'a1', title: 'Fake article', snippet: '' }] },
   people: { total: 1, items: [{ id: 'p1', title: 'Fake Person', snippet: '' }] },
 });
 
@@ -61,14 +60,13 @@ beforeEach(async () => {
 describe('searchLogic', () => {
   it('maps hits to routes', () => {
     expect(hitLink('tasks', { id: 'a', title: '', snippet: '' })).toBe('/tasks/a');
-    expect(hitLink('resolutions', { id: 'r', title: '', snippet: '', parentId: 't' })).toBe('/tasks/t?tab=resolutions');
     expect(hitLink('articles', { id: 'a', title: '', snippet: '' })).toBe('/knowledge/a');
     expect(hitLink('people', { id: 'p', title: '', snippet: '' })).toBe('/members/p');
     expect(hitLink('orgUnits', { id: 'o', title: '', snippet: '' })).toBe('/org/o');
   });
 
   it('hides empty groups', () => {
-    expect(visibleGroups(full).map((g) => g.key)).toEqual(['tasks', 'resolutions', 'people']);
+    expect(visibleGroups(full).map((g) => g.key)).toEqual(['tasks', 'articles', 'people']);
   });
 });
 
@@ -79,8 +77,8 @@ describe('SearchPage', () => {
     expect(await screen.findByText('Task one')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('and 6 more')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Articles' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Res one/ })).toHaveAttribute('href', '/tasks/t9?tab=resolutions');
+    expect(screen.queryByRole('heading', { name: 'Org units' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Fake article/ })).toHaveAttribute('href', '/knowledge/a1');
     expect(screen.getByRole('link', { name: /Fake Person/ })).toHaveAttribute('href', '/members/p1');
     expect(api.searchAll).toHaveBeenCalledWith('abc', api.PAGE_LIMIT);
   });

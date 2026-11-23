@@ -3,7 +3,7 @@ import { configure, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { changeLanguage } from '../i18n';
+import i18n, { changeLanguage } from '../i18n';
 import { renderWithProviders } from '../test/render';
 import { NotificationBell } from './NotificationBell';
 import { formatBadgeCount, notificationLink, notificationTypeKey } from './notificationLogic';
@@ -22,10 +22,10 @@ configure({ asyncUtilTimeout: 5000 });
 
 const note = (id: string, over: Partial<api.AppNotification> = {}): api.AppNotification => ({
   id,
-  type: 'RESOLUTION_ISSUED',
-  targetType: 'RESOLUTION',
-  targetId: 'r1',
-  payload: { taskId: 't1', resolutionId: 'r1' },
+  type: 'TASK_ASSIGNED',
+  targetType: 'TASK',
+  targetId: 't1',
+  payload: { taskId: 't1' },
   text: `Текст ${id}`,
   read: false,
   readAt: null,
@@ -55,22 +55,41 @@ beforeEach(async () => {
   await changeLanguage('uk');
 });
 
+/** A stored notification of a retired type (deprecated backend enum value), as it may still be in the database. */
+const LEGACY = note('old', { type: 'RESOLUTION_ISSUED', targetType: 'RESOLUTION', targetId: 'r1', payload: { taskId: 't7' }, text: 'Старий текст' });
+
+const NEW_TYPES = ['TASK_ASSIGNED', 'TASK_UNASSIGNED', 'TASK_DEADLINE_CHANGED', 'TASK_DUE_SOON', 'TASK_OVERDUE', 'SUBTASK_ADDED', 'TASK_STATUS_CHANGED'];
+
 describe('notification logic', () => {
-  it('builds deep links for resolutions, tasks and comments', () => {
-    expect(notificationLink(note('a'))).toBe('/tasks/t1?tab=resolutions');
-    expect(notificationLink(note('a', { payload: {} }))).toBe('/resolutions/r1');
-    expect(notificationLink(note('a', { type: 'MENTION', targetType: 'TASK', targetId: 't9', payload: { commentId: 'c' } }))).toBe(
-      '/tasks/t9?tab=comments',
-    );
-    expect(notificationLink(note('a', { targetType: 'POLL' }))).toBeNull();
+  it('opens tasks in the panel and mentions on the comments tab', () => {
+    expect(notificationLink(note('a'))).toBe('/tasks/t1');
+    expect(notificationLink(note('a', { type: 'SUBTASK_ADDED', targetId: 's1', payload: { taskId: 't1', subtaskId: 's1' } }))).toBe('/tasks/s1');
+    expect(notificationLink(note('a', { type: 'MENTION', targetId: 't9', payload: { commentId: 'c' } }))).toBe('/tasks/t9?tab=comments');
+    expect(notificationLink(note('a', { targetType: 'POLL', payload: {} }))).toBeNull();
     expect(notificationLink(note('a', { targetId: '' }))).toBeNull();
   });
 
-  it('maps types to labels with a fallback and caps the badge', () => {
-    expect(notificationTypeKey('RESOLUTION_OVERDUE')).toBe('notifications.type.RESOLUTION_OVERDUE');
+  it('opens the task of a stored notification of a retired type', () => {
+    expect(notificationLink(LEGACY)).toBe('/tasks/t7');
+    expect(notificationLink({ ...LEGACY, payload: {} })).toBeNull();
+  });
+
+  it('labels every new task type and falls back to a generic label for retired or unknown ones', () => {
+    for (const type of NEW_TYPES) expect(notificationTypeKey(type)).toBe(`notifications.type.${type}`);
+    expect(notificationTypeKey(LEGACY.type)).toBe('notifications.type.OTHER');
     expect(notificationTypeKey('SOMETHING_NEW')).toBe('notifications.type.OTHER');
     expect(formatBadgeCount(5)).toBe('5');
     expect(formatBadgeCount(150)).toBe('99+');
+  });
+
+  it('has a distinct uk and en label for every new type', async () => {
+    for (const lang of ['uk', 'en'] as const) {
+      await changeLanguage(lang);
+      const labels = NEW_TYPES.map((type) => i18n.t(notificationTypeKey(type)));
+      labels.forEach((label, i) => expect(label).not.toBe(`notifications.type.${NEW_TYPES[i]}`));
+      expect(new Set(labels).size).toBe(NEW_TYPES.length);
+    }
+    await changeLanguage('uk');
   });
 });
 
@@ -105,8 +124,18 @@ describe('NotificationBell', () => {
     await userEvent.click(screen.getByTestId('bell-slot'));
     await userEvent.click(await screen.findByText('Текст n1'));
     expect(api.markNotificationRead).toHaveBeenCalledWith('n1');
-    expect(screen.getByTestId('where')).toHaveTextContent('/tasks/t1?tab=resolutions');
+    expect(screen.getByTestId('where')).toHaveTextContent('/tasks/t1');
     await waitFor(() => expect(api.getUnreadCount).toHaveBeenCalledTimes(2));
+  });
+
+  it('opens a stored notification of a retired type at its task', async () => {
+    vi.mocked(api.getUnreadCount).mockResolvedValue(1);
+    vi.mocked(api.listNotifications).mockResolvedValue(page([LEGACY]));
+    vi.mocked(api.markNotificationRead).mockResolvedValue({ ...LEGACY, read: true });
+    renderUi(<NotificationBell />);
+    await userEvent.click(screen.getByTestId('bell-slot'));
+    await userEvent.click(await screen.findByText('Старий текст'));
+    expect(screen.getByTestId('where')).toHaveTextContent('/tasks/t7');
   });
 });
 
@@ -128,6 +157,28 @@ describe('NotificationsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
     await waitFor(() => expect(api.markAllNotificationsRead).toHaveBeenCalled());
+    await changeLanguage('uk');
+  });
+});
+
+describe('notification rendering', () => {
+  const item = (text: string) => screen.getAllByTestId('notification-item').find((el) => el.textContent?.includes(text))!;
+
+  it('renders the new task types and a retired type in uk and en', async () => {
+    vi.mocked(api.getUnreadCount).mockResolvedValue(0);
+    vi.mocked(api.listNotifications).mockResolvedValue(
+      page([note('n1', { read: true }), note('n2', { type: 'SUBTASK_ADDED', read: true }), { ...LEGACY, read: true }]),
+    );
+    renderUi(<NotificationsPage />);
+    expect(await screen.findByText('Старий текст')).toBeInTheDocument();
+    expect(item('Текст n1')).toHaveTextContent('Вас призначено до задачі');
+    expect(item('Текст n2')).toHaveTextContent('Додано підзадачу');
+    expect(item('Старий текст')).toHaveTextContent('Сповіщення');
+
+    await changeLanguage('en');
+    await waitFor(() => expect(item('Текст n1')).toHaveTextContent('Assigned to a task'));
+    expect(item('Текст n2')).toHaveTextContent('Subtask added');
+    expect(item('Старий текст')).toHaveTextContent('Notification');
     await changeLanguage('uk');
   });
 });

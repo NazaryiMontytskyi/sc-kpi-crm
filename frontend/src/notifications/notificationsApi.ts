@@ -3,16 +3,18 @@ import { toProblemError } from '../api/problem';
 
 type Schemas = components['schemas'];
 
-/** Known notification types; the backend may add more (e.g. due-date reminders), so the field is a plain string. */
+/**
+ * Notification types with their own label (spec NT-6). The field stays a plain string: stored notifications of
+ * retired types and types the backend adds later render with the generic label and their stored text.
+ */
 export const NOTIFICATION_TYPES = [
-  'RESOLUTION_ISSUED',
-  'RESOLUTION_REDIRECTED',
-  'RESOLUTION_SUBMITTED',
-  'RESOLUTION_ACCEPTED',
-  'RESOLUTION_REWORK',
-  'RESOLUTION_CHILD_ACCEPTED',
-  'RESOLUTION_DUE_SOON',
-  'RESOLUTION_OVERDUE',
+  'TASK_ASSIGNED',
+  'TASK_UNASSIGNED',
+  'TASK_DEADLINE_CHANGED',
+  'TASK_DUE_SOON',
+  'TASK_OVERDUE',
+  'SUBTASK_ADDED',
+  'TASK_STATUS_CHANGED',
   'MENTION',
   'POLL_OPENED',
   'POLL_CLOSED',

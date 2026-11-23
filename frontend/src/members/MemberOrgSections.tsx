@@ -42,7 +42,7 @@ function Placeholder({ title, text, testId }: { title: string; text: string; tes
 
 /**
  * Org-related sections of the member profile (INC-021): positions and unit memberships, current and past,
- * plus empty slots for tasks/resolutions (INC-037) and statistics (v2).
+ * plus an empty slot for statistics (v2). The member's tasks are a section of their own (`MemberTasksSection`).
  */
 export function MemberOrgSections({ userId }: { userId: string }) {
   const { t } = useTranslation();
@@ -121,12 +121,6 @@ export function MemberOrgSections({ userId }: { userId: string }) {
         </Stack>
       </Card>
 
-      <Placeholder title={t('members.profile.tasks')} text={t('members.profile.tasksEmpty')} testId="profile-tasks" />
-      <Placeholder
-        title={t('members.profile.resolutions')}
-        text={t('members.profile.resolutionsEmpty')}
-        testId="profile-resolutions"
-      />
       <Placeholder
         title={t('members.profile.statistics')}
         text={t('members.profile.statisticsEmpty')}

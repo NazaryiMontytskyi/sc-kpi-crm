@@ -143,7 +143,6 @@ const DETAIL: api.Task = {
   relatedTaskIds: ['rel1'],
   attachmentIds: ['old1'],
   attachments: [],
-  suggestDone: false,
   issuedAt: '2031-01-01T10:00:00Z',
   creatorId: 'creator',
   assigneeIds: ['u1', 'u2'],

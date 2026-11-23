@@ -80,7 +80,7 @@ export const DEFAULT_QUERY: TaskQuery = {
 
 /** Number of active filters (shown on the drawer button); sort and paging are not filters. */
 export function activeFilterCount(q: TaskQuery): number {
-  return [q.spaceId, q.statusId, q.deadlineFrom, q.deadlineTo, q.executorId, q.authorId, q.resolutionState].filter(Boolean).length + (q.labels.length > 0 ? 1 : 0) + (q.includeArchived ? 1 : 0);
+  return [q.spaceId, q.statusId, q.deadlineFrom, q.deadlineTo, q.assignee, q.creator].filter(Boolean).length + (q.labels.length > 0 ? 1 : 0) + (q.includeArchived ? 1 : 0);
 }
 
 /** The saved-filter part of a query (sorting, paging and the archived switch are not stored). */
@@ -89,9 +89,8 @@ export function criteriaFromQuery(q: TaskQuery): FilterCriteria {
     spaceId: q.spaceId,
     statusId: q.statusId,
     labels: [...q.labels],
-    executorId: q.executorId,
-    authorId: q.authorId,
-    resolutionState: q.resolutionState,
+    assignee: q.assignee,
+    creator: q.creator,
     view: q.view,
     deadlineFrom: q.deadlineFrom,
     deadlineTo: q.deadlineTo,
@@ -105,9 +104,8 @@ export function queryFromCriteria(c: FilterCriteria, base: TaskQuery): TaskQuery
     spaceId: c.spaceId,
     statusId: c.statusId,
     labels: [...c.labels],
-    executorId: c.executorId,
-    authorId: c.authorId,
-    resolutionState: c.resolutionState,
+    assignee: c.assignee,
+    creator: c.creator,
     view: c.view,
     deadlineFrom: c.deadlineFrom,
     deadlineTo: c.deadlineTo,
@@ -121,9 +119,8 @@ const norm = (c: FilterCriteria) =>
     c.spaceId ?? null,
     c.statusId ?? null,
     [...c.labels].sort(),
-    c.executorId ?? null,
-    c.authorId ?? null,
-    c.resolutionState ?? null,
+    c.assignee ?? null,
+    c.creator ?? null,
     c.view ?? null,
     c.deadlineFrom ?? null,
     c.deadlineTo ?? null,

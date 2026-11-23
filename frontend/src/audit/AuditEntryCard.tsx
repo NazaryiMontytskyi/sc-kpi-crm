@@ -2,6 +2,7 @@ import { Badge, Card, Group, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { AuditEntry } from './auditApi';
 import { diffStates, formatAuditValue } from './auditDiff';
+import { auditEntityTypeLabel } from './auditEntityTypes';
 import { formatKyivDateTime } from './kyivTime';
 
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
@@ -75,6 +76,7 @@ export function ChangeList({ entry }: { entry: AuditEntry }) {
 /** One audit record: action, actor, time (Europe/Kyiv) and the field diff. Shared by the log and EntityHistory. */
 export function AuditEntryCard({ entry, showEntity = false }: { entry: AuditEntry; showEntity?: boolean }) {
   const { t, i18n } = useTranslation();
+  const entityLabel = auditEntityTypeLabel(entry.entityType);
   return (
     <Card withBorder padding="sm" data-testid="audit-entry">
       <Stack gap="xs">
@@ -88,8 +90,8 @@ export function AuditEntryCard({ entry, showEntity = false }: { entry: AuditEntr
           {t('audit.actor')}: <ActorLabel actorId={entry.actorId} />
         </Text>
         {showEntity && (
-          <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-            {entry.entityType}
+          <Text size="sm" style={{ overflowWrap: 'anywhere' }} data-testid="audit-entity">
+            {t(entityLabel.key, entityLabel.values)}
             {entry.entityId ? ` · ${entry.entityId}` : ''}
           </Text>
         )}

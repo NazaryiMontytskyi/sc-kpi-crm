@@ -12,7 +12,7 @@ import { MemberActivitySection } from './MemberActivitySection';
 import { MemberAvatar } from './MemberAvatar';
 import { MemberFormModal } from './MemberFormModal';
 import { MemberOrgSections } from './MemberOrgSections';
-import { MemberResolutionsSection } from './MemberResolutionsSection';
+import { MemberTasksSection } from './MemberTasksSection';
 import type { Member } from './memberApi';
 import { formatDate, fullName, memberFacultyName, telegramLink } from './memberFormat';
 import { memberErrorKey } from './memberProblems';
@@ -209,7 +209,7 @@ export function MemberProfilePage() {
       {isSelf && <LanguageSetting />}
       <MemberActivitySection member={member} />
       <MemberOrgSections userId={member.id} />
-      <MemberResolutionsSection userId={member.id} />
+      <MemberTasksSection userId={member.id} />
 
       <Accordion variant="contained" multiple={false}>
         <Accordion.Item value="history">

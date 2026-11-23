@@ -97,7 +97,6 @@ const TASK: api.Task = {
   relatedTaskIds: ["rel1"],
   attachmentIds: ["att1", "att2"],
   attachments: [{ id: "att1", fileName: "a.pdf", mimeType: "application/pdf", size: 2048 }, { id: "att2", fileName: "b.png", mimeType: "image/png", size: 10 }],
-  suggestDone: false,
   parentId: null,
   version: 7,
   assigneeIds: [],
@@ -304,7 +303,6 @@ describe('task panel (former detail page)', () => {
     await screen.findByTestId('task-panel-body');
     expect(screen.queryByRole('button', { name: 'В архів' })).toBeNull();
     expect(screen.getByRole('tab', { name: 'Коментарі' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Резолюції' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Історія' })).toBeInTheDocument();
   });
 });

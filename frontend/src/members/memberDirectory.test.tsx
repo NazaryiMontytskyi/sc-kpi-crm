@@ -240,9 +240,9 @@ describe('MemberOrgSections', () => {
     expect(memberships.textContent).toContain('Фейковий департамент');
     expect(memberships.textContent).toContain('Старий департамент');
     expect(memberships.textContent).toContain('01.01.2029 — 01.01.2030');
-    for (const id of ['profile-tasks', 'profile-resolutions', 'profile-statistics']) {
-      expect(screen.getByTestId(id)).toBeInTheDocument();
-    }
+    expect(screen.getByTestId('profile-statistics')).toBeInTheDocument();
+    // The member's tasks are a section of their own (MemberTasksSection), not a placeholder here.
+    expect(screen.queryByTestId('profile-tasks')).toBeNull();
   });
 
   it('shows empty states when the person has no positions or memberships', async () => {

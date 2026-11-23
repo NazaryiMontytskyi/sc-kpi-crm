@@ -3,13 +3,14 @@ import { configure, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { STUB_AUTH_STATE, CurrentUserProvider, type AuthState } from '../auth/CurrentUser';
-import { changeLanguage } from '../i18n';
+import i18n, { changeLanguage } from '../i18n';
 import { visibleNavRoutes } from '../layout/AppLayout';
 import { appRoutes } from '../layout/routes';
 import { renderWithProviders } from '../test/render';
 import { AuditPage, toFilters } from './AuditPage';
 import * as api from './auditApi';
 import { diffStates, formatAuditValue } from './auditDiff';
+import { AUDIT_ENTITY_TYPES, auditEntityTypeLabel } from './auditEntityTypes';
 import { EntityHistory } from './EntityHistory';
 import { formatKyivDateTime, kyivDayStartIso } from './kyivTime';
 
@@ -180,5 +181,42 @@ describe('AuditPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Скинути' }));
     await waitFor(() => expect(api.listAudit).toHaveBeenLastCalledWith({}, 0));
     expect(screen.getByLabelText('Тип об’єкта')).toHaveValue('');
+  });
+});
+
+describe('audit entity types (RR-7)', () => {
+  it('labels known types and falls back to a generic label for retired or unknown ones', () => {
+    expect(auditEntityTypeLabel('Task')).toEqual({ key: 'audit.entityTypes.Task', values: { type: 'Task' } });
+    // Past rows of a retired feature keep their stored type; history is never rewritten.
+    expect(auditEntityTypeLabel('Resolution').key).toBe('audit.entityTypes.OTHER');
+    expect(auditEntityTypeLabel('FakeThing').key).toBe('audit.entityTypes.OTHER');
+  });
+
+  it('has a uk and an en label for every known type and for the fallback', async () => {
+    for (const lang of ['uk', 'en'] as const) {
+      await changeLanguage(lang);
+      for (const type of [...AUDIT_ENTITY_TYPES, 'OTHER']) {
+        expect(i18n.exists(`audit.entityTypes.${type}`)).toBe(true);
+      }
+    }
+    await changeLanguage('uk');
+  });
+
+  it('renders a known type by its label and a legacy type generically in the log', async () => {
+    vi.mocked(api.listAudit).mockResolvedValue(
+      page([
+        { ...ENTRY_UPDATE, id: 'k', entityType: 'Task' },
+        { ...ENTRY_UPDATE, id: 'l', entityType: 'Resolution', entityId: 'bbbbbbbb-0000-0000-0000-000000000002' },
+      ]),
+    );
+    renderIn(<AuditPage />, ['audit.view']);
+    const [known, legacy] = await screen.findAllByTestId('audit-entity');
+    expect(known).toHaveTextContent('Задача · aaaaaaaa-0000-0000-0000-000000000001');
+    expect(legacy).toHaveTextContent('Інший об’єкт (Resolution) · bbbbbbbb-0000-0000-0000-000000000002');
+
+    await changeLanguage('en');
+    await waitFor(() => expect(screen.getAllByTestId('audit-entity')[1]).toHaveTextContent('Other object (Resolution)'));
+    expect(screen.getAllByTestId('audit-entity')[0]).toHaveTextContent('Task ·');
+    await changeLanguage('uk');
   });
 });

@@ -83,7 +83,6 @@ beforeEach(async () => {
     relatedTaskIds: [],
     attachmentIds: [],
     attachments: [],
-    suggestDone: false,
     issuedAt: null,
     creatorId: null,
     assignees: [],

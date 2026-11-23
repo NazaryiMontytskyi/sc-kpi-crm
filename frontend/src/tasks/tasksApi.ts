@@ -96,8 +96,6 @@ export interface Task extends TaskSummary {
   attachmentIds: string[];
   /** The same files with metadata for display. */
   attachments: AttachmentInfo[];
-  /** Computed by the backend: every non-canceled resolution is accepted and the task is not yet done. */
-  suggestDone: boolean;
   /** Issue date (UTC instant), shown in Europe/Kyiv. */
   issuedAt: string | null;
   creatorId: string | null;
@@ -145,9 +143,7 @@ export interface CreateCustomFieldInput extends CustomFieldInput {
   type: CustomFieldType;
 }
 
-export type ResolutionState = NonNullable<Schemas['SavedFilterCriteria']['resolutionState']>;
 export type QuickView = NonNullable<Schemas['SavedFilterCriteria']['view']>;
-export const RESOLUTION_STATE_LIST: readonly ResolutionState[] = ['NEW', 'IN_PROGRESS', 'SUBMITTED', 'REWORK', 'ACCEPTED', 'REDIRECTED', 'CANCELED'];
 export const QUICK_VIEWS: readonly QuickView[] = ['MY_TASKS', 'ISSUED_BY_ME', 'OVERDUE'];
 
 /** The part of a task query that a saved filter stores (no sorting or paging). */
@@ -155,9 +151,10 @@ export interface FilterCriteria {
   spaceId?: string;
   statusId?: string;
   labels: string[];
-  executorId?: string;
-  authorId?: string;
-  resolutionState?: ResolutionState;
+  /** An active assignee of the task. */
+  assignee?: string;
+  /** The creator of the task. */
+  creator?: string;
   view?: QuickView;
   deadlineFrom?: string;
   deadlineTo?: string;
@@ -179,10 +176,9 @@ export interface TaskQuery {
   deadlineFrom?: string;
   deadlineTo?: string;
   includeArchived: boolean;
-  /** Resolution filters: executor (or co-executor), author, state; they apply to one and the same resolution. */
-  executorId?: string;
-  authorId?: string;
-  resolutionState?: ResolutionState;
+  /** People filters (spec §3): an active assignee and the creator of the task. */
+  assignee?: string;
+  creator?: string;
   /** Built-in quick view, evaluated by the backend for the current user. */
   view?: QuickView;
   sortBy: TaskSortField;
@@ -301,7 +297,6 @@ function toTask(t: Schemas['TaskResponse']): Task {
     attachments: (t.attachments ?? []).flatMap((a) =>
       a.id ? [{ id: a.id, fileName: a.fileName ?? '', mimeType: a.mimeType ?? '', size: a.size ?? 0 }] : [],
     ),
-    suggestDone: t.suggestDone === true,
     issuedAt: t.issuedAt ?? null,
     creatorId: t.creatorId ?? null,
     assignees,
@@ -433,9 +428,8 @@ export async function listTasks(q: TaskQuery): Promise<Paged<TaskSummary>> {
         deadlineFrom: q.deadlineFrom,
         deadlineTo: q.deadlineTo,
         includeArchived: q.includeArchived || undefined,
-        executorId: q.executorId,
-        authorId: q.authorId,
-        resolutionState: q.resolutionState,
+        assignee: q.assignee,
+        creator: q.creator,
         view: q.view,
       },
     },
@@ -592,12 +586,22 @@ export async function restoreTask(id: string): Promise<Task> {
 
 // ---- saved filters ---------------------------------------------------------------------------
 
+/** Only the criteria the tracker understands are kept; fields the backend still stores for old filters are dropped. */
 function toSavedFilter(f: Schemas['SavedFilterResponse']): SavedFilter {
   const c = f.criteria ?? {};
   return {
     id: f.id ?? '',
     name: f.name ?? '',
-    criteria: { ...c, labels: c.labels ?? [] },
+    criteria: {
+      spaceId: c.spaceId,
+      statusId: c.statusId,
+      labels: c.labels ?? [],
+      assignee: c.assignee,
+      creator: c.creator,
+      view: c.view,
+      deadlineFrom: c.deadlineFrom,
+      deadlineTo: c.deadlineTo,
+    },
   };
 }
 

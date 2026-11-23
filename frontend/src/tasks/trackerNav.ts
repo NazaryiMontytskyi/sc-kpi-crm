@@ -65,3 +65,16 @@ export function useClosePanel(): () => void {
     else navigate({ pathname: '/tasks', search: trackerSearch(location.search) });
   }, [location.state, location.search, navigate]);
 }
+
+/**
+ * Tracker URL for an old personal-list or item URL (the part after its retired prefix; spec §7): the personal
+ * lists open the matching tracker section, a single item id opens that task in the panel (migrated items kept
+ * their ids as subtasks, ADR-0010), anything else opens the tracker.
+ */
+export function legacyTrackerPath(rest: string): string {
+  const segments = rest.split('/').filter((s) => s !== '');
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === 'mine')) return '/tasks';
+  if (segments.length === 1 && segments[0] === 'issued') return '/tasks?section=issued';
+  if (segments.length === 1) return `/tasks/${encodeURIComponent(segments[0])}`;
+  return '/tasks';
+}

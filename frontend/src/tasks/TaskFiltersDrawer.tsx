@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { fullName } from '../members/memberFormat';
 import { useMembers } from '../members/useMembers';
 import { DEFAULT_QUERY } from './taskLogic';
-import { RESOLUTION_STATE_LIST, type SpaceSummary, type TaskQuery } from './tasksApi';
+import type { SpaceSummary, TaskQuery } from './tasksApi';
 import { useSpace } from './useTasks';
 
 interface Props {
@@ -47,30 +47,22 @@ export function TaskFiltersDrawer({ opened, onClose, query, onChange, spaces, ca
           size="md"
         />
         <Select
-          label={t('tasks.filters.executor')}
-          description={t('tasks.filters.executorHint')}
+          label={t('tasks.filters.assignee')}
+          description={t('tasks.filters.assigneeHint')}
           data={memberOptions}
-          value={query.executorId ?? null}
-          onChange={(v) => set({ executorId: v ?? undefined })}
+          value={query.assignee ?? null}
+          onChange={(v) => set({ assignee: v ?? undefined })}
           clearable
           searchable
           size="md"
         />
         <Select
-          label={t('tasks.filters.resolutionAuthor')}
+          label={t('tasks.filters.creator')}
           data={memberOptions}
-          value={query.authorId ?? null}
-          onChange={(v) => set({ authorId: v ?? undefined })}
+          value={query.creator ?? null}
+          onChange={(v) => set({ creator: v ?? undefined })}
           clearable
           searchable
-          size="md"
-        />
-        <Select
-          label={t('tasks.filters.resolutionState')}
-          data={RESOLUTION_STATE_LIST.map((st) => ({ value: st, label: t(`resolutions.state.${st}`) }))}
-          value={query.resolutionState ?? null}
-          onChange={(v) => set({ resolutionState: (v as TaskQuery['resolutionState']) ?? undefined })}
-          clearable
           size="md"
         />
         <TextInput label={t('tasks.filters.deadlineFrom')} type="date" value={query.deadlineFrom ?? ''} onChange={(e) => set({ deadlineFrom: e.currentTarget.value || undefined })} size="md" />

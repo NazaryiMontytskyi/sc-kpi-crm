@@ -24,28 +24,8 @@
     "org": "Структура",
     "tasks": "Задачі",
     "spaces": "Простори",
-    "myResolutions": "Мої резолюції",
-    "issuedByMe": "Видані мною",
     "knowledge": "База знань",
     "notifications": "Сповіщення"
-  },
-  "memberResolutions": {
-    "profileTitle": "Резолюції",
-    "counts": {
-      "active": "Активні",
-      "overdue": "Прострочені",
-      "accepted": "Прийняті"
-    },
-    "empty": "У цьому розрізі резолюцій немає.",
-    "emptyActive": "Активних резолюцій немає.",
-    "emptyIssued": "У цьому розрізі виданих резолюцій немає.",
-    "loadFailed": "Не вдалося завантажити резолюції.",
-    "untitledTask": "Задача",
-    "filter": {
-      "label": "Фільтр за станом",
-      "ACTIVE": "Активні",
-      "ALL": "Усі"
-    }
   },
   "layout": {
     "menu": "Меню",
@@ -76,15 +56,12 @@
     "description": "Розділи з’являтимуться в меню в міру їх запуску."
   },
   "dashboard": {
-    "myResolutions": {
-      "title": "Мої резолюції",
-      "openAll": "Відкрити список",
-      "active": "Активні",
+    "myTasks": {
+      "title": "Мої задачі",
+      "openAll": "Відкрити трекер",
+      "active": "Відкриті",
       "overdue": "Прострочені",
-      "awaitingAcceptance": "Очікують мого прийняття",
-      "upcoming": "Найближчі строки",
-      "empty": "Немає активних резолюцій.",
-      "loadFailed": "Не вдалося завантажити ваші резолюції."
+      "loadFailed": "Не вдалося завантажити ваші показники."
     }
   },
   "auth": {
@@ -231,20 +208,6 @@
     "TASK_TOO_MANY_ATTACHMENTS": "Забагато вкладень.",
     "TASK_TOO_MANY_LABELS": "Забагато міток.",
     "TASK_TOO_MANY_RELATED": "Забагато пов'язаних задач.",
-    "RESOLUTION_TRANSITION_NOT_ALLOWED": "Ця дія недоступна для резолюції в поточному стані.",
-    "RESOLUTION_NOT_EXECUTOR": "Цю дію може виконати лише виконавець резолюції.",
-    "RESOLUTION_NOT_AUTHOR": "Цю дію може виконати лише автор резолюції.",
-    "RESOLUTION_COMPLETION_NOTE_REQUIRED": "Коротко опишіть, як було виконано резолюцію.",
-    "RESOLUTION_REWORK_COMMENT_REQUIRED": "Поясніть, що потрібно доопрацювати.",
-    "RESOLUTION_INSTRUCTION_REQUIRED": "Текст доручення в резолюції не може бути порожнім.",
-    "RESOLUTION_DUE_DATE_REQUIRED": "Для резолюції потрібно вказати термін виконання.",
-    "RESOLUTION_EXECUTOR_INVALID": "Виконавець має бути активним користувачем.",
-    "RESOLUTION_CO_EXECUTOR_INVALID": "Кожен співвиконавець має бути активним користувачем.",
-    "RESOLUTION_DUE_DATE_IN_PAST": "Термін виконання не може бути раніше за сьогодні.",
-    "RESOLUTION_ARCHIVED": "Архівовану резолюцію не можна змінювати.",
-    "RESOLUTION_REDIRECT_TO_SELF": "Оберіть іншого виконавця для переадресації резолюції.",
-    "RESOLUTION_REDIRECT_CYCLE": "Ця особа вже є автором або виконавцем раніше в ланцюжку цієї резолюції.",
-    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "Термін нової резолюції пізніший за термін початкової.",
     "SAVED_FILTER_NAME_TAKEN": "У вас уже є збережений фільтр з такою назвою.",
     "SAVED_FILTER_LIMIT": "Можна зберегти не більше 50 фільтрів. Видаліть непотрібні.",
     "ARTICLE_ARCHIVED": "Архівований документ не можна змінювати. Спочатку відновіть його.",
@@ -323,7 +286,6 @@
     "restricted": "Обмежений доступ",
     "groups": {
       "tasks": "Завдання",
-      "resolutions": "Резолюції",
       "articles": "Статті",
       "people": "Люди",
       "orgUnits": "Підрозділи"
@@ -420,6 +382,34 @@
       "VOTE": "Голос",
       "VOTE_CHANGE": "Зміна голосу",
       "HANDOVER": "Передача справ"
+    },
+    "entityTypes": {
+      "User": "Обліковий запис",
+      "MemberProfile": "Профіль члена СР",
+      "Faculty": "Факультет",
+      "ActivityLevelDefinition": "Ступінь активності",
+      "ActivityLevelChange": "Зміна ступеня активності",
+      "OrgUnit": "Оргодиниця",
+      "Position": "Посада",
+      "Appointment": "Призначення",
+      "Membership": "Членство в оргодиниці",
+      "Role": "Роль",
+      "RoleAssignment": "Призначення ролі",
+      "Space": "Простір",
+      "SpaceStatus": "Статус простору",
+      "CustomFieldDefinition": "Додаткове поле",
+      "SavedFilter": "Збережений фільтр",
+      "Task": "Задача",
+      "TaskAssignee": "Виконавець задачі",
+      "TaskArtifact": "Артефакт задачі",
+      "Comment": "Коментар",
+      "Article": "Документ",
+      "ArticleVersion": "Версія документа",
+      "OnboardingList": "Онбординг-добірка",
+      "FileObject": "Файл",
+      "Notification": "Сповіщення",
+      "SearchIndex": "Пошуковий індекс",
+      "OTHER": "Інший об’єкт ({{type}})"
     }
   },
   "members": {
@@ -568,10 +558,6 @@
       "unknownUnit": "Невідомий підрозділ",
       "unknownPosition": "Невідома посада",
       "loadFailed": "Не вдалося завантажити дані про структуру.",
-      "tasks": "Активні задачі",
-      "tasksEmpty": "Тут з’являться активні задачі учасника, коли буде доступний трекер задач.",
-      "resolutions": "Резолюції",
-      "resolutionsEmpty": "Тут з’являться резолюції учасника, коли буде доступний трекер задач.",
       "statistics": "Статистика",
       "statisticsEmpty": "Статистика участі з’явиться пізніше."
     },
@@ -587,6 +573,19 @@
       "save": "Зберегти",
       "history": "Історія змін",
       "historyEmpty": "Змін ще не було."
+    },
+    "tasks": {
+      "title": "Задачі",
+      "counts": {
+        "active": "Відкриті",
+        "overdue": "Прострочені",
+        "done": "Виконані"
+      },
+      "empty": "Відкритих задач немає.",
+      "loadFailed": "Не вдалося завантажити задачі.",
+      "loadMore": "Показати ще",
+      "deadline": "Дедлайн: {{date}}",
+      "noDeadline": "Без дедлайну"
     }
   },
   "org": {
@@ -817,10 +816,9 @@
       "includeArchived": "Показувати архівні",
       "reset": "Скинути",
       "done": "Готово",
-      "executor": "Виконавець",
-      "executorHint": "Враховуються й співвиконавці",
-      "resolutionAuthor": "Автор резолюції",
-      "resolutionState": "Стан резолюції"
+      "assignee": "Виконавець",
+      "assigneeHint": "Активний виконавець задачі",
+      "creator": "Створив(-ла)"
     },
     "form": {
       "createTitle": "Нова задача",
@@ -844,7 +842,6 @@
     },
     "tabs": {
       "comments": "Коментарі",
-      "resolutions": "Резолюції",
       "history": "Історія",
       "soon": "Цей розділ з'явиться згодом."
     },
@@ -872,11 +869,8 @@
       "attachments": "Вкладення"
     },
     "attachments": {
-      "title": "Вкладення",
-      "empty": "Файлів не прикріплено.",
       "add": "Прикріпити файли",
       "takePhoto": "Зробити фото",
-      "remove": "Прибрати {{name}}",
       "uploading": "Завантаження {{name}}: {{percent}}%",
       "progressLabel": "Прогрес завантаження {{name}}",
       "limitReached": "Досягнуто ліміт вкладень.",
@@ -941,92 +935,6 @@
       "requiredBadge": "Обов'язкове",
       "editAria": "Редагувати поле «{{name}}»",
       "archiveAria": "Архівувати поле «{{name}}»"
-    },
-    "resolutions": {
-      "issue": "Видати резолюцію",
-      "empty": "Резолюцій ще немає.",
-      "loadFailed": "Не вдалося завантажити резолюції.",
-      "overdue": "Прострочено",
-      "noMembers": "Учасників не знайдено.",
-      "showHistory": "Історія",
-      "hideHistory": "Сховати історію",
-      "history": "Історія резолюції",
-      "completionNote": "Коментар про виконання",
-      "fields": {
-        "author": "Автор",
-        "executor": "Виконавець",
-        "coExecutors": "Співвиконавці",
-        "instruction": "Доручення",
-        "dueDate": "Термін"
-      },
-      "state": {
-        "NEW": "Нова",
-        "IN_PROGRESS": "Виконується",
-        "SUBMITTED": "На перевірці",
-        "REWORK": "На доопрацюванні",
-        "ACCEPTED": "Прийнята",
-        "REDIRECTED": "Переадресована",
-        "CANCELED": "Скасована"
-      },
-      "action": {
-        "start": "Взяти в роботу",
-        "resume": "Продовжити роботу",
-        "submit": "Здати результат",
-        "redirect": "Переадресувати",
-        "accept": "Прийняти результат",
-        "rework": "На доопрацювання",
-        "cancel": "Скасувати резолюцію"
-      },
-      "validation": {
-        "executorRequired": "Оберіть виконавця.",
-        "instructionRequired": "Вкажіть доручення.",
-        "dueRequired": "Вкажіть термін виконання.",
-        "dueInvalid": "Вкажіть коректну дату.",
-        "dueInPast": "Термін не може бути раніше за сьогодні.",
-        "noteRequired": "Це поле обов'язкове."
-      },
-      "dialog": {
-        "issue": {
-          "title": "Нова резолюція",
-          "confirm": "Видати"
-        },
-        "redirect": {
-          "title": "Переадресація резолюції",
-          "confirm": "Переадресувати"
-        },
-        "submit": {
-          "title": "Здати результат",
-          "label": "Коментар про виконання",
-          "confirm": "Здати"
-        },
-        "rework": {
-          "title": "Відправити на доопрацювання",
-          "label": "Що потрібно доопрацювати",
-          "confirm": "Відправити"
-        },
-        "cancel": {
-          "title": "Скасувати резолюцію",
-          "label": "Коментар (необов'язково)",
-          "hint": "Резолюцію буде скасовано разом з усіма незавершеними переадресаціями від неї.",
-          "confirm": "Скасувати резолюцію"
-        }
-      },
-      "chain": {
-        "show": "Ланцюг переадресацій",
-        "hide": "Сховати ланцюг",
-        "title": "Ланцюг переадресацій",
-        "loadFailed": "Не вдалося завантажити ланцюг.",
-        "current": "ця резолюція",
-        "expandNode": "Показати переадресації",
-        "collapseNode": "Згорнути переадресації"
-      },
-      "suggestDone": {
-        "title": "Усі резолюції прийнято",
-        "text": "Усі резолюції за цією задачею прийнято. Перемістити задачу до «Виконано»?",
-        "statusLabel": "Статус",
-        "confirm": "Перемістити",
-        "dismiss": "Не зараз"
-      }
     },
     "quickViews": {
       "label": "Швидкі перегляди",
@@ -1365,19 +1273,14 @@
     "loadFailed": "Не вдалося завантажити сповіщення",
     "actionFailed": "Не вдалося оновити сповіщення",
     "unread": "Нове",
-    "resolver": {
-      "loading": "Відкриваємо резолюцію…",
-      "failed": "Не вдалося відкрити резолюцію"
-    },
     "type": {
-      "RESOLUTION_ISSUED": "Нова резолюція",
-      "RESOLUTION_REDIRECTED": "Резолюцію перенаправлено",
-      "RESOLUTION_SUBMITTED": "Резолюцію подано на прийняття",
-      "RESOLUTION_ACCEPTED": "Резолюцію прийнято",
-      "RESOLUTION_REWORK": "Резолюцію повернуто на доопрацювання",
-      "RESOLUTION_CHILD_ACCEPTED": "Дочірню резолюцію прийнято",
-      "RESOLUTION_DUE_SOON": "Наближається строк",
-      "RESOLUTION_OVERDUE": "Строк минув",
+      "TASK_ASSIGNED": "Вас призначено до задачі",
+      "TASK_UNASSIGNED": "Вас знято із задачі",
+      "TASK_DEADLINE_CHANGED": "Змінено дедлайн задачі",
+      "TASK_DUE_SOON": "Наближається дедлайн",
+      "TASK_OVERDUE": "Дедлайн минув",
+      "SUBTASK_ADDED": "Додано підзадачу",
+      "TASK_STATUS_CHANGED": "Змінено статус задачі",
       "MENTION": "Згадка в коментарі",
       "POLL_OPENED": "Голосування відкрито",
       "POLL_CLOSED": "Голосування завершено",

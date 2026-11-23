@@ -4,15 +4,13 @@ import type { SearchGroupKey, SearchResult } from './searchApi';
 export type SearchHit = components['schemas']['SearchHit'];
 
 /** Display order of the groups. */
-export const GROUP_ORDER: SearchGroupKey[] = ['tasks', 'resolutions', 'articles', 'people', 'orgUnits'];
+export const GROUP_ORDER: SearchGroupKey[] = ['tasks', 'articles', 'people', 'orgUnits'];
 
 /** Application route a hit opens. */
 export function hitLink(group: SearchGroupKey, hit: SearchHit): string {
   switch (group) {
     case 'tasks':
       return `/tasks/${hit.id}`;
-    case 'resolutions':
-      return hit.parentId ? `/tasks/${hit.parentId}?tab=resolutions` : `/resolutions/${hit.id}`;
     case 'articles':
       return `/knowledge/${hit.id}`;
     case 'people':

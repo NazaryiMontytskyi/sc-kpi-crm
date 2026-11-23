@@ -3,8 +3,9 @@ import { toProblemError } from '../api/problem';
 
 type Schemas = components['schemas'];
 
-export type SearchGroupKey = 'tasks' | 'resolutions' | 'articles' | 'people' | 'orgUnits';
-export type SearchResult = Schemas['SearchResponse'];
+export type SearchGroupKey = 'tasks' | 'articles' | 'people' | 'orgUnits';
+/** The groups the UI shows; a deprecated group the backend still returns (always empty) is not read. */
+export type SearchResult = Pick<Schemas['SearchResponse'], 'query' | SearchGroupKey>;
 
 /** Minimum query length the backend searches for; shorter queries return empty groups. */
 export const MIN_QUERY_LENGTH = 2;

@@ -96,7 +96,6 @@ const DETAIL = (summary: api.TaskSummary): api.Task => ({
   relatedTaskIds: [],
   attachmentIds: [],
   attachments: [],
-  suggestDone: false,
   issuedAt: '2031-01-01T10:00:00Z',
   creatorId: 'me',
   assignees: summary.assigneeIds.map((userId) => ({ userId, assignedBy: 'me', assignedAt: '2031-01-01T10:00:00Z', active: true })),

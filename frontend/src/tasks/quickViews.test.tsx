@@ -27,7 +27,7 @@ configure({ asyncUtilTimeout: 8000 });
 const SAVED: api.SavedFilter = {
   id: 'f1',
   name: 'Фейковий фільтр',
-  criteria: { labels: ['терміново'], view: 'OVERDUE', resolutionState: 'NEW' },
+  criteria: { labels: ['терміново'], view: 'OVERDUE', assignee: 'u1', creator: 'u2' },
 };
 
 function renderPage() {
@@ -57,7 +57,7 @@ describe('saved filter logic', () => {
   it('round-trips criteria through a query and keeps sorting', () => {
     const base = { ...DEFAULT_QUERY, sortBy: 'title' as const, direction: 'asc' as const, page: 3, includeArchived: true };
     const q = queryFromCriteria(SAVED.criteria, base);
-    expect(q).toMatchObject({ view: 'OVERDUE', resolutionState: 'NEW', labels: ['терміново'], sortBy: 'title', page: 0, includeArchived: false });
+    expect(q).toMatchObject({ view: 'OVERDUE', assignee: 'u1', creator: 'u2', labels: ['терміново'], sortBy: 'title', page: 0, includeArchived: false });
     expect(sameCriteria(criteriaFromQuery(q), SAVED.criteria)).toBe(true);
   });
 
@@ -65,11 +65,12 @@ describe('saved filter logic', () => {
     expect(sameCriteria({ labels: ['a', 'b'] }, { labels: ['b', 'a'] })).toBe(true);
     expect(sameCriteria({ labels: [], view: 'OVERDUE' }, { labels: [] })).toBe(false);
     expect(hasCriteria(criteriaFromQuery(DEFAULT_QUERY))).toBe(false);
-    expect(hasCriteria({ labels: [], executorId: 'x' })).toBe(true);
+    expect(hasCriteria({ labels: [], assignee: 'x' })).toBe(true);
+    expect(hasCriteria({ labels: [], creator: 'y' })).toBe(true);
   });
 
-  it('counts the resolution filters', () => {
-    expect(activeFilterCount({ ...DEFAULT_QUERY, executorId: 'x', authorId: 'y', resolutionState: 'NEW' })).toBe(3);
+  it('counts the assignee and creator filters', () => {
+    expect(activeFilterCount({ ...DEFAULT_QUERY, assignee: 'x', creator: 'y' })).toBe(2);
   });
 });
 
@@ -92,7 +93,7 @@ describe('quick views and saved filters', () => {
     renderPage();
     await user.click(await screen.findByRole('button', { name: /Збережені фільтри/ }));
     await user.click(await screen.findByRole('menuitem', { name: 'Фейковий фільтр' }));
-    await waitFor(() => expect(lastQuery()).toMatchObject({ view: 'OVERDUE', resolutionState: 'NEW', labels: ['терміново'] }));
+    await waitFor(() => expect(lastQuery()).toMatchObject({ view: 'OVERDUE', assignee: 'u1', creator: 'u2', labels: ['терміново'] }));
   });
 
   it('saves the current filter under a name', async () => {

@@ -24,28 +24,8 @@
     "org": "Structure",
     "tasks": "Tasks",
     "spaces": "Spaces",
-    "myResolutions": "My resolutions",
-    "issuedByMe": "Issued by me",
     "knowledge": "Knowledge base",
     "notifications": "Notifications"
-  },
-  "memberResolutions": {
-    "profileTitle": "Resolutions",
-    "counts": {
-      "active": "Active",
-      "overdue": "Overdue",
-      "accepted": "Accepted"
-    },
-    "empty": "No resolutions in this view.",
-    "emptyActive": "No active resolutions.",
-    "emptyIssued": "No issued resolutions in this view.",
-    "loadFailed": "Failed to load resolutions.",
-    "untitledTask": "Task",
-    "filter": {
-      "label": "Filter by state",
-      "ACTIVE": "Active",
-      "ALL": "All"
-    }
   },
   "layout": {
     "menu": "Menu",
@@ -76,15 +56,12 @@
     "description": "Sections will appear in the menu as they are launched."
   },
   "dashboard": {
-    "myResolutions": {
-      "title": "My resolutions",
-      "openAll": "Open the list",
-      "active": "Active",
+    "myTasks": {
+      "title": "My tasks",
+      "openAll": "Open the tracker",
+      "active": "Open",
       "overdue": "Overdue",
-      "awaitingAcceptance": "Awaiting my acceptance",
-      "upcoming": "Nearest deadlines",
-      "empty": "No active resolutions.",
-      "loadFailed": "Failed to load your resolutions."
+      "loadFailed": "Failed to load your metrics."
     }
   },
   "auth": {
@@ -231,20 +208,6 @@
     "TASK_TOO_MANY_ATTACHMENTS": "Too many attachments.",
     "TASK_TOO_MANY_LABELS": "Too many labels.",
     "TASK_TOO_MANY_RELATED": "Too many related tasks.",
-    "RESOLUTION_TRANSITION_NOT_ALLOWED": "This action is not available for the resolution in its current state.",
-    "RESOLUTION_NOT_EXECUTOR": "Only the executor of the resolution can do this.",
-    "RESOLUTION_NOT_AUTHOR": "Only the author of the resolution can do this.",
-    "RESOLUTION_COMPLETION_NOTE_REQUIRED": "Briefly describe how the resolution was completed.",
-    "RESOLUTION_REWORK_COMMENT_REQUIRED": "Explain what needs to be reworked.",
-    "RESOLUTION_INSTRUCTION_REQUIRED": "The instruction of a resolution cannot be empty.",
-    "RESOLUTION_DUE_DATE_REQUIRED": "A resolution needs a due date.",
-    "RESOLUTION_EXECUTOR_INVALID": "The executor must be an active user.",
-    "RESOLUTION_CO_EXECUTOR_INVALID": "Every co-executor must be an active user.",
-    "RESOLUTION_DUE_DATE_IN_PAST": "The due date cannot be earlier than today.",
-    "RESOLUTION_ARCHIVED": "An archived resolution cannot be changed.",
-    "RESOLUTION_REDIRECT_TO_SELF": "Choose a different executor to redirect the resolution to.",
-    "RESOLUTION_REDIRECT_CYCLE": "This person is already an author or executor earlier in the chain of this resolution.",
-    "RESOLUTION_CHILD_DUE_AFTER_PARENT": "The new resolution is due later than the original one.",
     "SAVED_FILTER_NAME_TAKEN": "You already have a saved filter with this name.",
     "SAVED_FILTER_LIMIT": "You can save at most 50 filters. Remove the ones you no longer need.",
     "ARTICLE_ARCHIVED": "An archived article cannot be changed. Restore it first.",
@@ -323,7 +286,6 @@
     "restricted": "Restricted",
     "groups": {
       "tasks": "Tasks",
-      "resolutions": "Resolutions",
       "articles": "Articles",
       "people": "People",
       "orgUnits": "Org units"
@@ -420,6 +382,34 @@
       "VOTE": "Vote",
       "VOTE_CHANGE": "Vote changed",
       "HANDOVER": "Handover"
+    },
+    "entityTypes": {
+      "User": "User account",
+      "MemberProfile": "Member profile",
+      "Faculty": "Faculty",
+      "ActivityLevelDefinition": "Activity level",
+      "ActivityLevelChange": "Activity level change",
+      "OrgUnit": "Org unit",
+      "Position": "Position",
+      "Appointment": "Appointment",
+      "Membership": "Unit membership",
+      "Role": "Role",
+      "RoleAssignment": "Role assignment",
+      "Space": "Space",
+      "SpaceStatus": "Space status",
+      "CustomFieldDefinition": "Custom field",
+      "SavedFilter": "Saved filter",
+      "Task": "Task",
+      "TaskAssignee": "Task assignee",
+      "TaskArtifact": "Task artifact",
+      "Comment": "Comment",
+      "Article": "Article",
+      "ArticleVersion": "Article version",
+      "OnboardingList": "Onboarding list",
+      "FileObject": "File",
+      "Notification": "Notification",
+      "SearchIndex": "Search index",
+      "OTHER": "Other object ({{type}})"
     }
   },
   "members": {
@@ -568,10 +558,6 @@
       "unknownUnit": "Unknown unit",
       "unknownPosition": "Unknown position",
       "loadFailed": "Could not load the structure data.",
-      "tasks": "Active tasks",
-      "tasksEmpty": "The member’s active tasks will appear here once the task tracker is available.",
-      "resolutions": "Resolutions",
-      "resolutionsEmpty": "The member’s resolutions will appear here once the task tracker is available.",
       "statistics": "Statistics",
       "statisticsEmpty": "Participation statistics will appear later."
     },
@@ -587,6 +573,19 @@
       "save": "Save",
       "history": "Change history",
       "historyEmpty": "No changes yet."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "counts": {
+        "active": "Open",
+        "overdue": "Overdue",
+        "done": "Done"
+      },
+      "empty": "No open tasks.",
+      "loadFailed": "Failed to load tasks.",
+      "loadMore": "Show more",
+      "deadline": "Deadline: {{date}}",
+      "noDeadline": "No deadline"
     }
   },
   "org": {
@@ -817,10 +816,9 @@
       "includeArchived": "Show archived",
       "reset": "Reset",
       "done": "Done",
-      "executor": "Executor",
-      "executorHint": "Includes co-executors",
-      "resolutionAuthor": "Resolution author",
-      "resolutionState": "Resolution state"
+      "assignee": "Assignee",
+      "assigneeHint": "An active assignee of the task",
+      "creator": "Created by"
     },
     "form": {
       "createTitle": "New task",
@@ -844,7 +842,6 @@
     },
     "tabs": {
       "comments": "Comments",
-      "resolutions": "Resolutions",
       "history": "History",
       "soon": "This section will appear later."
     },
@@ -872,11 +869,8 @@
       "attachments": "Attachments"
     },
     "attachments": {
-      "title": "Attachments",
-      "empty": "No files attached.",
       "add": "Attach files",
       "takePhoto": "Take photo",
-      "remove": "Remove {{name}}",
       "uploading": "Uploading {{name}}: {{percent}}%",
       "progressLabel": "Upload progress of {{name}}",
       "limitReached": "The attachment limit is reached.",
@@ -941,92 +935,6 @@
       "requiredBadge": "Required",
       "editAria": "Edit field \"{{name}}\"",
       "archiveAria": "Archive field \"{{name}}\""
-    },
-    "resolutions": {
-      "issue": "Issue resolution",
-      "empty": "No resolutions yet.",
-      "loadFailed": "Failed to load resolutions.",
-      "overdue": "Overdue",
-      "noMembers": "No members found.",
-      "showHistory": "History",
-      "hideHistory": "Hide history",
-      "history": "Resolution history",
-      "completionNote": "Completion note",
-      "fields": {
-        "author": "Author",
-        "executor": "Executor",
-        "coExecutors": "Co-executors",
-        "instruction": "Instruction",
-        "dueDate": "Due date"
-      },
-      "state": {
-        "NEW": "New",
-        "IN_PROGRESS": "In progress",
-        "SUBMITTED": "Submitted",
-        "REWORK": "Rework",
-        "ACCEPTED": "Accepted",
-        "REDIRECTED": "Redirected",
-        "CANCELED": "Canceled"
-      },
-      "action": {
-        "start": "Start",
-        "resume": "Resume",
-        "submit": "Submit result",
-        "redirect": "Redirect",
-        "accept": "Accept result",
-        "rework": "Send for rework",
-        "cancel": "Cancel resolution"
-      },
-      "validation": {
-        "executorRequired": "Choose an executor.",
-        "instructionRequired": "Enter the instruction.",
-        "dueRequired": "Enter a due date.",
-        "dueInvalid": "Enter a valid date.",
-        "dueInPast": "The due date cannot be earlier than today.",
-        "noteRequired": "This field is required."
-      },
-      "dialog": {
-        "issue": {
-          "title": "New resolution",
-          "confirm": "Issue"
-        },
-        "redirect": {
-          "title": "Redirect resolution",
-          "confirm": "Redirect"
-        },
-        "submit": {
-          "title": "Submit result",
-          "label": "Completion note",
-          "confirm": "Submit"
-        },
-        "rework": {
-          "title": "Send for rework",
-          "label": "What needs rework",
-          "confirm": "Send"
-        },
-        "cancel": {
-          "title": "Cancel resolution",
-          "label": "Comment (optional)",
-          "hint": "The resolution will be canceled together with all unfinished redirects made from it.",
-          "confirm": "Cancel resolution"
-        }
-      },
-      "chain": {
-        "show": "Redirect chain",
-        "hide": "Hide chain",
-        "title": "Redirect chain",
-        "loadFailed": "Failed to load the chain.",
-        "current": "this resolution",
-        "expandNode": "Show redirects",
-        "collapseNode": "Collapse redirects"
-      },
-      "suggestDone": {
-        "title": "All resolutions accepted",
-        "text": "All resolutions of this task are accepted. Move the task to Done?",
-        "statusLabel": "Status",
-        "confirm": "Move",
-        "dismiss": "Not now"
-      }
     },
     "quickViews": {
       "label": "Quick views",
@@ -1365,19 +1273,14 @@
     "loadFailed": "Could not load notifications",
     "actionFailed": "Could not update notifications",
     "unread": "New",
-    "resolver": {
-      "loading": "Opening the resolution…",
-      "failed": "Could not open the resolution"
-    },
     "type": {
-      "RESOLUTION_ISSUED": "New resolution",
-      "RESOLUTION_REDIRECTED": "Resolution redirected",
-      "RESOLUTION_SUBMITTED": "Resolution submitted for acceptance",
-      "RESOLUTION_ACCEPTED": "Resolution accepted",
-      "RESOLUTION_REWORK": "Resolution returned for rework",
-      "RESOLUTION_CHILD_ACCEPTED": "Child resolution accepted",
-      "RESOLUTION_DUE_SOON": "Due date approaching",
-      "RESOLUTION_OVERDUE": "Overdue",
+      "TASK_ASSIGNED": "Assigned to a task",
+      "TASK_UNASSIGNED": "Removed from a task",
+      "TASK_DEADLINE_CHANGED": "Task deadline changed",
+      "TASK_DUE_SOON": "Deadline approaching",
+      "TASK_OVERDUE": "Deadline passed",
+      "SUBTASK_ADDED": "Subtask added",
+      "TASK_STATUS_CHANGED": "Task status changed",
       "MENTION": "Mentioned in a comment",
       "POLL_OPENED": "Poll opened",
       "POLL_CLOSED": "Poll closed",

@@ -1,8 +1,5 @@
 import { ApiProblemError, problemMessage } from '../api/problem';
 
-/** Backend limit of attachments on one task (TASK_TOO_MANY_ATTACHMENTS). */
-export const MAX_TASK_ATTACHMENTS = 20;
-
 /** Hint for the file picker; images include the camera on phones. The backend sniffs the real type and decides. */
 export const ATTACH_ACCEPT =
   'image/*,application/pdf,text/plain,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.zip';
@@ -45,11 +42,6 @@ export function attachmentErrorKey(error: unknown): string {
     if (error.status === 403) return 'problems.FORBIDDEN';
   }
   return problemMessage(error).key;
-}
-
-/** Ids of the current attachments plus new ones, without duplicates. */
-export function addAttachmentIds(current: readonly string[], added: readonly string[]): string[] {
-  return [...new Set([...current, ...added])];
 }
 
 /** How many more files may still be attached. */

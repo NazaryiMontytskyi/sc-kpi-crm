@@ -16,10 +16,7 @@ import { PanelAssignees } from './PanelAssignees';
 import { PanelDeadline } from './PanelDeadline';
 import { PanelStatus } from './PanelStatus';
 import { PanelSubtasks } from './PanelSubtasks';
-import { ResolutionsPanel } from './ResolutionsPanel';
 import { SuggestCloseBanner } from './SuggestCloseBanner';
-import { SuggestDoneBanner } from './SuggestDoneBanner';
-import { TaskAttachments } from './TaskAttachments';
 import { TaskFormModal } from './TaskFormModal';
 import {
   canChangeStatus,
@@ -107,7 +104,7 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   // Deep links from notifications open the matching tab.
-  const initialTab = tabParam === 'resolutions' || tabParam === 'history' ? tabParam : 'comments';
+  const initialTab = tabParam === 'history' ? tabParam : 'comments';
   const { user } = useAuth();
   const canArchive = usePermission(TASKS_ARCHIVE);
   const space = useSpace(task.spaceId);
@@ -176,7 +173,6 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
       {failure !== null && <FailureAlert failure={failure} onReload={reload} onDismiss={() => setFailure(null)} />}
       {task.archived && <Alert color="gray">{t('tasks.archivedNotice')}</Alert>}
       <SuggestCloseBanner task={task} statuses={allStatuses} editable={statusEditable} onFailure={setFailure} onStart={clearFailure} />
-      <SuggestDoneBanner task={task} statuses={allStatuses} />
 
       <Card withBorder padding="sm">
         <Stack gap="sm">
@@ -238,16 +234,12 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
 
       <PanelArtifacts task={task} members={memberList} />
       {!task.parentId && <PanelSubtasks task={task} statuses={allStatuses} members={memberList} onConflict={setFailure} />}
-      <TaskAttachments task={task} editable={editable} />
 
-      {/* Comments and resolutions are separate requests made only when their tab is shown (spec §7). */}
+      {/* Comments are a separate request made only when their tab is shown (spec §7). */}
       <Tabs defaultValue={initialTab} keepMounted={false}>
         <Tabs.List>
           <Tabs.Tab value="comments" mih={TOUCH}>
             {t('tasks.tabs.comments')}
-          </Tabs.Tab>
-          <Tabs.Tab value="resolutions" mih={TOUCH}>
-            {t('tasks.tabs.resolutions')}
           </Tabs.Tab>
           <Tabs.Tab value="history" mih={TOUCH}>
             {t('tasks.tabs.history')}
@@ -255,9 +247,6 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
         </Tabs.List>
         <Tabs.Panel value="comments" pt="sm">
           <CommentsPanel targetType="TASK" targetId={task.id} readOnly={task.archived} />
-        </Tabs.Panel>
-        <Tabs.Panel value="resolutions" pt="sm">
-          <ResolutionsPanel taskId={task.id} taskArchived={task.archived} />
         </Tabs.Panel>
         <Tabs.Panel value="history" pt="sm">
           <Text c="dimmed">{t('tasks.tabs.soon')}</Text>

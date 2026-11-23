@@ -12,9 +12,8 @@ import { OrgPage } from '../org/OrgPage';
 import { OrgUnitPage } from '../org/OrgUnitPage';
 import { PositionPage } from '../org/PositionPage';
 import { NotificationsPage } from '../notifications/NotificationsPage';
-import { ResolutionRedirectPage } from '../notifications/ResolutionRedirectPage';
 import { BoardRedirect } from '../tasks/BoardPage';
-import { IssuedByMePage, MyResolutionsPage } from '../tasks/PersonalResolutionsPage';
+import { LegacyTrackerRedirect } from '../tasks/LegacyTrackerRedirect';
 import { SpaceSettingsPage } from '../tasks/SpaceSettingsPage';
 import { SpacesPage } from '../tasks/SpacesPage';
 import { TaskPanelRoute } from '../tasks/TaskPanel';
@@ -53,9 +52,8 @@ export const appRoutes: AppRoute[] = [
     children: [{ path: ':id', element: <TaskPanelRoute /> }],
   },
   { path: '/tasks/board', element: <BoardRedirect /> },
-  { path: '/resolutions/mine', element: <MyResolutionsPage />, nav: { labelKey: 'nav.myResolutions', permission: 'tasks.view' } },
-  { path: '/resolutions/issued', element: <IssuedByMePage />, nav: { labelKey: 'nav.issuedByMe', permission: 'tasks.view' } },
-  { path: '/resolutions/:id', element: <ResolutionRedirectPage /> },
+  // Old URLs of the retired personal lists and items (spec §7) open the tracker; old links keep working.
+  { path: '/resolutions/*', element: <LegacyTrackerRedirect /> },
   { path: '/search', element: <SearchPage /> },
   { path: '/notifications', element: <NotificationsPage />, nav: { labelKey: 'nav.notifications' } },
   { path: '/spaces', element: <SpacesPage />, nav: { labelKey: 'nav.spaces', permission: 'tasks.view' } },

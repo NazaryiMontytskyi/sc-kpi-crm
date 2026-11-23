@@ -126,7 +126,6 @@ const DETAIL: api.Task = {
   relatedTaskIds: [],
   attachmentIds: [],
   attachments: [],
-  suggestDone: false,
   issuedAt: '2031-01-01T10:00:00Z',
   creatorId: 'creator',
   assigneeIds: ['u1', 'u2'],
@@ -262,7 +261,7 @@ describe('panel logic', () => {
   });
 
   it('keeps only the tracker params when opening or closing a task', () => {
-    expect(trackerSearch('?layout=board&space=sp1&tab=resolutions')).toBe('?layout=board&space=sp1');
+    expect(trackerSearch('?layout=board&space=sp1&tab=history')).toBe('?layout=board&space=sp1');
     expect(trackerSearch('?tab=comments')).toBe('');
     expect(trackerSearch('?section=issued&tab=comments')).toBe('?section=issued');
     expect(trackerSearch('')).toBe('');
