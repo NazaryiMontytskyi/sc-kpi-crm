@@ -663,6 +663,6 @@ describe('inline actions at 375 px', () => {
     const b = await within(dialog).findByTestId('task-panel-body');
     await u.click(within(b).getByRole('button', { name: 'Нова підзадача' }));
     expect(within(b).getByText('Для іншого учасника')).toBeInTheDocument();
-    expect(within(b).getByLabelText('Додати виконавця')).toBeInTheDocument();
+    expect(within(b).getByRole('combobox', { name: 'Додати виконавця' })).toBeInTheDocument();
   });
 });

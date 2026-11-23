@@ -29,6 +29,25 @@ export function openTaskNavigation(
   return { state: isTrackerState(currentState) ? { fromTracker: true } : undefined, replace: true };
 }
 
+/**
+ * Router state of a panel entry opened from the list with the arrow keys (spec UI-7): the side panel then leaves the
+ * focus on the list so the next arrow key keeps moving through it. The tracker marker is kept as in
+ * {@link openTaskNavigation}.
+ */
+export interface ListFocusState {
+  fromTracker?: true;
+  listFocus: true;
+}
+
+/** Navigation options for following the list selection with the side panel already open (always a replace). */
+export function listFocusNavigation(currentState: unknown): { state: ListFocusState; replace: true } {
+  return { state: isTrackerState(currentState) ? { fromTracker: true, listFocus: true } : { listFocus: true }, replace: true };
+}
+
+export function keepsListFocus(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as { listFocus?: unknown }).listFocus === true;
+}
+
 /** Id of the task open in the panel (`/tasks/:id`), if any. */
 export function useSelectedTaskId(): string | undefined {
   return useMatch(TASK_PANEL_PATTERN)?.params.id;

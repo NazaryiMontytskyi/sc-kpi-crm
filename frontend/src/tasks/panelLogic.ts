@@ -219,3 +219,18 @@ export function artifactErrorKey(error: unknown): string {
   }
   return taskErrorKey(error);
 }
+
+/**
+ * Text colour tokens of the task panel and sheet with WCAG AA contrast (>= 4.5:1) on their surfaces (INC-083 axe
+ * audit). Mantine's defaults are below it there: `dimmed` is gray-6 (light, ~3.3:1) / dark-2 (dark, ~3.9:1 on cards),
+ * the light `red` text is red-6 (~3.6:1) and the light gray outline is gray-6. Applied as CSS variables on the panel
+ * root, so `c="dimmed"`, `c="red"` and gray outline badges inside it pick them up; only theme tokens are referenced.
+ */
+export function panelContrastVars(scheme: 'light' | 'dark'): Record<string, string> {
+  if (scheme === 'dark') return { '--mantine-color-dimmed': 'var(--mantine-color-dark-1)' };
+  return {
+    '--mantine-color-dimmed': 'var(--mantine-color-gray-7)',
+    '--mantine-color-red-text': 'var(--mantine-color-red-8)',
+    '--mantine-color-gray-outline': 'var(--mantine-color-gray-7)',
+  };
+}

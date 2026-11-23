@@ -12,6 +12,7 @@ import * as memberApi from '../members/memberApi';
 import { renderWithProviders } from '../test/render';
 import { cssVariablesResolver, theme } from '../theme/theme';
 import { openTaskNavigation } from './trackerNav';
+import { panelContrastVars } from './panelLogic';
 import { TaskPanelRoute } from './TaskPanel';
 import { TasksPage } from './TasksPage';
 import * as api from './tasksApi';
@@ -254,6 +255,24 @@ beforeEach(async () => {
 // ---- pure logic --------------------------------------------------------------------------------------------------
 
 describe('panel logic', () => {
+  it('raises secondary, overdue and outline text to AA contrast with theme tokens only', () => {
+    expect(panelContrastVars('light')).toEqual({
+      '--mantine-color-dimmed': 'var(--mantine-color-gray-7)',
+      '--mantine-color-red-text': 'var(--mantine-color-red-8)',
+      '--mantine-color-gray-outline': 'var(--mantine-color-gray-7)',
+    });
+    expect(panelContrastVars('dark')).toEqual({ '--mantine-color-dimmed': 'var(--mantine-color-dark-1)' });
+    for (const value of [...Object.values(panelContrastVars('light')), ...Object.values(panelContrastVars('dark'))]) {
+      expect(value).toMatch(/^var\(--mantine-color-[a-z]+-\d\)$/);
+    }
+  });
+
+  it('applies them to the side panel', async () => {
+    renderTracker('/tasks/t1');
+    await screen.findByRole('region', { name: 'Фейкова задача' });
+    expect(screen.getByTestId('task-panel').style.getPropertyValue('--mantine-color-dimmed')).toBe('var(--mantine-color-gray-7)');
+  });
+
   it('picks side panel, overlay or sheet by breakpoint', () => {
     expect(panelVariant(true, true)).toBe('side');
     expect(panelVariant(false, true)).toBe('overlay');
@@ -494,6 +513,25 @@ describe('panel presentation below 1024 px', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(location()).toBe('/tasks?section=all');
     await waitFor(() => expect(cardLink('Фейкова задача')).toHaveFocus());
+  });
+
+  it('renders picker dropdowns inside the sheet, not in a portal (keeps its scroll position)', async () => {
+    setViewport(375);
+    const user = userEvent.setup();
+    renderTracker('/tasks/t1');
+    const dialog = await screen.findByRole('dialog');
+    await user.click((await within(dialog).findAllByLabelText('Статус')).find((el) => el.tagName === 'INPUT') as HTMLElement);
+    const option = await screen.findByRole('option', { name: 'Фейкове готово', hidden: true });
+    expect(dialog.contains(option)).toBe(true);
+  });
+
+  it('keeps picker dropdowns of the desktop side panel in a portal', async () => {
+    const user = userEvent.setup();
+    renderTracker('/tasks/t1');
+    const panel = await screen.findByRole('region', { name: 'Фейкова задача' });
+    await user.click(await within(panel).findByLabelText('Статус'));
+    const option = await screen.findByRole('option', { name: 'Фейкове готово', hidden: true });
+    expect(panel.contains(option)).toBe(false);
   });
 
   it('closes the sheet with Escape', async () => {

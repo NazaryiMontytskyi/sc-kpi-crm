@@ -1,6 +1,6 @@
 import { Alert, Anchor, Box, Button, Group, Loader, Pagination, Select, Stack, Tabs, Text, Title } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePermission } from '../auth/CurrentUser';
@@ -24,7 +24,8 @@ import {
   type TrackerSection,
 } from './taskLogic';
 import type { SortDirection, TaskQuery, TaskSortField } from './tasksApi';
-import { openTaskNavigation, useSelectedTaskId } from './trackerNav';
+import { handleListArrows } from './keyboardNav';
+import { listFocusNavigation, openTaskNavigation, useSelectedTaskId } from './trackerNav';
 import { useSpaceDetails, useSpaces, useTaskList } from './useTasks';
 
 const SORTS: { value: `${TaskSortField}:${SortDirection}`; key: string }[] = [
@@ -160,6 +161,13 @@ export function TasksPage() {
   const listSearch = new URLSearchParams({ section: 'all' });
   if (boardSpace) listSearch.set('space', boardSpace);
 
+  // ArrowUp/ArrowDown move between the task cards (spec UI-7); with the side panel open it follows the focus.
+  const onListKeyDown = (event: KeyboardEvent<HTMLDivElement>) =>
+    handleListArrows(event, (taskId) => {
+      if (!sideBySide || taskId === selectedId) return;
+      navigate({ pathname: `/tasks/${taskId}`, search: trackerSearch(location.search) }, listFocusNavigation(location.state));
+    });
+
   const openSection = (next: TrackerSection) => {
     const search = new URLSearchParams(trackerSearch(location.search));
     if (next === 'my') search.delete('section');
@@ -215,7 +223,7 @@ export function TasksPage() {
             : undefined
         }
       >
-        <Box style={{ minWidth: 0 }}>
+        <Box style={{ minWidth: 0 }} onKeyDown={board ? undefined : onListKeyDown}>
           {board ? (
             <TaskBoard spaceId={boardSpace} selectedId={selectedId} />
           ) : (

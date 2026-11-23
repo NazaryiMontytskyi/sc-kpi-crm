@@ -32,7 +32,8 @@ export function SuggestCloseBanner({ task, statuses, editable, onFailure, onStar
   const selected = chosen ?? targets[0].id;
 
   return (
-    <Alert color="green" data-testid="suggest-close" title={t('tasks.suggestClose.title')}>
+    // The title uses the body text colour: the green alert title is below 4.5:1 on its tinted background (axe).
+    <Alert color="green" data-testid="suggest-close" title={t('tasks.suggestClose.title')} styles={{ title: { color: 'var(--mantine-color-text)' } }}>
       <Stack gap="xs">
         <Text size="sm">{t('tasks.suggestClose.text')}</Text>
         {targets.length > 1 && (

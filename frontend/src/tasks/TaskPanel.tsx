@@ -1,8 +1,8 @@
-import { Alert, Anchor, Badge, Box, Button, Card, CloseButton, Drawer, Group, Loader, Paper, Stack, Tabs, Text, Title } from '@mantine/core';
+import { Alert, Anchor, Badge, Box, Button, Card, CloseButton, Combobox, Drawer, Group, Loader, Paper, Stack, Tabs, Text, Title, MantineThemeProvider, Popover, useComputedColorScheme, type MantineThemeOverride } from '@mantine/core';
 import { useMediaQuery, useReducedMotion } from '@mantine/hooks';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { ApiProblemError } from '../api/problem';
 import { formatKyivDateTime } from '../audit/kyivTime';
 import { useAuth, usePermission } from '../auth/CurrentUser';
@@ -33,7 +33,9 @@ import {
   type PanelVariant,
 } from './taskLogic';
 import type { CustomField, Task } from './tasksApi';
-import { useClosePanel, useTaskLink } from './trackerNav';
+import { useEscapeToClose } from './keyboardNav';
+import { panelContrastVars } from './panelLogic';
+import { keepsListFocus, useClosePanel, useTaskLink } from './trackerNav';
 import { useArchiveTask, useRestoreTask, useSpace, useSpaces, useTask } from './useTasks';
 
 /** Minimum touch target in px. */
@@ -41,6 +43,19 @@ const TOUCH = 44;
 /** Width of the tablet overlay. */
 const OVERLAY_WIDTH = 560;
 const TRANSITION_MS = 200;
+
+/**
+ * Pickers inside the overlay and the phone sheet render their dropdowns inside the drawer instead of a portal on
+ * `<body>`: a portaled dropdown makes the browser reset the drawer's scroll position when it opens, so on a phone a
+ * picker further down the sheet (e.g. the assignee of a new subtask) jumped to the top and its options vanished
+ * (found by the INC-083 full-journey e2e at 375 px).
+ */
+const DRAWER_PICKERS: MantineThemeOverride = {
+  components: {
+    Combobox: Combobox.extend({ defaultProps: { withinPortal: false } }),
+    Popover: Popover.extend({ defaultProps: { withinPortal: false } }),
+  },
+};
 
 // ---- small read-only blocks ------------------------------------------------------------------
 
@@ -262,20 +277,34 @@ function TaskPanelBody({ task, onReload }: BodyProps) {
 
 // ---- frames ----------------------------------------------------------------------------------
 
+/** AA text colours for the current colour scheme, as CSS variables for the frame root (see panelContrastVars). */
+function usePanelContrast(): CSSProperties {
+  const scheme = useComputedColorScheme('light', { getInitialValueInEffect: false });
+  return panelContrastVars(scheme) as CSSProperties;
+}
+
 interface FrameProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
 }
 
-/** Desktop (>= 1024 px): a region next to the list; focus moves to its heading when another task opens. */
+/**
+ * Desktop (>= 1024 px): a region next to the list; focus moves to its heading when another task opens, except when
+ * the task was picked with the arrow keys in the list (the focus stays there, spec UI-7). Esc closes it.
+ */
 function SidePanel({ taskId, title, onClose, children }: FrameProps & { taskId: string }) {
   const { t } = useTranslation();
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const location = useLocation();
+  const listFocus = keepsListFocus(location.state);
   useEffect(() => {
+    if (listFocus) return;
     headingRef.current?.focus({ preventScroll: true });
-  }, [taskId]);
+  }, [taskId, listFocus]);
+  useEscapeToClose(onClose);
+  const contrast = usePanelContrast();
   return (
     <Paper
       component="section"
@@ -292,6 +321,7 @@ function SidePanel({ taskId, title, onClose, children }: FrameProps & { taskId: 
         maxHeight: 'calc(100dvh - var(--app-shell-header-height, 60px) - 2 * var(--mantine-spacing-md))',
         overflowY: 'auto',
         minWidth: 0,
+        ...contrast,
       }}
     >
       <Group justify="space-between" align="flex-start" wrap="nowrap" mb="sm">
@@ -318,6 +348,7 @@ function DrawerPanel({ variant, title, onClose, children }: FrameProps & { varia
     return () => cancelAnimationFrame(frame);
   }, []);
   const sheet = variant === 'sheet';
+  const contrast = usePanelContrast();
   return (
     <Drawer.Root
       opened={opened}
@@ -328,7 +359,7 @@ function DrawerPanel({ variant, title, onClose, children }: FrameProps & { varia
       transitionProps={{ transition: 'slide-left', duration: reduceMotion ? 0 : TRANSITION_MS }}
     >
       <Drawer.Overlay />
-      <Drawer.Content radius={0} data-testid="task-panel" data-variant={variant}>
+      <Drawer.Content radius={0} data-testid="task-panel" data-variant={variant} style={contrast}>
         <Drawer.Header style={{ gap: 'var(--mantine-spacing-xs)', alignItems: 'flex-start' }}>
           {sheet && (
             <Button variant="default" mih={TOUCH} px="sm" onClick={onClose} style={{ flexShrink: 0 }} data-autofocus>
@@ -340,7 +371,9 @@ function DrawerPanel({ variant, title, onClose, children }: FrameProps & { varia
           </Drawer.Title>
           {!sheet && <Drawer.CloseButton size={TOUCH} aria-label={t('tasks.panel.close')} data-autofocus />}
         </Drawer.Header>
-        <Drawer.Body style={{ overflowX: 'hidden' }}>{children}</Drawer.Body>
+        <Drawer.Body style={{ overflowX: 'hidden' }}>
+          <MantineThemeProvider theme={DRAWER_PICKERS}>{children}</MantineThemeProvider>
+        </Drawer.Body>
       </Drawer.Content>
     </Drawer.Root>
   );
