@@ -1177,7 +1177,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** The backend still serves the old endpoints at this point, so the app stays working.
 
 #### INC-083 — Hardening: performance, keyboard, full-journey e2e, docs, proposal
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** backend `tasks`, frontend `tasks`, `docs`
 - **Depends on:** INC-081, INC-082
 - **Scope:** list query/index check with a 2,000-task fixture; full-journey Playwright (assign, subtasks, artifacts, mobile 375 px, light/dark); a11y audit of panel and sheet; keyboard (Esc closes the panel, arrows in list; P2); README/commands update; ADR-0010 status Accepted; proposal in `docs/proposals/` listing the CONTEXT.md changes of spec §3 (CONTEXT.md itself is not edited).
