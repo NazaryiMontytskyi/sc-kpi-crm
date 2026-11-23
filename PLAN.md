@@ -1162,7 +1162,7 @@ Retires `Resolution` and enriches `Task` with `TaskAssignee`, one-level subtasks
 - **Notes:** Runs after INC-082 so the frontend no longer calls removed endpoints.
 
 #### INC-082 — Remove resolutions in the frontend; widget, profile, notifications, routes
-- **Status:** TODO
+- **Status:** DONE
 - **Module(s):** frontend `tasks`, `dashboard`, `members`, `notifications`, `search`, `layout`, `i18n`
 - **Depends on:** INC-078, INC-079, INC-080
 - **Scope:** delete `ResolutionsPanel`, `ResolutionChain`, `ResolutionDialogs`, `StateBadge`, `PersonalResolutionsPage`, `MemberResolutionList`, `MemberResolutionsSection`, `ResolutionRedirectPage`, related hooks/tests/i18n keys and superseded attachment components; `MyResolutionsWidget` becomes "My tasks" on the overview component; member profile section reads tasks; notification rendering for the new types (legacy `RESOLUTION_*` rendered generically); search labels; old resolution routes redirect to `/tasks`; audit UI renders unknown legacy entity types generically (RR-7); role-builder permission labels; TS client regenerated.
