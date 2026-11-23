@@ -57,7 +57,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(page.getByTestId('task-panel')).toHaveAttribute('data-variant', mobile ? 'sheet' : 'side');
 
       // Every field of spec UI-2 in one view.
-      await expect(panel.getByLabel('Status')).toBeVisible();
+      await expect(panel.getByRole('combobox', { name: 'Status', exact: true })).toBeVisible();
       await expect(panel.getByTestId('panel-assignees')).toContainText(author.fullName);
       await expect(panel.getByTestId('panel-issued')).not.toBeEmpty();
       await expect(panel.getByTestId('panel-deadline')).not.toBeEmpty();
