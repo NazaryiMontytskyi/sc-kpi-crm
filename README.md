@@ -3,7 +3,7 @@
 Internal information system of the Student Council of KPI. Specification: `CONTEXT.md`.
 
 ## Prerequisites
-Java 21, Docker (Postgres via compose and Testcontainers), Node 20+ (frontend, later increments).
+Java 21, Docker (Postgres via compose and Testcontainers), Node 22.12+ (frontend and the e2e suite).
 
 ## Run the backend locally
 ```bash
@@ -14,7 +14,11 @@ With the `dev` profile (default), Spring Boot starts `deploy/docker-compose.dev.
 ## Tests
 ```bash
 ./mvnw verify   # unit + integration tests; Docker required
+./mvnw test -Dtest=TaskListPerformanceIntegrationTests   # only the task list benchmark (see below)
 ```
+
+### Task list benchmark
+`TaskListPerformanceIntegrationTests` (part of `./mvnw verify`) checks the target of `TASK_TRACKING_FEATURE.md` §7: a task list of 2,000 tasks answers within 300 ms p95. It seeds 2,000 fake tasks (400 of them subtasks), about 3,000 assignee rows and 40 fake users into the Testcontainers PostgreSQL 16, runs `ANALYZE`, then calls `GET /api/v1/tasks` through the full MVC stack for nine typical requests (default list, space sorted by deadline, assignee, assignee + overdue, overdue, "My tasks" with 100 per page, "Issued by me", subtasks of a task, label + deadline range): 30 warm-up calls, then 3 rounds of 100 timed calls each (nearest-rank p95 per round). The asserted value is the median of the per-round p95s (< 300 ms); if it misses, 3 more rounds are measured once and the median of all rounds decides, so one noisy round cannot fail the build but a consistently slow scenario does. It asserts that the list indexes of V25 exist and that the assignee filter uses `ix_task_assignee_user` (the other indexes are not claimed to be used at this size: PostgreSQL scans the 2,000 `task` rows sequentially, which is cheaper; the SQL takes 1-2 ms and latency is dominated by the HTTP/JPA overhead). Recorded runs (2026-11-23, Windows laptop with Docker Desktop): median p95 per scenario 21-298 ms in a run on a heavily loaded machine (single rounds up to 445 ms) and 18-257 ms in quieter runs; details in ADR-0010.
 
 ## Layout
 `src/` Java backend only · `frontend/` React app · `deploy/` compose and ops · `assets/brand/` brand assets · `docs/adr/` decisions.
@@ -40,6 +44,9 @@ npm run api:generate    # regenerate the typed client from the pinned frontend/o
 npm run api:generate:live   # refresh openapi.json from a running backend (dev profile), then regenerate
 ```
 Environment: copy `frontend/.env.example` to `frontend/.env.local`. Brand colors only via theme tokens (`src/theme/colors.ts`); logos are read from `assets/brand/` and fall back to the product name as text when missing. UI strings live in `src/i18n/locales/{uk,en}.json` (keep keys identical).
+
+### Task tracker
+`/tasks` is a master/detail page (decisions: ADR-0010): "My tasks" (default), "Issued by me" and "All tasks" or the board on the left; a task opens on `/tasks/:id` in a side panel (>= 1024 px), an overlay (tablet) or a full-screen sheet (phone). Keyboard: ArrowUp/ArrowDown move between the task cards of the list (with the side panel open, it follows), Enter opens the focused task, Esc closes the panel and returns the focus to the card. Keys typed into fields, editors, pickers and dialogs are left alone. Resolutions were converted into subtasks (V28) and removed; their tables stay read-only until a human decides to drop them. Proposed `CONTEXT.md` wording: `docs/proposals/0001-task-tracking-context-changes.md`.
 
 ## Deployment (Docker Compose)
 Topology and rationale: `docs/adr/0008-deployment-topology.md`. Services: `postgres`, `backend` (profile `prod` by default), `frontend` (nginx: SPA + reverse proxy of `/api`, same domain), `backup`.
@@ -74,12 +81,14 @@ bash deploy/smoke.sh http://localhost
 To restore onto a new server, bring the stack up, place the two backup files into the backup directory, then run the same steps. On Windows Git Bash prefix `MSYS_NO_PATHCONV=1` to the `exec` commands.
 
 ## End-to-end tests (Playwright)
-The suite in `frontend/e2e` drives the real UI of the production-like compose stack headless in Chromium, once at desktop size and once at a 375 px phone viewport (projects `desktop` and `mobile-375`). Scenarios: sign-in with forced password change, HR creates a member, a department and a role, resolution issue -> redirect -> submit -> rework -> accept, reading an article and saving a new version, search, notification bell. Requirements: Docker and Node 22 (`cd frontend && npm ci` once).
+The suite in `frontend/e2e` drives the real UI of the production-like compose stack headless in Chromium, once at desktop size and once at a 375 px phone viewport (projects `desktop` and `mobile-375`). Scenarios: sign-in with forced password change, HR creates a member, a department and a role, the task tracker (side panel and 375 px sheet in the light and dark theme; full journey: assign a colleague, add a subtask for them, attach a link and a file, finish the subtask and get the close suggestion, the colleague finds the task in "My tasks"; keyboard: arrows in the list, Esc closes the panel), an axe-core accessibility audit of the panel and the sheet (no serious or critical WCAG 2.1 A/AA violations, light and dark; `specs/task-a11y.spec.ts`), reading an article and saving a new version, search, notification bell. Requirements: Docker and Node 22 (`cd frontend && npm ci` once).
 ```bash
 bash deploy/e2e.sh                                  # build + start stack "crme2e", run everything headless, stop the stack
 bash deploy/e2e.sh --project=mobile-375             # extra arguments go to Playwright (project, file, --headed, ...)
 E2E_RESET=1 bash deploy/e2e.sh                      # start from an empty database (also exercises the bootstrap Admin password change)
 E2E_BASE_URL=http://localhost:8081 npm run e2e      # from frontend/: run against a stack that is already up (nothing is started)
+bash deploy/e2e.sh specs/task-journey.spec.ts specs/task-panel.spec.ts specs/task-a11y.spec.ts   # only the task tracker
+E2E_PROJECT=crme2etmp E2E_HTTP_PORT=8093 E2E_HTTPS_PORT=8453 bash deploy/e2e.sh   # a separate throw-away stack (own volumes)
 ```
 `deploy/e2e.sh` uses its own compose project (`E2E_PROJECT`, default `crme2e`, nginx on `E2E_HTTP_PORT`, default 8081), so it never touches a normal `crm` stack. The stack is stopped afterwards with its volumes kept (`E2E_KEEP_STACK=1` leaves it running). No env file is read or created: the script passes fake, throw-away values (database password, bootstrap Admin `e2e.admin`) through the process environment, and the suite creates its own uniquely named fake members, roles, spaces and articles through the API and UI, so it can be re-run any number of times. Report and traces of failures are written to `frontend/e2e/.output/` (git-ignored). Vitest (`npm test`) does not pick up the e2e specs.
 
