@@ -22,6 +22,9 @@ Resolutions became subtasks (ADR-0010), so the index no longer holds resolutions
 - **Migration of existing data.** Migration V30 deletes the leftover `RESOLUTION` rows from `search_document`. These are derived index rows, not business entities; the resolution tables are untouched. V28 created subtasks from resolutions in plain SQL, so no events were published for them. Existing task documents also lack the assignee names and subtask titles. To fix both, the one-off seeder `search.reindex-tasks-as-subtasks` (`SearchReindexSeeder`, scope REFERENCE, runs after all other seeders) runs a full reindex once per environment, tracked in `seed_history`. Like a manual reindex, it is audited, under the system actor. If seeding is disabled, an administrator runs `POST /search/reindex` instead.
 - **Cost.** Indexing a task now reads its assignees, its subtasks and one member profile per assignee. A member update re-indexes all of that member's tasks. Both are small for this organisation's size.
 
+### Update (INC-081): resolution group removed
+The deprecated `resolutions` group is gone from `GET /search`, `RESOLUTION` is no longer a valid value of `types` (400), and `POST /search/reindex` no longer reports `resolutions`. `TaskTextProvider` lost its resolution methods.
+
 ## Consequences
 - A bug in an indexing listener fails the business operation (same transaction). Accepted for consistency; the reindex repairs drift.
 - Ukrainian has no stemming: inflected forms are found by prefix, substring and trigram similarity, not by lemma. A dedicated dictionary can later replace the `simple` half of `tsv` in a new migration.
